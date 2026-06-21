@@ -117,10 +117,31 @@ app.MapGet("/api/photos/{id:long}", async (long id, PmDbContext db) =>
     });
 });
 
+app.MapGet("/api/saved-searches", async (PmDbContext db) =>
+    Results.Ok(await db.SavedSearches.OrderByDescending(s => s.Id).ToListAsync()));
+
+app.MapPost("/api/saved-searches", async (SavedSearchDto dto, PmDbContext db) =>
+{
+    var s = new SavedSearch { Name = dto.Name, QueryJson = dto.QueryJson };
+    db.SavedSearches.Add(s);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/saved-searches/{s.Id}", new { s.Id });
+});
+
+app.MapDelete("/api/saved-searches/{id:long}", async (long id, PmDbContext db) =>
+{
+    var s = await db.SavedSearches.FindAsync(id);
+    if (s is null) return Results.NotFound();
+    db.SavedSearches.Remove(s);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
 app.Run();
 
 public record CreateRootDto(string Name, string AbsPath);
 public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName);
 public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
+public record SavedSearchDto(string Name, string QueryJson);
 
 public partial class Program { }   // 供 WebApplicationFactory 測試引用
