@@ -5,6 +5,8 @@
 > **前置:** 需先完成地基(`IInferenceSessionFactory`)、Scanner(排 `tagging_job`)。
 >
 > **環境註(重要):** WD14 真推論需 **下載模型(HuggingFace)** 與 **DirectX12/GPU**(無則退 CPU,慢)。本計畫把**可測邏輯**(後處理、csv 解析、worker 的 DB 寫入)與 fake tagger 隔離測試;**真模型下載 + 實際推論**標 `[手動]`,需在使用者機器上跑。
+>
+> **設計決定(2026-06-21,ML 可開可不開):** 計畫 1–6 已是**不靠 ML 就能用**的完整系統 —— WD14 只是 `photo_tag.source` 三個來源(`path`/`manual`/`wd14`)之一,缺它不影響掃描/去重/對帳/縮圖/布林查詢/Angular 相簿/路徑→tag。因此 WD14 做成**顯式開關 `Inference:Enabled`(預設 `false`)**:關閉時 **① 不註冊 worker、不下載模型;② Scanner 不往 `tagging_job` 塞 job**(否則十萬量級會堆滿排隊垃圾,日後一打開全跑)。開關落在 Task 4(host 端)與 Task 5(Scanner 端)。
 
 **Goal:** 在 .NET 程序內實作 WD14 動漫自動標籤:背景服務輪詢 `tagging_job(state=pending)` → 讀原圖 → 前處理(448² 方形白底 BGR)→ ONNX 推論(經 `IInferenceSessionFactory`,預設 DirectML)→ 後處理(過門檻、category→kind)→ upsert `tag` + `photo_tag(source='wd14', confidence)` → job done;失敗 attempts++/state=error。
 
@@ -19,6 +21,7 @@
 - **`tagging_job` 程序內佇列**:輪詢 pending → running → done/error(attempts++ 可重試)。
 - **不改原圖**:只讀圖做推論。
 - 模型:SmilingWolf `wd-vit-tagger-v3`(HF ONNX);category→kind 與門檻**待對實際 `selected_tags.csv` 校正**(spec §12)。
+- **ML 為 opt-in**:`Inference:Enabled` 預設 `false`。關閉時不啟動 worker、不下載模型,且 Scanner 不排 `tagging_job`。其餘 Phase 1 功能與 ML 無耦合。
 
 ---
 
@@ -36,13 +39,18 @@ src/
 │  ├─ Wd14ModelProvider.cs         # 缺檔下載
 │  ├─ IWd14Tagger.cs
 │  └─ Wd14Tagger.cs                # 串起前處理/推論/後處理
+├─ Pm.Scanner/
+│  ├─ ScannerOptions.cs            # { bool TaggingEnabled }(Task 5)
+│  └─ LibraryScanner.cs            # gate enqueue 於 TaggingEnabled(Task 5)
 └─ Pm.Api/
    ├─ TaggingWorker.cs             # BackgroundService + ProcessNextAsync
-   └─ Program.cs                   # +DI +AddHostedService
+   └─ Program.cs                   # +DI +AddHostedService(受 Inference:Enabled 控制)
 tests/
 ├─ Pm.Ml.Tests/
 │  ├─ Wd14PostprocessTests.cs
 │  └─ Wd14TagsTests.cs
+├─ Pm.Scanner.Tests/
+│  └─ EnrichTests.cs               # +關閉時不排 job 的測試(Task 5)
 └─ Pm.Api.Tests/
    └─ TaggingWorkerTests.cs        # fake tagger
 ```
@@ -666,39 +674,44 @@ Expected: PASS,3 passed。
 
 ---
 
-## Task 4: 接上 host(DI + AddHostedService)+ 端到端 [手動]
+## Task 4: 接上 host(DI + AddHostedService,受 `Inference:Enabled` 控制)+ 端到端 [手動]
 
 **Files:**
 - Modify: `src/Pm.Api/Program.cs`
-- Modify: `src/Pm.Api/appsettings.json`(Wd14 區段)
+- Modify: `src/Pm.Api/appsettings.json`(Inference / Wd14 區段)
 
 **Interfaces:**
-- Produces:啟動時註冊 `Wd14Options`、`IInferenceSessionFactory`、`IWd14Tagger`、`TaggingWorker` 並 `AddHostedService`。
+- Produces:讀 `Inference:Enabled`(預設 `false`);**僅當為 true** 才註冊 `Wd14Options`、`IInferenceSessionFactory`、`IWd14Tagger`、`TaggingWorker` 並 `AddHostedService`。`Inference:Enabled` 旗標亦供 Task 5 的 `ScannerOptions` 使用。
 
-- [ ] **Step 1: DI + hosted service**
+- [ ] **Step 1: 旗標 + 條件式 DI + hosted service**
 
-在 `src/Pm.Api/Program.cs` 服務註冊區加:
+在 `src/Pm.Api/Program.cs` 服務註冊區加(`inferenceEnabled` 變數放在前面,Task 5 會重用):
 
 ```csharp
-var wd14 = builder.Configuration.GetSection("Wd14").Get<Wd14Options>() ?? new Wd14Options();
-builder.Services.AddSingleton(wd14);
+var inferenceEnabled = builder.Configuration.GetValue<bool>("Inference:Enabled");   // 預設 false
 
-// EP:啟動參數/偵測選 backend(地基 IInferenceSessionFactory)。
-var backend = InferenceBackendSelector.Select(
-    builder.Configuration["Inference:Backend"], gpuVendor: null);   // 簡化:預設 CPU/可由設定指定 dml
-builder.Services.AddSingleton<IInferenceSessionFactory>(_ =>
-    backend == InferenceBackend.DirectMl ? new DirectMlSessionFactory() : new CpuSessionFactory());
+if (inferenceEnabled)
+{
+    var wd14 = builder.Configuration.GetSection("Wd14").Get<Wd14Options>() ?? new Wd14Options();
+    builder.Services.AddSingleton(wd14);
 
-builder.Services.AddSingleton<IWd14Tagger, Wd14Tagger>();
-builder.Services.AddHostedService<TaggingWorker>();
+    // EP:啟動參數/偵測選 backend(地基 IInferenceSessionFactory)。
+    var backend = InferenceBackendSelector.Select(
+        builder.Configuration["Inference:Backend"], gpuVendor: null);   // 簡化:預設 CPU/可由設定指定 dml
+    builder.Services.AddSingleton<IInferenceSessionFactory>(_ =>
+        backend == InferenceBackend.DirectMl ? new DirectMlSessionFactory() : new CpuSessionFactory());
+
+    builder.Services.AddSingleton<IWd14Tagger, Wd14Tagger>();
+    builder.Services.AddHostedService<TaggingWorker>();
+}
 ```
 
-> 註:`Wd14Tagger` 用 singleton(模型載一次)。`gpuVendor` 偵測可後續接 Windows `Win32_VideoController`;先讓 `Inference:Backend` 設定可指定 `dml`/`cpu`。
+> 註:`Inference:Enabled=false`(預設)時完全不碰 ML —— worker 不註冊、模型不下載,系統照常以 path/manual 標籤運作。`Wd14Tagger` 用 singleton(模型載一次)。`gpuVendor` 偵測可後續接 Windows `Win32_VideoController`;先讓 `Inference:Backend` 設定可指定 `dml`/`cpu`。
 
 並在 `src/Pm.Api/appsettings.json` 加(與 `ConnectionStrings` 同層):
 
 ```json
-  "Inference": { "Backend": "dml" },
+  "Inference": { "Enabled": false, "Backend": "dml" },
   "Wd14": {
     "ModelDir": "models/wd14",
     "GeneralThreshold": 0.35,
@@ -720,8 +733,10 @@ Expected: 編譯成功;所有單元/整合測試綠(worker 用 fake,不需模型
 
 - [ ] **Step 3: [手動] 端到端(使用者機器)**
 
+> 0. **先開 ML**:把 `appsettings.json` 的 `Inference:Enabled` 設 `true`(預設 `false` 不會跑 ML)。
 > 1. `dotnet run --project src/Pm.Api`(首次會背景下載 WD14 模型到 `models/wd14`)。
 > 2. 用前端或 API 建 root 指向一個有動漫圖的資料夾、觸發掃描(產生 `tagging_job`)。
+>    註:若先前在 `Enabled=false` 掃過,那批舊照片沒排 job;開啟後重掃同 root,或日後加「補排 job」端點(本計畫外)。
 > 3. 等 worker 跑完(看 log),`GET /api/photos/{id}` 應出現 `source:"wd14"` 的分色標籤(角色綠/一般藍…)。
 > 4. 在檢視器確認 WD14 建議以虛線 + 信心 % 呈現。
 > 5. 若顯卡是 NVIDIA 想跑滿速,改 `Inference:Backend` 或加 CUDA publish profile(spec §7)。
@@ -736,12 +751,134 @@ git commit -m "feat: WD14 worker 接上 host(DI + AddHostedService + EP 選擇)"
 
 ---
 
+## Task 5: Scanner 端開關 —— 關閉時不排 `tagging_job`(`ScannerOptions`)
+
+`Inference:Enabled=false` 時,掃描**不該**往 `tagging_job` 塞 job(十萬量級會堆滿排隊垃圾)。在 `LibraryScanner` 加一個 `ScannerOptions.TaggingEnabled` 閘門;既有測試(`EnrichTests` 4-arg、`ScannerTests` 2-arg)維持「預設開」不破。
+
+**Files:**
+- Create: `src/Pm.Scanner/ScannerOptions.cs`
+- Modify: `src/Pm.Scanner/LibraryScanner.cs`(主建構子加 `ScannerOptions`;gate line ~91 的 enqueue)
+- Modify: `src/Pm.Api/Program.cs`(註冊 `ScannerOptions`,綁 `inferenceEnabled`)
+- Modify: `tests/Pm.Scanner.Tests/EnrichTests.cs`(加關閉時不排 job 的測試)
+
+**Interfaces:**
+- Consumes: Task 4 的 `inferenceEnabled` 旗標。
+- Produces:
+  - `ScannerOptions { bool TaggingEnabled = false; }`
+  - `LibraryScanner` 新主建構子 `(PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs, ScannerOptions options)`;原 4-arg/2-arg 降為委派建構子,皆預設 `TaggingEnabled = true`(向後相容既有測試)。
+
+- [ ] **Step 1: 寫 `ScannerOptions`**
+
+Create `src/Pm.Scanner/ScannerOptions.cs`:
+
+```csharp
+namespace Pm.Scanner;
+
+public sealed class ScannerOptions
+{
+    // 由 host 綁 Inference:Enabled;預設關 → 掃描不排 WD14 job。
+    public bool TaggingEnabled { get; set; } = false;
+}
+```
+
+- [ ] **Step 2: `LibraryScanner` 主建構子加 `ScannerOptions` + gate enqueue**
+
+把 `src/Pm.Scanner/LibraryScanner.cs` 的類別宣告(主建構子)改成 5 參數,並把原本的 4-arg 主建構子降為委派建構子(預設開,讓 `EnrichTests` 的 `JobsQueued==1` 不破);既有 2-arg 委派建構子原樣鏈到 4-arg,**不需改動**:
+
+```csharp
+public sealed class LibraryScanner(
+    PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs, ScannerOptions options)
+{
+    // 既有 4-arg 呼叫端(EnrichTests)→ 預設開,JobsQueued 行為不變。
+    public LibraryScanner(PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs)
+        : this(db, hasher, meta, thumbs, new ScannerOptions { TaggingEnabled = true }) { }
+
+    // 既有 2-arg 呼叫端(ScannerTests)沿用:鏈到 4-arg → 同樣預設開。
+    public LibraryScanner(PmDbContext db, IFileHasher hasher)
+        : this(db, hasher, new ExifImageMetadataReader(), new ThumbnailService(new ThumbnailOptions())) { }
+```
+
+並把原本 line ~91 無條件 enqueue:
+
+```csharp
+                        db.TaggingJobs.Add(new TaggingJob { PhotoId = photo.Id });
+                        await db.SaveChangesAsync(ct);
+                        jobsQueued++;
+```
+
+改成受閘門控制:
+
+```csharp
+                        if (options.TaggingEnabled)
+                        {
+                            db.TaggingJobs.Add(new TaggingJob { PhotoId = photo.Id });
+                            await db.SaveChangesAsync(ct);
+                            jobsQueued++;
+                        }
+```
+
+- [ ] **Step 3: host 註冊 `ScannerOptions`(綁旗標)**
+
+在 `src/Pm.Api/Program.cs`(Task 4 已定義 `inferenceEnabled`),`AddScoped<LibraryScanner>()` 之前加:
+
+```csharp
+builder.Services.AddSingleton(new ScannerOptions { TaggingEnabled = inferenceEnabled });
+```
+
+> `AddScoped<LibraryScanner>()` 會自動解析新 5-arg 主建構子(`ScannerOptions` 由容器提供),不需改該行。
+
+- [ ] **Step 4: 寫失敗的測試(關閉時不排 job)**
+
+在 `tests/Pm.Scanner.Tests/EnrichTests.cs` 的 `Scanner(ctx)` helper 已是 4-arg(預設開)。新增一個明確關閉的測試:
+
+```csharp
+    private LibraryScanner DisabledScanner(PmDbContext ctx) =>
+        new(ctx, new Sha256FileHasher(), new ExifImageMetadataReader(),
+            new ThumbnailService(new ThumbnailOptions { Dir = _thumbs }),
+            new ScannerOptions { TaggingEnabled = false });
+
+    [Fact]
+    public async Task Tagging_disabled_indexes_image_but_queues_no_job()
+    {
+        using (var img = new Image<Rgba32>(640, 480))
+            await img.SaveAsPngAsync(Path.Combine(_root, "pic.png"));
+        var rootId = await SeedRoot();
+
+        ScanResult result;
+        await using (var ctx = NewContext())
+            result = await DisabledScanner(ctx).ScanRootAsync(rootId);
+
+        Assert.Equal(1, result.NewPhotos);          // 身分照建
+        Assert.Equal(1, result.ThumbsGenerated);     // 縮圖照產
+        Assert.Equal(0, result.JobsQueued);          // 但不排 WD14 job
+
+        await using var verify = NewContext();
+        Assert.Equal(0, await verify.TaggingJobs.CountAsync());
+    }
+```
+
+- [ ] **Step 5: 跑測試 + Commit**
+
+Run:
+
+```bash
+cd /d/picture-management
+dotnet test tests/Pm.Scanner.Tests/Pm.Scanner.Tests.csproj
+git add src/Pm.Scanner src/Pm.Api tests/Pm.Scanner.Tests
+git commit -m "feat: ML opt-in 開關(Inference:Enabled)—關閉時 Scanner 不排 tagging_job"
+```
+
+Expected: 全綠(既有 `JobsQueued==1` 測試仍過 + 新的關閉測試 `JobsQueued==0`)。
+
+---
+
 ## 完成定義(WD14 worker)
 
 - 後處理/csv/worker DB 邏輯**單元+整合測試全綠**(fake tagger,不需模型)。
 - `Wd14Tagger` 走 `IInferenceSessionFactory`(預設 DirectML、可退 CPU),模型缺則自 HF 下載。
 - worker 輪詢 `tagging_job`:pending→running→done;失敗→error/attempts++。
 - 標籤寫 `photo_tag(source='wd14', confidence)`,tag.kind 依 category。
+- **ML opt-in**:`Inference:Enabled` 預設 `false` → worker 不註冊、模型不下載、Scanner 不排 job;既有 `JobsQueued==1` 測試仍綠,新增關閉時 `JobsQueued==0` 測試。
 - **[手動]** 端到端真推論在使用者機器驗證(GPU/網路);category/門檻對 `selected_tags.csv` 校正。
 
 **明確不在本計畫:** WD14 建議的接受/拒絕寫回(UI 互動,可在計畫 6 之上增強)、CLIP/語意搜尋(Phase 2)。
@@ -753,4 +890,5 @@ git commit -m "feat: WD14 worker 接上 host(DI + AddHostedService + EP 選擇)"
 - **Spec 覆蓋:** §5.2 標籤流程(輪詢→推論→過門檻→upsert)、§3 ML in-proc 經 `IInferenceSessionFactory`、§2 WD14 模型、鐵則「source=wd14+confidence」「不綁 CUDA」「DB-as-queue 程序內」。
 - **可測 / 不可測切分:** 純邏輯(後處理/csv/worker DB)完整測試;真模型/GPU 推論隔離為 `[手動]`,full-auto 跑到此交棒使用者機器。
 - **校正點:** category→kind 與門檻明示「對 selected_tags.csv 校正」(對齊 spec §12)。
+- **ML opt-in(Task 4/5):** `Inference:Enabled` 預設關 → 計畫 1–6 不靠 ML 即完整可用;關閉時 host 不註冊 worker(Task 4)、Scanner 不排 job(Task 5,避免十萬量級堆排隊垃圾)。既有測試以「預設開」的委派建構子維持不破。
 ```
