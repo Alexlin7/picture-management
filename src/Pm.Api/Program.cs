@@ -15,6 +15,7 @@ builder.Services.AddScoped<IFileHasher, Sha256FileHasher>();
 builder.Services.AddScoped<IImageMetadataReader, ExifImageMetadataReader>();
 builder.Services.AddScoped<IThumbnailService, ThumbnailService>();
 builder.Services.AddScoped<LibraryScanner>();
+builder.Services.AddScoped<PathTagService>();
 
 var app = builder.Build();
 
@@ -66,8 +67,21 @@ app.MapGet("/api/reconcile/missing", async (PmDbContext db) =>
     return Results.Ok(gone);
 });
 
+app.MapGet("/api/roots/{id:long}/pending-segments", async (long id, PathTagService svc) =>
+    Results.Ok(await svc.GetPendingSegmentsAsync(id)));
+
+app.MapPost("/api/path-rules", async (PathRuleDto dto, PathTagService svc) =>
+{
+    await svc.ApplyRuleAsync(dto.RootId, dto.Segment, dto.Action, dto.TagName);
+    return Results.Ok();
+});
+
+app.MapPost("/api/roots/{id:long}/apply-path-tags", async (long id, PathTagService svc) =>
+    Results.Ok(new { rulesApplied = await svc.ApplyExistingRulesAsync(id) }));
+
 app.Run();
 
 public record CreateRootDto(string Name, string AbsPath);
+public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName);
 
 public partial class Program { }   // 供 WebApplicationFactory 測試引用
