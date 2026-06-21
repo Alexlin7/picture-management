@@ -4,3 +4,13 @@ docs/mockups/shot-*.png
 # Playwright
 test-results/
 playwright-report/
+
+# .NET
+bin/
+obj/
+*.user
+
+# SQLite 本機資料庫(衍生,不入庫)
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
