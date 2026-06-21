@@ -22,54 +22,64 @@
 
 ## 2. 技術棧(已定案)
 
+> **架構修訂(2026-06-21,單程序收斂):** 原設計為「.NET + Python worker + Postgres/Docker」三件套多程序。經紅隊檢視(見 §7「單程序收斂」),為單機單人「雙擊即開、跨機穩、零常駐服務」,**收斂成單一 .NET 程序 + 嵌入式 SQLite + ONNX 在程序內推論**。Python/Postgres/Docker 退為「日後 NAS/多人」的可選路徑。推論本身 C# 與 Python 共用同一顆 ONNX Runtime 引擎,速度能力一致,非賭注;真正延後的只是「Python ML 生態的便利」,而 `tagging_job` 留作可重開的 seam(見 §3)。
+
 | 層 | 選用 | 版本 / 備註 |
 |---|---|---|
-| 前端 | **Angular** + `@angular/cdk` | 最新 21/22(scaffold 時以 `ng new` 實抓為準),CDK virtual scroll 處理大量縮圖 |
-| web 後端 | **C# / .NET 10**(ASP.NET Core) | 已裝 SDK `10.0.301`。內建掃描器背景服務、serve Angular 靜態檔 |
-| ORM / DB 驅動 | **Npgsql.EntityFrameworkCore.PostgreSQL** | 與 EF Core 主版號對齊 → 10.x |
+| 前端 | **Angular** + `@angular/cdk` | 最新 21/22(scaffold 時以 `ng new` 實抓為準),CDK virtual scroll 處理大量縮圖;`ng build` 產靜態檔交給 .NET serve |
+| web 後端 + 宿主 | **C# / .NET 10**(ASP.NET Core) | 已裝 SDK `10.0.301`。**單一程序**內含:API + 掃描器背景服務 + ONNX 推論 + serve Angular 靜態檔 |
+| ORM / DB 驅動 | **Microsoft.EntityFrameworkCore.Sqlite** | EF Core 10.x 的 SQLite provider |
+| DB | **嵌入式 SQLite** | in-process、檔案式、零安裝(如 Java H2 embedded);扛布林多軸查詢 + JSON(EXIF)+ FTS5 + recursive CTE;多寫入由單程序天然序列化 |
+| ML 推論 | **Microsoft.ML.OnnxRuntime.DirectML** | NuGet `1.24.x`;WD14 ONNX 在 .NET 程序內跑;EP 經 `IInferenceSessionFactory` 抽象(DirectML / 日後 CUDA / CPU fallback,開機偵測或參數選) |
 | EXIF | **MetadataExtractor** | 抽 `taken_at` / 相機 / GPS |
-| 縮圖 / 尺寸 | **SixLabors.ImageSharp** | 個人用免費;產 webp 縮圖 |
-| ML worker | **Python 3.13** | WD14 動漫自動標籤;`onnxruntime-directml` + `huggingface_hub` + `pillow`/`numpy` + `psycopg[binary]` |
-| 向量(Phase 2) | **pgvector** | NuGet `pgvector` + PG `vector` 擴充;CLIP 階段才需要 |
-| DB | **單顆 PostgreSQL** | 布林多軸查詢 + JSONB(EXIF)+ 日後 tsvector/GIN + pgvector |
+| 縮圖 / 尺寸 | **SixLabors.ImageSharp** | 個人用免費;產 webp 縮圖;兼做 WD14 前處理(resize 448²、BGR) |
+| 向量(Phase 2) | **sqlite-vec** 或遷 **Postgres+pgvector** | CLIP 階段才需要;sqlite-vec 仍 alpha,屆時評估「就地 sqlite-vec」vs「一次性遷 Postgres」 |
+| (可選/未來) ML sidecar | **Python** | 僅遇到難轉 ONNX 的新模型才開回;以**無狀態 compute sidecar**:只推論、結果 POST 回 C# API,不直連 DB(避開 SQLite 雙寫) |
 
-環境現況(2026-06-21 重啟後):.NET `10.0.301` ✅、Node `v24.15.0` / npm `11.12.1` ✅、Docker `29.5.3` + compose `v5.1.4` ✅、**Python 未裝(worker 階段以 winget 裝 3.13)**。
+環境現況(2026-06-21 重啟後):.NET `10.0.301` ✅、Node `v24.15.0` / npm `11.12.1` ✅。**Phase 1 不再需要 Docker 或 Python**(Docker `29.5.3` 已裝,僅日後 NAS 包裝用;Python 僅未來 sidecar 才裝)。
 
 ---
 
 ## 3. 架構與元件
 
 ```
-┌─────────────┐   REST    ┌────────────────────┐
-│  Angular SPA │ ───────► │  ASP.NET Core API   │
-│ (虛擬滾動相簿)│ ◄─────── │  查詢/縮圖/標籤/根管理 │
-└─────────────┘           └─────────┬──────────┘
-                                    │
-                  ┌─────────────────┼──────────────────┐
-                  ▼                 ▼                  ▼
-          ┌──────────────┐  ┌──────────────┐   ┌──────────────┐
-          │ Scanner/索引  │  │  Postgres     │   │ 縮圖快取(磁碟) │
-          │(.NET 背景服務)│  │  單一真相      │   │ 依 hash 命名   │
-          │ hash/EXIF/    │  │ photo/tag/... │   │ 絕不碰原圖     │
-          │ 路徑→tag/偵測 │  │ + tagging_job │   └──────────────┘
-          └──────────────┘  └──────┬───────┘
-                                   │ DB-as-queue(輪詢 tagging_job)
-                                   ▼
-                          ┌──────────────────┐
-                          │ Python ML worker  │
-                          │ WD14 自動標籤      │
-                          │ (Phase2 CLIP→pgvector)│
-                          └──────────────────┘
+┌──────────────┐
+│  Angular SPA  │  (ng build 靜態檔,由下面的 .NET 程序 serve)
+│ (虛擬滾動相簿) │
+└──────┬───────┘
+       │ REST(localhost)
+       ▼
+┌──────────────────────────────────────────────────┐
+│            單一 .NET 程序(ASP.NET Core)            │
+│  ┌──────────┐  ┌───────────┐  ┌───────────────┐   │
+│  │  API     │  │ Scanner   │  │ 標籤背景服務    │   │
+│  │ 查詢/縮圖 │  │ 索引/對帳  │  │ 抽 tagging_job │   │
+│  │ /CRUD    │  │ hash/EXIF │  │ → ONNX in-proc │   │
+│  └────┬─────┘  └─────┬─────┘  └──────┬────────┘   │
+│       └──────────────┼───────────────┘            │
+│                      ▼                             │
+│      IInferenceSessionFactory(DML / CUDA / CPU)    │
+└──────────────────────┬─────────────────────────────┘
+          ┌────────────┼──────────────┐
+          ▼            ▼              ▼
+   ┌────────────┐ ┌──────────┐ ┌───────────────┐
+   │ SQLite 檔   │ │ 縮圖快取  │ │ (未來/可選)    │
+   │ 單一真相    │ │ 依 hash   │ │ Python compute │
+   │ +tagging_job│ │ 絕不碰原圖 │ │ sidecar        │
+   └────────────┘ └──────────┘ └───────────────┘
 ```
 
-1. **Angular SPA** — CDK virtual scroll 相簿、布林 tag 搜尋面板、Saved Search、標籤編輯器(接受/拒絕 WD14 建議)、失蹤檔案待確認匣、library root 管理、匯入路徑→tag 確認步驟。
-2. **ASP.NET Core API** — 布林 tag 查詢(keyset 分頁)、serve 縮圖與原圖、tag/saved-search CRUD、root 管理、觸發掃描、reconcile 佇列、路徑→tag 規則確認。只 bind `localhost`,單機單人**不做帳號系統**。
-3. **Scanner / 索引器(.NET 背景服務)** — 走訪 root、算 SHA-256、抽 EXIF、路徑→tag(經規則)、upsert `photo`/`photo_location`、用 hash 偵測搬移/失蹤、產縮圖、塞 `tagging_job`。內建於 .NET 後端,不另開行程。
-4. **Python ML worker** — 輪詢 `tagging_job`,跑 WD14 ONNX(DirectML),寫回 `photo_tag`(source/confidence)。Phase 2 加 CLIP embedding → pgvector。
-5. **Postgres** — 單一真相(見 §4)。
-6. **縮圖快取** — app 自有目錄,依 `file_hash` 分桶(如 `thumbs/ab/cd/<hash>.webp`),衍生、可重建、絕不碰原圖。
+1. **Angular SPA** — CDK virtual scroll 相簿、布林 tag 搜尋面板、Saved Search、標籤編輯器(接受/拒絕 WD14 建議)、失蹤檔案待確認匣、library root 管理、匯入路徑→tag 確認步驟。`ng build` 產靜態檔由 .NET 程序 serve。
+2. **單一 .NET 程序(ASP.NET Core)** — 一個行程內同時是:
+   - **API** — 布林 tag 查詢(keyset 分頁)、serve 縮圖與原圖、tag/saved-search CRUD、root 管理、觸發掃描、reconcile 佇列、路徑→tag 規則確認。只 bind `localhost`,**不做帳號系統**。
+   - **Scanner / 索引器(背景服務)** — 走訪 root、算 SHA-256、抽 EXIF、路徑→tag(經規則)、upsert `photo`/`photo_location`、用 hash 偵測搬移/失蹤、產縮圖、塞 `tagging_job`。
+   - **標籤背景服務** — 抽 `tagging_job`(**程序內 DB-backed 佇列**:`System.Threading.Channels` + `BackgroundService`,並行上限/重試/背壓),跑 WD14 ONNX 推論,寫回 `photo_tag`(source/confidence)。
+   - **`IInferenceSessionFactory`** — 抽象 ONNX Execution Provider:開機依偵測顯卡或啟動參數選 DirectML / (日後)CUDA / CPU fallback。把「DirectML 維護模式」風險關進此介面,可隨時抽換。
+3. **SQLite(嵌入式檔案)** — 單一真相(見 §4)。in-process,單程序天然序列化寫入,無 server、無 port、無常駐服務。
+4. **縮圖快取** — app 自有目錄,依 `file_hash` 分桶(如 `thumbs/ab/cd/<hash>.webp`),衍生、可重建、絕不碰原圖。
+5. **(未來/可選)Python compute sidecar** — 僅當遇到難轉 ONNX 的新模型才開回;**無狀態**:只做推論,結果 POST 回 C# API,**不直連 SQLite**(避開雙寫)。`tagging_job` 即這道可重開的 seam。
 
-**.NET ↔ Python 溝通 = DB-as-queue**(`tagging_job` 表):.NET 塞、Python 輪詢取走寫回。單機單人不上 RabbitMQ/Redis,DB 佇列耐重啟、好批次、少一個服務要顧(YAGNI)。
+**單程序的代價與保留:** 收掉第二程序 → 不需跨程序 broker/queue,但 `tagging_job` 表保留作**持久工作清單**(隔夜續跑、重試、可被未來 sidecar 接管)。GPU crash 會影響整個程序 → 推論置於獨立背景執行緒、可選分批,降低衝擊(YAGNI:單人本機,重啟成本低)。
 
 ---
 
@@ -156,6 +166,8 @@ erDiagram
 
 ### 4.2 DDL
 
+> **以 EF Core SQLite 實現。** 下方 DDL 為**概念示意**(Postgres 風格);SQLite 落地時型別由 EF 對應:`BIGSERIAL`→`INTEGER PRIMARY KEY AUTOINCREMENT`、`TIMESTAMPTZ`→`TEXT`(ISO8601)、`JSONB`→`TEXT`(配 SQLite JSON 函式)、`CHAR(64)`→`TEXT`。**結構性差異:SQLite 無 `POINT` 型別,GPS 改存 `gps_lat`/`gps_lon` 兩個 `REAL`。** 部分索引、recursive CTE、`GROUP BY ... HAVING count(DISTINCT)` 交集查詢 SQLite 皆支援。
+
 ```sql
 -- ① 物理根:舊GDrive / 新硬碟 / 本機,絕對路徑只存這
 CREATE TABLE library_root (
@@ -175,7 +187,8 @@ CREATE TABLE photo (
     mime         VARCHAR(64),
     taken_at     TIMESTAMPTZ,
     camera_model VARCHAR(128),
-    gps          POINT,
+    gps_lat      REAL,                                   -- SQLite 無 POINT,GPS 拆兩欄
+    gps_lon      REAL,
     exif         JSONB,
     imported_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -250,7 +263,7 @@ CREATE INDEX ix_phototag_tag ON photo_tag (tag_id, photo_id);
 CREATE INDEX ix_photo_taken  ON photo (taken_at);
 CREATE INDEX ix_loc_photo    ON photo_location (photo_id);
 CREATE INDEX ix_job_state    ON tagging_job (state) WHERE state IN ('pending','error');
--- Phase 2:ALTER TABLE photo ADD COLUMN embedding vector(768); + HNSW 索引
+-- Phase 2:語意搜尋向量。SQLite 走 sqlite-vec(vec0 虛擬表),或屆時遷 Postgres+pgvector(vector(768)+HNSW)
 ```
 
 ### 4.3 設計重點
@@ -289,11 +302,11 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
                                               → 否:整張圖失蹤 → 進待確認匣問使用者
 ```
 
-### 5.2 標籤(Python worker)
+### 5.2 標籤(.NET 程序內背景服務)
 
 ```
-輪詢 tagging_job WHERE state='pending' → 取一批 →
-  讀原圖 bytes → WD14 ONNX(DirectML)推論 → 過信心門檻(預設 ~0.35,可調)→
+背景服務抽 tagging_job WHERE state='pending' → 取一批 →
+  讀原圖 bytes → WD14 ONNX(經 IInferenceSessionFactory:DirectML/CUDA/CPU)推論 → 過信心門檻(預設 ~0.35,可調)→
   upsert tag(character/copyright/general,kind 對應)+ photo_tag(source=wd14, confidence)→
   job state=done(失敗 attempts++、state=error 可重試)
 ```
@@ -366,21 +379,27 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 | 移動/刪除偵測 | hash 對帳 + 待確認匣 | hash 是身分,搬移自動續接,真失蹤才問 |
 | 刪除語意 | **軟刪**(archived) | 保留 photo+tags,同 hash 回來自動復原;硬刪需手動 purge |
 | WD14 範圍 | 角色 + 作品 + 一般屬性 | 攻「我不知道」那堆 + 屬性語意篩選;門檻可調 |
-| GPU | `onnxruntime-directml` | 跨 NVIDIA(現機)/ AMD(住處)同程式碼,無 GPU 退 CPU |
+| GPU / EP | `IInferenceSessionFactory` 抽象,預設 DirectML | 跨 NVIDIA(現機)/ AMD(住處);DirectML 維護模式風險關進介面,可換 CUDA/CPU;一檔通吃,要 NV 全速再加 CUDA publish profile |
 | 路徑→tag | 匯入後確認 + 學習型 `path_tag_rule` | 可控但不重複煩 |
 | 標籤階層 | **DAG `tag_relation` 邊表(可多父)** | 階層是可選彙整非必填;不知上游=留最上層;支援跨企劃聯動單位多重隸屬;搜上層自動涵蓋後代 |
-| 後端溝通 | DB-as-queue | 單機單人免 broker,耐重啟 |
+| **單程序收斂** | **ML 收進 .NET 程序內(ONNX in-proc),非 Python worker** | C#/Python 共用同一 ONNX 引擎、推論能力一致非賭注;收掉第二程序→免 broker/server DB;`tagging_job` 留作程序內持久佇列 + 未來 Python sidecar 的 seam |
+| **儲存引擎** | **嵌入式 SQLite(非 Postgres)** | 單機單人雙擊即開、零常駐服務、免 Docker/WSL(遊戲玩家會關 WSL);單程序天然序列化寫入;Phase 2 語意搜尋再 sqlite-vec / 遷 PG |
 | API 認證 | 無(localhost only) | 單機單人;**離開 localhost 即必須加**(見 §11) |
 | 外部開啟 | 後端代開檔案總管 / 預設程式;下載原圖留 Phase 2 | 瀏覽器沙盒開不了,原生後端可;只認 photo_id 防路徑注入 |
-| 後端語言 | C#/.NET 10 + Python worker | web 啟動快;ML 生態留在 Python |
+| 後端語言 | C#/.NET 10(單程序);Python 僅未來可選 sidecar | web 啟動快、交付為單一 exe;ML 生態之門以 sidecar 保留可重開 |
 
 ---
 
-## 8. 交付 / 安裝(方案 C 混合)
+## 8. 交付 / 安裝(單一 exe 為主)
 
-- **Postgres 走 Docker**(`pgvector/pgvector` image)→ 最省事拿到 pgvector;
-- **.NET API + Python worker 原生跑** → 直接讀十萬本機檔、啟動快(避開 Windows bind-mount 檔案存取慢)。
-- 最終一鍵:`.NET publish` 自包含單檔 exe(免裝 runtime、serve Angular 靜態檔、拉起 Python worker)+ PowerShell 啟動腳本(起 DB → 起 exe → 開瀏覽器到 localhost)。
+B 架構把整個 app 收成單一 .NET 程序(serve Angular + API + 掃描器 + ONNX in-proc + SQLite 檔),交付是「一個核心 + 兩個包裝」:
+
+- **自包含單檔 exe(主力)** — `dotnet publish -r win-x64 --self-contained -p:PublishSingleFile=true`;SQLite、DirectML EP、Angular 靜態檔全包進去。**免裝 .NET runtime / Docker / Postgres / Python**,雙擊即開,DB 是同目錄一個 `.sqlite` 檔。
+- **安裝版(可選包裝)** — 用 Velopack / Inno Setup 把上面那顆 exe 包成安裝包:開始選單捷徑、自動更新、首次建資料夾。底層同一顆 exe。
+- **單顆 Docker image(可選,僅日後 NAS / headless / Linux 伺服器)** — 把 .NET app 裝進 image。⚠️ DirectML 是 Windows-only,**Linux container 內推論退回 CPU**(除非另接 Linux GPU EP)。非 Windows 本機日常所需。
+
+> 原「方案 C 混合(Postgres 走 Docker + .NET/Python 原生)」因收斂為單程序 + SQLite 而**作廢**;Windows 上 Phase 1 不再需要 Docker。
+> NV 要全速:加一個引 `Microsoft.ML.OnnxRuntime.Gpu`(CUDA)的 publish profile,`IInferenceSessionFactory` 程式碼不動(見 §7 GPU/EP)。
 
 ---
 
@@ -391,7 +410,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 - **壞圖/非圖檔** → 略過記 log,不進庫。
 - **搬移後重掃** → hash 命中 → 換位置不產重複身分,tag 不丟。
 - **WD14 job 失敗** → state=error + attempts,可重跑。
-- **單顆 Postgres 是唯一真相**(無 XMP)→ pg_dump 排程 + 可選 tag manifest 匯出(獨立檔不碰原圖)。
+- **SQLite 檔是唯一真相**(無 XMP)→ 備份 = 複製該 `.sqlite` 檔(可熱備:`VACUUM INTO`)+ tag manifest 匯出(`hash,tag` 獨立檔,不碰原圖;建議早做,避免策展綁死單一 app)。
 
 ---
 
@@ -405,7 +424,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 ## 11. 分階段
 
 - **Phase 1(核心)**:schema + 掃描/對帳 + 路徑→tag 確認 + 布林查詢 + Angular 相簿 + 縮圖 + WD14 worker。**不含** embedding/pgvector。
-- **Phase 2(語意搜尋)**:CLIP image embedding → `pgvector` hybrid query(結構化過濾 + 相似度排序);動漫上考慮日文/動漫微調 CLIP 變體。
+- **Phase 2(語意搜尋)**:CLIP image embedding → 向量查詢(結構化過濾 + 相似度排序);**儲存走 sqlite-vec(vec0 虛擬表)**,若屆時 sqlite-vec 仍 alpha/不夠用,則**一次性遷 Postgres+pgvector**(EF 抽象在,資料搬移為主)。動漫上考慮日文/動漫微調 CLIP 變體。CLIP 推論同樣經 `IInferenceSessionFactory` 在程序內跑;若該模型難轉 ONNX,才開回 Python compute sidecar(無狀態、POST 回 API)。
 - **Phase 2(可選:離開純本機 / NAS / 多人)**:由「下載原圖」需求延伸 —— 圖不只本機自己看時。**要動三件事,不只 CORS**:① **bind 位址**從 `localhost` 改 `0.0.0.0`/區網 IP(別人連得到的關鍵);② **CORS 白名單**做成設定檔可調(讓別網域前端能呼叫);③ **認證**——⚠️ 安全紅線:**一旦 bind 改離 localhost,認證就從「無」(鐵則 #8)變成必須**,否則整個圖庫對區網裸奔。bind 與 CORS 都做成設定檔參數,並在設定處註明這條紅線,避免隨手改 bind 卻沒上鎖。
 
 ---
