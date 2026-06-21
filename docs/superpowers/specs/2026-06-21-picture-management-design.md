@@ -347,6 +347,11 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 - **階層樹(DAG)**:左側「作品 / 企劃 → 角色」可展開;不知上游的 tag 落在 **「— 無上層分類 —」** 桶,照常可用;多父 tag 標 `↟2` 徽章;搜上層自動涵蓋旗下後代(tag implication)。
 - **標籤來源可辨**:已採用 = 實線分色 chip;WD14 建議 = 虛線 + 信心 %,逐一接受/拒絕。
 - **揪混入的個人照片**:置頂特殊 Saved Search「可能是個人照片」(`has:exif OR tag:realistic`)。
+- **跳回真實檔案系統(外部開啟)**:檢視器位置卡上提供三顆按鈕,語意分清。瀏覽器本身開不了檔案總管(沙盒),故一律**由原生跑在本機的 .NET 後端代為執行**;因 API bind `localhost`(鐵則 #8),能連到 API 的就保證是本機,不需另外偵測。
+  - **在檔案總管顯示**(主要):後端 `explorer.exe /select,<path>` —— 僅反白不開檔,風險最低。
+  - **用預設程式開啟**(次要):後端 `Process.Start(<path>)` 走 OS 關聯;等於開那張 PNG(鐵則 #1),使用者主動點才觸發,可接受。
+  - **下載原圖**(Phase 2,先留位不接線):API 串檔案 bytes 回前端。純本機用不到,是日後「NAS / 多人 / SaaS 化」的種子 —— 唯有圖不只本機自己看時才需要。詳見 §11。
+  - **實作鐵則**:① 後端只認 `photo_id`,路徑一律自 `library_root`+`rel_path` 組出,**絕不收前端傳來的任意路徑**(否則路徑注入 / 任意檔案開啟漏洞);② 位置 `status = missing` 時按鈕 disable。
 - **存查詢不存資料夾**:Saved Search 為一級物件,同張圖可同時落在多個搜尋。
 - **品質底線**:十萬量級走 virtual scroll + keyset 分頁;鍵盤焦點可見;尊重 `prefers-reduced-motion`。
 
@@ -365,7 +370,8 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 | 路徑→tag | 匯入後確認 + 學習型 `path_tag_rule` | 可控但不重複煩 |
 | 標籤階層 | **DAG `tag_relation` 邊表(可多父)** | 階層是可選彙整非必填;不知上游=留最上層;支援跨企劃聯動單位多重隸屬;搜上層自動涵蓋後代 |
 | 後端溝通 | DB-as-queue | 單機單人免 broker,耐重啟 |
-| API 認證 | 無(localhost only) | 單機單人 |
+| API 認證 | 無(localhost only) | 單機單人;**離開 localhost 即必須加**(見 §11) |
+| 外部開啟 | 後端代開檔案總管 / 預設程式;下載原圖留 Phase 2 | 瀏覽器沙盒開不了,原生後端可;只認 photo_id 防路徑注入 |
 | 後端語言 | C#/.NET 10 + Python worker | web 啟動快;ML 生態留在 Python |
 
 ---
@@ -400,6 +406,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 
 - **Phase 1(核心)**:schema + 掃描/對帳 + 路徑→tag 確認 + 布林查詢 + Angular 相簿 + 縮圖 + WD14 worker。**不含** embedding/pgvector。
 - **Phase 2(語意搜尋)**:CLIP image embedding → `pgvector` hybrid query(結構化過濾 + 相似度排序);動漫上考慮日文/動漫微調 CLIP 變體。
+- **Phase 2(可選:離開純本機 / NAS / 多人)**:由「下載原圖」需求延伸 —— 圖不只本機自己看時。**要動三件事,不只 CORS**:① **bind 位址**從 `localhost` 改 `0.0.0.0`/區網 IP(別人連得到的關鍵);② **CORS 白名單**做成設定檔可調(讓別網域前端能呼叫);③ **認證**——⚠️ 安全紅線:**一旦 bind 改離 localhost,認證就從「無」(鐵則 #8)變成必須**,否則整個圖庫對區網裸奔。bind 與 CORS 都做成設定檔參數,並在設定處註明這條紅線,避免隨手改 bind 卻沒上鎖。
 
 ---
 
