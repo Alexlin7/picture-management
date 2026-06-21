@@ -1,11 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
+import { Workbench } from './shell/workbench';
 
 @Component({
   selector: 'app-root',
-  imports: [],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  imports: [Workbench],
+  template: `<app-workbench />`,
 })
-export class App {
-  protected readonly title = signal('Pm.Web');
-}
+export class App {}

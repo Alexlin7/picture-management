@@ -1,1 +1,8 @@
 /* You can add global styles to this file, and also import other style files */
+:root {
+  --bg: #0f1115; --panel: #161922; --panel-2: #1c2030; --line: #2a3040;
+  --text: #e6e8ee; --muted: #8b93a7; --accent: #22D3EE; --danger: #F0616D;
+}
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font-family: Inter, "Noto Sans TC", system-ui, sans-serif; }
+h3, h4 { margin: 12px 0 6px; }
