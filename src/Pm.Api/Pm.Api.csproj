@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Pm.Data\Pm.Data.csproj" />
     <ProjectReference Include="..\Pm.Ml\Pm.Ml.csproj" />
+    <ProjectReference Include="..\Pm.Scanner\Pm.Scanner.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
