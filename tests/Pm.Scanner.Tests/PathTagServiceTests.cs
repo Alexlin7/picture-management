@@ -107,4 +107,31 @@ public class PathTagServiceTests : IDisposable
         Assert.Equal("meta", tag.Kind);
         Assert.Equal(1, await verify.PhotoTags.CountAsync(pt => pt.TagId == tag.Id));
     }
+
+    [Fact]
+    public async Task Existing_rules_apply_to_newly_added_photos()
+    {
+        var rootId = await SeedLocations("vspo/a.png");
+        await using (var ctx = NewContext())
+            await new PathTagService(ctx).ApplyRuleAsync(rootId, "vspo", "map_to_tag", "vspo");
+
+        // 之後又進來一張同段新照片
+        await using (var ctx = NewContext())
+        {
+            var root = await ctx.LibraryRoots.FindAsync(rootId);
+            var photo = new Photo { FileHash = new string('z', 64), FileSize = 1 };
+            photo.Locations.Add(new PhotoLocation { LibraryRoot = root!, RelPath = "vspo/new.png" });
+            ctx.Photos.Add(photo);
+            await ctx.SaveChangesAsync();
+        }
+
+        int applied;
+        await using (var ctx = NewContext())
+            applied = await new PathTagService(ctx).ApplyExistingRulesAsync(rootId);
+
+        Assert.Equal(1, applied);
+        await using var verify = NewContext();
+        var tag = await verify.Tags.SingleAsync(t => t.Name == "vspo");
+        Assert.Equal(2, await verify.PhotoTags.CountAsync(pt => pt.TagId == tag.Id));   // 舊 + 新
+    }
 }

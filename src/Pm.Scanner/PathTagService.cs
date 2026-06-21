@@ -69,6 +69,18 @@ public sealed class PathTagService(PmDbContext db)
             await ApplySegmentTagAsync(rootId, segment, tagId.Value, ct);
     }
 
+    public async Task<int> ApplyExistingRulesAsync(long rootId, CancellationToken ct = default)
+    {
+        var rules = await db.PathTagRules
+            .Where(r => (r.LibraryRootId == rootId || r.LibraryRootId == null) && r.TagId != null)
+            .ToListAsync(ct);
+
+        foreach (var r in rules)
+            await ApplySegmentTagAsync(r.LibraryRootId, r.Segment, r.TagId!.Value, ct);
+
+        return rules.Count;
+    }
+
     private async Task ApplySegmentTagAsync(long? rootId, string segment, long tagId, CancellationToken ct)
     {
         var pat = segment;
