@@ -27,6 +27,10 @@ using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<PmDbContext>().Database.Migrate();
 }
 
+// 由 .NET serve Angular 靜態檔(ng build 輸出至 wwwroot),同源、免 CORS
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 // liveness:程序活著就好,不碰 DB
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
@@ -38,8 +42,6 @@ app.MapGet("/health/db", async (PmDbContext db) =>
         ? Results.Ok(new { db = "ok" })
         : Results.Json(new { db = "down" }, statusCode: 503);
 });
-
-app.MapGet("/", () => "Picture Management API");
 
 app.MapPost("/api/roots", async (CreateRootDto dto, PmDbContext db) =>
 {
@@ -136,6 +138,9 @@ app.MapDelete("/api/saved-searches/{id:long}", async (long id, PmDbContext db) =
     await db.SaveChangesAsync();
     return Results.NoContent();
 });
+
+// SPA fallback:前端路由不被 API 404 攔截
+app.MapFallbackToFile("index.html");
 
 app.Run();
 

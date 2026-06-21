@@ -14,3 +14,10 @@ obj/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+# Angular
+node_modules/
+src/Pm.Api/wwwroot/
+
+# 縮圖快取(衍生)
+src/Pm.Api/thumbs/
