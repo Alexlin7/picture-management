@@ -23,6 +23,7 @@
     --mono:"JetBrains Mono",ui-monospace,monospace;
   }
   *{box-sizing:border-box}
+  [hidden]{display:none !important}
   html,body{height:100%}
   body{
     margin:0; background:var(--canvas); color:var(--text);
@@ -267,7 +268,7 @@
     <div class="view" id="view-import" hidden>
       <div class="vhead">
         <h1>匯入確認 · 路徑 → 標籤</h1>
-        <p>新掃描發現這些**沒見過的資料夾段**。確認一次,規則就記住,之後重掃只問新的段。</p>
+        <p>新掃描發現這些<b style="color:var(--text)">沒見過的資料夾段</b>。確認一次,規則就記住,之後重掃只問新的段。</p>
       </div>
       <div class="panel-pad">
         <div class="note">
@@ -337,8 +338,9 @@ const rgba = (h,a)=>{const[r,g,b]=hx(h);return `rgba(${r},${g},${b},${a})`};
 
 // gradient art generator (placeholder for anime art)
 function art(seed){
-  const a=(seed*47)%360, b=(seed*47+60+seed*13)%360;
-  return `linear-gradient(${(seed*37)%360}deg, hsl(${a} 58% 42%), hsl(${b} 52% 30%))`;
+  const h1=(seed*137.508)%360, h2=(h1+38+(seed*53)%90)%360;
+  const s=48+(seed*7)%24;
+  return `linear-gradient(${(seed*61)%360}deg, hsl(${h1} ${s}% 47%), hsl(${h2} ${s-10}% 29%))`;
 }
 const FN=['如月れん','花京院ちえり','エリー・コニファー','不知名','勇気ちひろ','アルス・アルマル','椎名唯華','戌亥とこ','本間ひまわり','レヴィ・エリファ','social_pic'];
 const SER=['2434','VSpo!','ホロライブ','我不知道','原神','ブルーアーカイブ','個人照片'];
@@ -434,7 +436,8 @@ function select(p,el){
       <div class="isec"><div class="isec-h">EXIF<span class="line"></span></div>${exif}</div>
     </div>`;
 }
-select(PHOTOS[0], grid.firstElementChild);
+const _di = PHOTOS.findIndex(p=>p.dup);   // 預設選一張「2 份」的圖,展示身分→多位置
+select(PHOTOS[_di], grid.children[_di]);
 
 /* ---------- sidebars per view ---------- */
 const FACETS = {
@@ -583,6 +586,15 @@ function show(v){
 }
 document.querySelectorAll('.act').forEach(a=>a.addEventListener('click',()=>show(a.dataset.view)));
 sidebar('gallery');
+// 讓截圖工具可用 ?view=import 等切換畫面
+const _qs=new URLSearchParams(location.search);
+const _qv=_qs.get('view');
+if(_qv&&views.includes(_qv)) show(_qv);
+if(_qs.get('only')==='inspector'){ // 截圖用:放大只看檢視器
+  document.querySelector('.app').style.gridTemplateColumns='1fr';
+  ['.activity','.sidebar','.main'].forEach(s=>document.querySelector(s).style.display='none');
+  const ins=document.querySelector('.inspector'); ins.style.display='block'; ins.style.borderLeft='0';
+}
 </script>
 </body>
 </html>

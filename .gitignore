@@ -1,0 +1,6 @@
+# 產生的 UI 截圖(可由 ui-preview.html 重生)
+docs/mockups/shot-*.png
+
+# Playwright
+test-results/
+playwright-report/
