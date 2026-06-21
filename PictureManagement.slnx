@@ -4,4 +4,9 @@
     <Project Path="src/Pm.Data/Pm.Data.csproj" />
     <Project Path="src/Pm.Ml/Pm.Ml.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Pm.Api.Tests/Pm.Api.Tests.csproj" />
+    <Project Path="tests/Pm.Data.Tests/Pm.Data.Tests.csproj" />
+    <Project Path="tests/Pm.Ml.Tests/Pm.Ml.Tests.csproj" />
+  </Folder>
 </Solution>
