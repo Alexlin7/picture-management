@@ -93,7 +93,7 @@ app.MapGet("/api/photos/{id:long}/thumb", async (long id, PmDbContext db, IThumb
 {
     var hash = await db.Photos.Where(p => p.Id == id).Select(p => p.FileHash).FirstOrDefaultAsync();
     if (hash is null) return Results.NotFound();
-    var path = thumbs.PathFor(hash);
+    var path = Path.GetFullPath(thumbs.PathFor(hash));   // 絕對路徑:走 PhysicalFile 而非 VirtualFile(wwwroot)
     return File.Exists(path) ? Results.File(path, "image/webp") : Results.NotFound();
 });
 
