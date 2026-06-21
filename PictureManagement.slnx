@@ -3,10 +3,12 @@
     <Project Path="src/Pm.Api/Pm.Api.csproj" />
     <Project Path="src/Pm.Data/Pm.Data.csproj" />
     <Project Path="src/Pm.Ml/Pm.Ml.csproj" />
+    <Project Path="src/Pm.Scanner/Pm.Scanner.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Pm.Api.Tests/Pm.Api.Tests.csproj" />
     <Project Path="tests/Pm.Data.Tests/Pm.Data.Tests.csproj" />
     <Project Path="tests/Pm.Ml.Tests/Pm.Ml.Tests.csproj" />
+    <Project Path="tests/Pm.Scanner.Tests/Pm.Scanner.Tests.csproj" />
   </Folder>
 </Solution>
