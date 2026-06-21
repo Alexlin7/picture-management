@@ -83,7 +83,8 @@ erDiagram
     photo         ||--o{ photo_location : "存在於(多位置/副本/多碟)"
     photo         ||--o{ photo_tag      : "被標"
     tag           ||--o{ photo_tag      : "標到"
-    tag           ||--o{ tag            : "父子(階層)"
+    tag           ||--o{ tag_relation   : "為上層"
+    tag           ||--o{ tag_relation   : "為下層(可多父=DAG)"
     photo         ||--o| tagging_job    : "待標佇列"
     tag           ||--o{ path_tag_rule  : "對應到"
     library_root  ||--o{ path_tag_rule  : "適用於(可空=全域)"
@@ -118,9 +119,12 @@ erDiagram
     }
     tag {
         bigint      id        PK
-        varchar     name
-        bigint      parent_id FK "自參照階層"
+        varchar     name      UK
         varchar     kind      "path/manual/character/copyright/general/meta..."
+    }
+    tag_relation {
+        bigint      parent_tag_id PK,FK
+        bigint      child_tag_id  PK,FK
     }
     photo_tag {
         bigint      photo_id   PK,FK
@@ -188,14 +192,22 @@ CREATE TABLE photo_location (
     UNIQUE (library_root_id, rel_path)
 );
 
--- ④ 標籤(階層 + 軸別)
+-- ④ 標籤(軸別)
 CREATE TABLE tag (
-    id        BIGSERIAL PRIMARY KEY,
-    name      VARCHAR(128) NOT NULL,
-    parent_id BIGINT REFERENCES tag(id),
-    kind      VARCHAR(32) NOT NULL DEFAULT 'manual',
-    UNIQUE (name, parent_id)
+    id   BIGSERIAL PRIMARY KEY,
+    name VARCHAR(128) NOT NULL UNIQUE,           -- booru 式全域唯一名
+    kind VARCHAR(32) NOT NULL DEFAULT 'manual'
 );
+
+-- ④b 標籤關係(DAG:一個 tag 可有 0/1/多個上層;不知道上游=無此關係,留最上層)
+-- 搜上層自動涵蓋旗下所有後代(tag implication),用 recursive CTE 查;應用層擋環。
+CREATE TABLE tag_relation (
+    parent_tag_id BIGINT NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+    child_tag_id  BIGINT NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+    PRIMARY KEY (parent_tag_id, child_tag_id),
+    CHECK (parent_tag_id <> child_tag_id)
+);
+CREATE INDEX ix_tagrel_child ON tag_relation (child_tag_id);
 
 -- ⑤ 照片↔標籤(來源 + 信心)
 CREATE TABLE photo_tag (
@@ -313,6 +325,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 | WD14 範圍 | 角色 + 作品 + 一般屬性 | 攻「我不知道」那堆 + 屬性語意篩選;門檻可調 |
 | GPU | `onnxruntime-directml` | 跨 NVIDIA(現機)/ AMD(住處)同程式碼,無 GPU 退 CPU |
 | 路徑→tag | 匯入後確認 + 學習型 `path_tag_rule` | 可控但不重複煩 |
+| 標籤階層 | **DAG `tag_relation` 邊表(可多父)** | 階層是可選彙整非必填;不知上游=留最上層;支援跨企劃聯動單位多重隸屬;搜上層自動涵蓋後代 |
 | 後端溝通 | DB-as-queue | 單機單人免 broker,耐重啟 |
 | API 認證 | 無(localhost only) | 單機單人 |
 | 後端語言 | C#/.NET 10 + Python worker | web 啟動快;ML 生態留在 Python |
