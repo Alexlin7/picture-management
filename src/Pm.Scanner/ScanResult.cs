@@ -6,4 +6,7 @@ public sealed record ScanResult(
     int NewPhotos,         // 新身分(新 hash)
     int NewLocations,      // 新位置(新的 root+rel_path)
     int SkippedUnchanged,  // 快路徑跳過(size+mtime 沒變)
-    int Errors);           // 讀取失敗略過
+    int Errors,            // 讀取失敗略過
+    int ThumbsGenerated,   // 產出的縮圖數
+    int JobsQueued,        // 排入 tagging_job 的數量
+    int MarkedMissing);    // 對帳標 missing 的位置數

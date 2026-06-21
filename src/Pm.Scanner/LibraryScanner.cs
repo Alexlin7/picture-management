@@ -4,8 +4,13 @@ using Pm.Data.Entities;
 
 namespace Pm.Scanner;
 
-public sealed class LibraryScanner(PmDbContext db, IFileHasher hasher)
+public sealed class LibraryScanner(
+    PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs)
 {
+    // 便利建構子:既有呼叫端(只給 db+hasher)沿用預設 reader/thumb。
+    public LibraryScanner(PmDbContext db, IFileHasher hasher)
+        : this(db, hasher, new ExifImageMetadataReader(), new ThumbnailService(new ThumbnailOptions())) { }
+
     private static readonly HashSet<string> ImageExts = new(StringComparer.OrdinalIgnoreCase)
     {
         ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif", ".jfif"
@@ -17,6 +22,7 @@ public sealed class LibraryScanner(PmDbContext db, IFileHasher hasher)
                    ?? throw new InvalidOperationException($"library_root {rootId} 不存在");
 
         int seen = 0, newPhotos = 0, newLocations = 0, skipped = 0, errors = 0;
+        int thumbsGen = 0, jobsQueued = 0, markedMissing = 0;
 
         var opts = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
         foreach (var file in Directory.EnumerateFiles(root.AbsPath, "*", opts))
@@ -53,9 +59,35 @@ public sealed class LibraryScanner(PmDbContext db, IFileHasher hasher)
                 if (photo is null)
                 {
                     photo = new Photo { FileHash = hash, FileSize = size };
+
+                    var m = meta.Read(file);
+                    photo.Width = m.Width;
+                    photo.Height = m.Height;
+                    photo.Mime = m.Mime;
+                    photo.TakenAt = m.TakenAt;
+                    photo.CameraModel = m.CameraModel;
+                    photo.GpsLat = m.GpsLat;
+                    photo.GpsLon = m.GpsLon;
+                    photo.Exif = m.ExifJson;
+
                     db.Photos.Add(photo);
                     await db.SaveChangesAsync(ct);   // 取得 photo.Id
                     newPhotos++;
+
+                    // 只有可解碼的圖才產縮圖 + 排 WD14(壞圖/非圖留身分但不做)
+                    if (m.Width is not null)
+                    {
+                        try
+                        {
+                            await thumbs.GenerateAsync(file, hash, ct);
+                            thumbsGen++;
+                        }
+                        catch { /* 縮圖失敗不影響索引 */ }
+
+                        db.TaggingJobs.Add(new TaggingJob { PhotoId = photo.Id });
+                        await db.SaveChangesAsync(ct);
+                        jobsQueued++;
+                    }
                 }
 
                 if (loc is null)
@@ -87,6 +119,7 @@ public sealed class LibraryScanner(PmDbContext db, IFileHasher hasher)
             catch (UnauthorizedAccessException) { errors++; }
         }
 
-        return new ScanResult(seen, newPhotos, newLocations, skipped, errors);
+        return new ScanResult(seen, newPhotos, newLocations, skipped, errors,
+            thumbsGen, jobsQueued, markedMissing);
     }
 }

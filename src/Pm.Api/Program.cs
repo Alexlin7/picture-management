@@ -8,7 +8,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<PmDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("Pm")));
 
+var thumbOptions = builder.Configuration.GetSection("Thumbnails").Get<ThumbnailOptions>()
+    ?? new ThumbnailOptions();
+builder.Services.AddSingleton(thumbOptions);
 builder.Services.AddScoped<IFileHasher, Sha256FileHasher>();
+builder.Services.AddScoped<IImageMetadataReader, ExifImageMetadataReader>();
+builder.Services.AddScoped<IThumbnailService, ThumbnailService>();
 builder.Services.AddScoped<LibraryScanner>();
 
 var app = builder.Build();
