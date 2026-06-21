@@ -8,14 +8,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<PmDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("Pm")));
 
-var thumbOptions = builder.Configuration.GetSection("Thumbnails").Get<ThumbnailOptions>()
-    ?? new ThumbnailOptions();
-builder.Services.AddSingleton(thumbOptions);
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<IConfiguration>().GetSection("Thumbnails").Get<ThumbnailOptions>()
+        ?? new ThumbnailOptions());
 builder.Services.AddScoped<IFileHasher, Sha256FileHasher>();
 builder.Services.AddScoped<IImageMetadataReader, ExifImageMetadataReader>();
 builder.Services.AddScoped<IThumbnailService, ThumbnailService>();
 builder.Services.AddScoped<LibraryScanner>();
 builder.Services.AddScoped<PathTagService>();
+builder.Services.AddScoped<TagClosureService>();
+builder.Services.AddScoped<PhotoQueryService>();
 
 var app = builder.Build();
 
@@ -79,9 +81,46 @@ app.MapPost("/api/path-rules", async (PathRuleDto dto, PathTagService svc) =>
 app.MapPost("/api/roots/{id:long}/apply-path-tags", async (long id, PathTagService svc) =>
     Results.Ok(new { rulesApplied = await svc.ApplyExistingRulesAsync(id) }));
 
+app.MapPost("/api/search", async (SearchDto dto, PhotoQueryService svc) =>
+    Results.Ok(await svc.SearchAsync(dto.All ?? [], dto.None ?? [], dto.AfterId, dto.PageSize ?? 200)));
+
+app.MapGet("/api/photos/{id:long}/thumb", async (long id, PmDbContext db, IThumbnailService thumbs) =>
+{
+    var hash = await db.Photos.Where(p => p.Id == id).Select(p => p.FileHash).FirstOrDefaultAsync();
+    if (hash is null) return Results.NotFound();
+    var path = thumbs.PathFor(hash);
+    return File.Exists(path) ? Results.File(path, "image/webp") : Results.NotFound();
+});
+
+app.MapGet("/api/photos/{id:long}", async (long id, PmDbContext db) =>
+{
+    var photo = await db.Photos.Include(p => p.Locations).Include(p => p.Tags)
+        .FirstOrDefaultAsync(p => p.Id == id);
+    if (photo is null) return Results.NotFound();
+
+    var tagIds = photo.Tags.Select(t => t.TagId).ToList();
+    var tags = await db.Tags.Where(t => tagIds.Contains(t.Id)).ToListAsync();
+    var tagView = photo.Tags.Join(tags, pt => pt.TagId, t => t.Id,
+        (pt, t) => new { id = t.Id, name = t.Name, kind = t.Kind, source = pt.Source, confidence = pt.Confidence });
+
+    return Results.Ok(new
+    {
+        photo.Id,
+        photo.FileHash,
+        photo.Width,
+        photo.Height,
+        photo.Mime,
+        photo.TakenAt,
+        photo.CameraModel,
+        locations = photo.Locations.Select(l => new { l.LibraryRootId, l.RelPath, l.Status }),
+        tags = tagView
+    });
+});
+
 app.Run();
 
 public record CreateRootDto(string Name, string AbsPath);
 public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName);
+public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
 
 public partial class Program { }   // 供 WebApplicationFactory 測試引用
