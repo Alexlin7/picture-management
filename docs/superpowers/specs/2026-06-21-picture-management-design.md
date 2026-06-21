@@ -202,6 +202,7 @@ CREATE TABLE photo_location (
     status          VARCHAR(16) NOT NULL DEFAULT 'present',  -- present/missing/archived
     first_seen_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_seen_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    mtime           TIMESTAMPTZ,                              -- 上次掃描看到的檔案修改時間(size+mtime 快路徑用)
     UNIQUE (library_root_id, rel_path)
 );
 
