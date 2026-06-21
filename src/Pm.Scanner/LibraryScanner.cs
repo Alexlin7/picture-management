@@ -24,6 +24,9 @@ public sealed class LibraryScanner(
         int seen = 0, newPhotos = 0, newLocations = 0, skipped = 0, errors = 0;
         int thumbsGen = 0, jobsQueued = 0, markedMissing = 0;
 
+        // 這輪走訪實際看到的位置(rel_path);對帳時 present 但不在此集合者 → missing。
+        var seenPaths = new HashSet<string>();
+
         var opts = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
         foreach (var file in Directory.EnumerateFiles(root.AbsPath, "*", opts))
         {
@@ -35,6 +38,7 @@ public sealed class LibraryScanner(
             {
                 var info = new FileInfo(file);
                 var relPath = Path.GetRelativePath(root.AbsPath, file).Replace('\\', '/');
+                seenPaths.Add(relPath);
                 var size = info.Length;
                 var mtime = (DateTimeOffset)info.LastWriteTimeUtc;
 
@@ -118,6 +122,14 @@ public sealed class LibraryScanner(
             catch (IOException) { errors++; }
             catch (UnauthorizedAccessException) { errors++; }
         }
+
+        // 對帳:這輪沒看到、且仍標 present 的位置 → missing(軟刪,保留 photo+tags)。
+        // 以走訪集合(seenPaths)判斷,避免 SQLite 對 DateTimeOffset 比較無法翻譯的問題。
+        markedMissing = await db.PhotoLocations
+            .Where(l => l.LibraryRootId == rootId
+                        && l.Status == "present"
+                        && !seenPaths.Contains(l.RelPath))
+            .ExecuteUpdateAsync(s => s.SetProperty(l => l.Status, "missing"), ct);
 
         return new ScanResult(seen, newPhotos, newLocations, skipped, errors,
             thumbsGen, jobsQueued, markedMissing);
