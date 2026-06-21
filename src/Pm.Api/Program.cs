@@ -43,6 +43,9 @@ app.MapGet("/health/db", async (PmDbContext db) =>
         : Results.Json(new { db = "down" }, statusCode: 503);
 });
 
+app.MapGet("/api/roots", async (PmDbContext db) =>
+    Results.Ok(await db.LibraryRoots.Select(r => new { r.Id, r.Name, r.AbsPath }).ToListAsync()));
+
 app.MapPost("/api/roots", async (CreateRootDto dto, PmDbContext db) =>
 {
     var root = new LibraryRoot { Name = dto.Name, AbsPath = dto.AbsPath };
