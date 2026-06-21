@@ -11,4 +11,5 @@ public class PhotoLocation
     public string Status { get; set; } = "present";   // present/missing/archived
     public DateTimeOffset FirstSeenAt { get; set; }
     public DateTimeOffset LastSeenAt { get; set; }
+    public DateTimeOffset? Mtime { get; set; }   // 上次掃描看到的檔案修改時間(快路徑用)
 }

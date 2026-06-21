@@ -59,6 +59,7 @@ public class PmDbContext(DbContextOptions<PmDbContext> options) : DbContext(opti
             e.Property(x => x.Status).HasColumnName("status").HasMaxLength(16).HasDefaultValue("present");
             e.Property(x => x.FirstSeenAt).HasColumnName("first_seen_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             e.Property(x => x.LastSeenAt).HasColumnName("last_seen_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            e.Property(x => x.Mtime).HasColumnName("mtime");
             e.HasOne(x => x.Photo).WithMany(p => p.Locations).HasForeignKey(x => x.PhotoId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.LibraryRoot).WithMany(r => r.Locations).HasForeignKey(x => x.LibraryRootId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.LibraryRootId, x.RelPath }).IsUnique();
