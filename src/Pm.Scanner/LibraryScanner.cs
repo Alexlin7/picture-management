@@ -36,7 +36,16 @@ public sealed class LibraryScanner(PmDbContext db, IFileHasher hasher)
                     .Include(l => l.Photo)
                     .FirstOrDefaultAsync(l => l.LibraryRootId == rootId && l.RelPath == relPath, ct);
 
-                // Task 4 會在此插入快路徑;本 task 一律重算 hash。
+                // 快路徑:同位置、present、size 與 mtime 都沒變(容 1 秒誤差,跨檔系統 mtime 精度不一)→ 不重算 hash。
+                if (loc is { Status: "present", Mtime: { } prevMtime }
+                    && loc.Photo.FileSize == size
+                    && (prevMtime - mtime).Duration() < TimeSpan.FromSeconds(1))
+                {
+                    loc.LastSeenAt = DateTimeOffset.UtcNow;
+                    await db.SaveChangesAsync(ct);
+                    skipped++;
+                    continue;
+                }
 
                 var hash = await hasher.HashFileAsync(file, ct);
 

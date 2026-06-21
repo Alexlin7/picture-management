@@ -79,4 +79,78 @@ public class ScannerTests : IDisposable
         var scanner = new LibraryScanner(ctx, new Sha256FileHasher());
         await Assert.ThrowsAsync<InvalidOperationException>(() => scanner.ScanRootAsync(999));
     }
+
+    [Fact]
+    public async Task Rescan_unchanged_uses_fast_path()
+    {
+        WriteImage("a.png", "alpha");
+        var rootId = await SeedRootAsync();
+
+        await using (var ctx = NewContext())
+            await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        // 第二輪:檔案沒動 → 應走快路徑、不新增身分/位置
+        await using var ctx2 = NewContext();
+        var counting = new CountingHasher(new Sha256FileHasher());
+        var result = await new LibraryScanner(ctx2, counting).ScanRootAsync(rootId);
+
+        Assert.Equal(1, result.FilesSeen);
+        Assert.Equal(0, result.NewPhotos);
+        Assert.Equal(0, result.NewLocations);
+        Assert.Equal(1, result.SkippedUnchanged);
+        Assert.Equal(0, counting.Calls);          // 關鍵:沒重算 hash
+    }
+
+    [Fact]
+    public async Task Changed_content_rehashes_and_reassigns_identity()
+    {
+        WriteImage("a.png", "alpha");
+        var rootId = await SeedRootAsync();
+        await using (var ctx = NewContext())
+            await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        // 改內容 + 推進 mtime
+        var full = Path.Combine(_root, "a.png");
+        await File.WriteAllTextAsync(full, "ALPHA-v2");
+        File.SetLastWriteTimeUtc(full, DateTime.UtcNow.AddMinutes(5));
+
+        await using var ctx2 = NewContext();
+        var result = await new LibraryScanner(ctx2, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        Assert.Equal(1, result.NewPhotos);        // 新內容 = 新身分
+        Assert.Equal(0, result.NewLocations);     // 還是同一個位置,只是換了 photo
+        Assert.Equal(0, result.SkippedUnchanged);
+
+        await using var verify = NewContext();
+        Assert.Equal(1, await verify.PhotoLocations.CountAsync());   // 位置沒重複
+        Assert.Equal(2, await verify.Photos.CountAsync());           // 舊+新兩個身分
+        var loc = await verify.PhotoLocations.Include(l => l.Photo).SingleAsync();
+        Assert.Equal("ALPHA-v2".Length, loc.Photo.FileSize);         // 指向新身分
+    }
+
+    [Fact]
+    public async Task Rescan_is_idempotent()
+    {
+        WriteImage("a.png", "alpha");
+        WriteImage("b.png", "beta");
+        var rootId = await SeedRootAsync();
+
+        for (int i = 0; i < 3; i++)
+            await using (var ctx = NewContext())
+                await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        await using var verify = NewContext();
+        Assert.Equal(2, await verify.Photos.CountAsync());
+        Assert.Equal(2, await verify.PhotoLocations.CountAsync());
+    }
+}
+
+file sealed class CountingHasher(IFileHasher inner) : IFileHasher
+{
+    public int Calls { get; private set; }
+    public Task<string> HashFileAsync(string absPath, CancellationToken ct = default)
+    {
+        Calls++;
+        return inner.HashFileAsync(absPath, ct);
+    }
 }
