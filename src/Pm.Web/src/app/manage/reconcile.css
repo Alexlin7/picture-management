@@ -1,0 +1,159 @@
+/* 失蹤待辦匣 —— 對應 mockup .vhead / .panel-pad / .note / .rinbox / .pill 等 */
+
+/* 撐滿 1fr、整高、可捲動 */
+.rc-scroll {
+  height: 100vh;
+  overflow-y: auto;
+  min-height: 0;
+  background: var(--color-canvas);
+}
+
+/* ---- vhead 標題區 ---- */
+.vhead {
+  padding: 20px 24px 4px;
+}
+.vhead h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 21px;
+  margin: 0 0 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vhead p {
+  color: var(--color-muted);
+  font-size: 13px;
+  margin: 0;
+  max-width: 680px;
+}
+
+/* pill(待處理計數)*/
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid;
+}
+.pill-danger {
+  color: var(--color-danger);
+  border-color: rgba(240, 97, 109, 0.4);
+  background: rgba(240, 97, 109, 0.1);
+}
+
+/* ---- panel-pad 內容區 ---- */
+.panel-pad {
+  padding: 16px 24px 40px;
+}
+
+/* ---- note 提示條 ---- */
+.note {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: var(--radius-soft);
+  padding: 11px 13px;
+  color: #bfeff7;
+  font-size: 12.5px;
+  margin-bottom: 18px;
+}
+.note svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-accent);
+  flex: none;
+  margin-top: 1px;
+}
+.note-num {
+  font-family: var(--font-mono);
+}
+
+/* ---- rinbox 失蹤卡 ---- */
+.rinbox {
+  display: flex;
+  gap: 14px;
+  padding: 13px;
+  border: 1px solid var(--color-hair);
+  border-radius: var(--radius-card);
+  margin-bottom: 11px;
+  background: var(--color-panel);
+  transition: opacity 0.18s, border-color 0.18s;
+}
+.rinbox.resolved {
+  opacity: 0.62;
+  border-color: var(--color-hair-soft);
+}
+
+/* 74px 漸層縮圖 + 失蹤遮罩 */
+.th {
+  width: 74px;
+  height: 74px;
+  border-radius: 8px;
+  flex: none;
+  border: 1px solid var(--color-hair);
+  position: relative;
+  overflow: hidden;
+}
+.th .miss {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 15, 19, 0.55);
+  display: grid;
+  place-items: center;
+  color: var(--color-danger);
+}
+
+/* 檔名 + 位置 + 說明 */
+.rinfo {
+  flex: 1;
+  min-width: 0;
+}
+.rinfo .rt2 {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.rinfo .rlast {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-faint);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rinfo .rnote {
+  font-size: 11.5px;
+  color: var(--color-muted);
+  margin-top: 6px;
+}
+
+/* 動作區 */
+.ractions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: none;
+}
+
+/* 「已刪除」danger 色按鈕(.btn 已是全域 primitive,這裡只覆寫顏色)*/
+.btn-del {
+  color: var(--color-danger);
+  border-color: rgba(240, 97, 109, 0.4);
+}
+
+/* 已處理後的狀態標示 */
+.done-pill {
+  font-size: 12px;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+}
+.btn-undo {
+  font-size: 12px;
+  padding: 5px 11px;
+}

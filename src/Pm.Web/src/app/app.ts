@@ -1,9 +1,9 @@
 import { Component } from '@angular/core';
-import { Workbench } from './shell/workbench';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [Workbench],
-  template: `<app-workbench />`,
+  imports: [RouterOutlet],
+  template: `<router-outlet />`,
 })
 export class App {}

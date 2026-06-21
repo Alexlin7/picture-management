@@ -1,0 +1,201 @@
+/* 匯入確認 · 路徑 → 標籤
+   純 CSS;token 取自 styles.css @theme(var(--color-*)/var(--font-*)/var(--radius-*))。
+   嚴禁 @apply / @tailwind / @reference(Angular 元件樣式隔離編譯)。 */
+
+:host {
+  display: block;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+.import-view {
+  min-height: 100%;
+}
+
+/* ---------- 標題區(mockup .vhead)---------- */
+.vhead {
+  padding: 20px 24px 4px;
+}
+.vhead h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 21px;
+  margin: 0 0 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vhead p {
+  color: var(--color-muted);
+  font-size: 13px;
+  margin: 0;
+  max-width: 680px;
+}
+.vhead p b {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* ---------- 內容區(mockup .panel-pad)---------- */
+.panel-pad {
+  padding: 16px 24px 40px;
+}
+
+/* ---------- 藍色 note ---------- */
+.note {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: var(--radius-soft);
+  padding: 11px 13px;
+  color: #bfeff7;
+  font-size: 12.5px;
+  margin-bottom: 18px;
+}
+.note svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-accent);
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ---------- 表格 ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  text-align: left;
+  color: var(--color-muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0 12px 9px;
+  border-bottom: 1px solid var(--color-hair);
+}
+thead th.col-act {
+  width: 300px;
+}
+tbody td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--color-hair-soft);
+  vertical-align: middle;
+}
+tbody tr:hover {
+  background: var(--color-panel);
+}
+
+.seg-path {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.ex-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-faint);
+}
+.num {
+  font-family: var(--font-mono);
+  color: var(--color-muted);
+}
+
+/* ---------- 動作膠囊 ---------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+/* map 動作:膠囊 + 「分類 ▾」小選單 */
+.act-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.cat-pick {
+  position: relative;
+  display: inline-flex;
+}
+.sel-mini {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hair);
+  border-radius: 7px;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 12px;
+  padding: 5px 9px;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
+}
+.sel-mini:hover {
+  border-color: #3b4150;
+  background: var(--color-raised);
+}
+
+/* 下拉:純 CSS 絕對定位選單 */
+.cat-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 30;
+  min-width: 132px;
+  background: var(--color-raised-2);
+  border: 1px solid var(--color-hair);
+  border-radius: var(--radius-soft);
+  padding: 4px;
+  box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.7);
+}
+.cat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.cat-item:hover {
+  background: var(--color-raised);
+}
+.cat-item.on {
+  background: rgba(34, 211, 238, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.22);
+}
+.cat-item .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 7px -1px currentColor;
+}
+
+/* ---------- 底部按鈕列 ---------- */
+.actions-bar {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+}
+.actions-bar .btn svg {
+  width: 15px;
+  height: 15px;
+}

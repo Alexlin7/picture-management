@@ -1,0 +1,291 @@
+/* host 撐滿 gallery-view 的中間欄(1fr × 100vh),讓內部 flex 高度可解析 */
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+/* flex column 撐滿:topbar 56 + toolbar 42 + 可捲動 grid */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  background: var(--color-canvas);
+}
+
+/* ---------- 頂欄 topbar ---------- */
+.topbar {
+  height: 56px;
+  flex: none;
+  border-bottom: 1px solid var(--color-hair);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  background: linear-gradient(180deg, #181b21, #15171c);
+}
+.search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hair);
+  border-radius: 9px;
+  padding: 7px 11px;
+  max-width: 640px;
+  transition: 0.15s;
+}
+.search:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
+}
+.search > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-faint);
+  flex: none;
+}
+.tok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.tok b {
+  font-weight: 600;
+}
+.tok .x {
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+.search input {
+  flex: 1;
+  min-width: 80px;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.search input::placeholder {
+  color: var(--color-faint);
+  font-family: var(--font-body);
+}
+
+/* btn 修飾子(對齊 mockup 的 .btn.primary / .btn.ghost 用法;.btn 來自全域 primitive) */
+.btn.primary {
+  background: var(--color-accent);
+  color: #04222a;
+  border-color: transparent;
+}
+.btn.primary:hover {
+  filter: brightness(1.08);
+  background: var(--color-accent);
+}
+.btn.ghost {
+  background: transparent;
+}
+.btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------- toolbar ---------- */
+.toolbar {
+  height: 42px;
+  flex: none;
+  border-bottom: 1px solid var(--color-hair-soft);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  color: var(--color-muted);
+  font-size: 12.5px;
+}
+.toolbar .count b {
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-muted);
+}
+.status-dot .num {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-weight: 500;
+}
+.seg {
+  display: flex;
+  border: 1px solid var(--color-hair);
+  border-radius: 7px;
+  overflow: hidden;
+  margin-left: auto;
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 5px 9px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.seg button.on {
+  background: var(--color-raised-2);
+  color: var(--color-text);
+}
+.seg button svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------- 可捲動 grid 容器 ---------- */
+.view {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* gallery 圖牆:CSS columns masonry。
+   注意:class 名不可用 .grid(會撞 Tailwind 的 .grid utility = display:grid,
+   會把 column-count 整個蓋掉)。 */
+.masonry {
+  column-count: 4;
+  column-gap: 12px;
+  padding: 16px 18px;
+}
+@media (max-width: 1500px) {
+  .masonry {
+    column-count: 3;
+  }
+}
+
+.tile {
+  break-inside: avoid;
+  margin-bottom: 12px;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid var(--color-hair-soft);
+  background: var(--color-raised);
+  transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s;
+}
+.tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.8);
+  border-color: #3b4150;
+}
+.tile.sel {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent), 0 14px 30px -12px rgba(34, 211, 238, 0.35);
+}
+.tile .art {
+  width: 100%;
+  display: block;
+  position: relative;
+}
+.tile .art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(8, 9, 12, 0.82));
+}
+.tile .meta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 9px 10px;
+  z-index: 2;
+}
+.tile .ttl {
+  font-weight: 600;
+  font-size: 12.5px;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
+  line-height: 1.25;
+}
+.tile .ser {
+  font-size: 11px;
+  color: #cfd3da;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+.tile .chips {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  z-index: 2;
+  max-width: 80%;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: 0.16s;
+}
+.tile:hover .chips,
+.tile.sel .chips {
+  opacity: 1;
+  transform: none;
+}
+.mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(13, 15, 19, 0.82);
+  backdrop-filter: blur(3px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.mini .d {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.badge-photo {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  background: rgba(251, 191, 36, 0.16);
+  color: var(--color-t-meta);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.dupflag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  background: rgba(13, 15, 19, 0.8);
+  border: 1px solid var(--color-hair);
+  color: var(--color-muted);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+}

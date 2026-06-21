@@ -1,20 +1,38 @@
-import { Component, inject, signal } from '@angular/core';
-import { PmApi } from '../api/pm-api';
+import { Component, signal } from '@angular/core';
+import { MOCK_RECON, MOCK_RECON_RELOCATED, artGradient, type ReconRow } from '../mock/mock-data';
+
+// 契約(route /reconcile):失蹤待辦匣 —— 縮圖卡 + 上次位置 + 三動作。
+type ReconState = 'pending' | 'waiting' | 'externalized' | 'deleted';
+
+interface ReconItem extends ReconRow {
+  art: string;
+  state: ReconState;
+}
 
 @Component({
-  selector: 'app-reconcile', standalone: true,
-  styles: [`.pad{padding:16px} .row{padding:8px;border:1px solid var(--line);border-radius:8px;margin:6px 0;font-size:13px}`],
-  template: `
-    <div class="pad">
-      <h3>待確認:可能失蹤的圖</h3>
-      <p style="color:var(--muted)">只列出所有位置都已不存在的圖(搬移的會自動續接,不在此)。</p>
-      @for (m of missing(); track m.id) {
-        <div class="row"><span class="">{{ m.paths.join(', ') }}</span></div>
-      } @empty { <p style="color:var(--muted)">沒有待確認項目 🎉</p> }
-    </div>`,
+  selector: 'app-reconcile',
+  imports: [],
+  templateUrl: './reconcile.html',
+  styleUrl: './reconcile.css',
 })
 export class Reconcile {
-  api = inject(PmApi);
-  missing = signal<{ id: number; fileHash: string; paths: string[] }[]>([]);
-  async ngOnInit() { this.missing.set(await this.api.missing()); }
+  // 換位置(同 hash)已自動續接的張數,只是說明用
+  readonly relocated = MOCK_RECON_RELOCATED;
+
+  // 失蹤清單;state 用 signal 管,按鈕點擊後就地切狀態
+  readonly items = signal<ReconItem[]>(
+    MOCK_RECON.map((r) => ({ ...r, art: artGradient(r.seed), state: 'pending' as ReconState })),
+  );
+
+  // 還沒處理的(pending)張數 → vhead pill
+  pendingCount(): number {
+    return this.items().filter((it) => it.state === 'pending').length;
+  }
+
+  // 三動作:就地改 state(本輪按鈕先到位,真實 API 下輪)
+  setState(target: ReconItem, state: ReconState): void {
+    this.items.update((list) =>
+      list.map((it) => (it === target ? { ...it, state } : it)),
+    );
+  }
 }

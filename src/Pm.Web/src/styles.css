@@ -1,8 +1,129 @@
-/* You can add global styles to this file, and also import other style files */
-:root {
-  --bg: #0f1115; --panel: #161922; --panel-2: #1c2030; --line: #2a3040;
-  --text: #e6e8ee; --muted: #8b93a7; --accent: #22D3EE; --danger: #F0616D;
+@import "tailwindcss";
+
+/* ===========================================================================
+   設計 token —— 來源:docs/mockups/ui-preview.html :root
+   Tailwind v4 @theme:每個 token 會同時產生 utility(bg-canvas / text-muted /
+   border-hair / font-display …)並在 :root 暴露成 CSS 變數(var(--color-canvas)…)。
+   =========================================================================== */
+@theme {
+  /* chrome */
+  --color-canvas: #14161b;
+  --color-panel: #1b1e25;
+  --color-raised: #23272f;
+  --color-raised-2: #2a2f39;
+  --color-hair: #2e333d;
+  --color-hair-soft: #23272f;
+  --color-text: #e8eaed;
+  --color-muted: #959ba7;
+  --color-faint: #6b7280;
+  --color-accent: #22d3ee;
+  --color-accent-ink: #06323b;
+  --color-danger: #f0616d;
+
+  /* tag taxonomy(booru kind 分色)*/
+  --color-t-character: #4ade80;
+  --color-t-copyright: #c084fc;
+  --color-t-general: #818cf8;
+  --color-t-meta: #fbbf24;
+  --color-t-path: #94a3b8;
+  --color-t-manual: #f472b6;
+
+  /* radius */
+  --radius-card: 10px;
+  --radius-soft: 7px;
+
+  /* fonts */
+  --font-display: "Space Grotesk", "Noto Sans TC", sans-serif;
+  --font-body: "Inter", "Noto Sans TC", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
-  font-family: Inter, "Noto Sans TC", system-ui, sans-serif; }
-h3, h4 { margin: 12px 0 6px; }
+
+/* ===========================================================================
+   base
+   =========================================================================== */
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+::selection {
+  background: rgba(34, 211, 238, 0.28);
+}
+/* scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #333944;
+  border-radius: 8px;
+  border: 2px solid var(--color-canvas);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f4651;
+}
+
+/* routed 元件(router-outlet 注入的)填滿 shell 的 .stage 第 2 欄。
+   放全域(非 component-scoped)才選得到 router 注入的宿主元素。 */
+.stage > :not(router-outlet) {
+  display: block;
+  height: 100vh;
+  min-width: 0;
+}
+
+/* ===========================================================================
+   共用 primitives(@layer components,可被 utility 覆寫)
+   =========================================================================== */
+@layer components {
+  /* 按鈕 */
+  .btn {
+    @apply inline-flex items-center gap-[7px] whitespace-nowrap rounded-[8px] border
+      border-hair bg-raised px-[13px] py-[7px] text-[12.5px] font-semibold text-text
+      cursor-pointer transition-[background,border-color,filter] duration-150;
+  }
+  .btn:hover {
+    @apply bg-raised-2 border-[#3b4150];
+  }
+  .btn-primary {
+    @apply bg-accent text-accent-ink border-transparent;
+  }
+  .btn-primary:hover {
+    @apply brightness-110 bg-accent;
+  }
+  .btn-ghost {
+    @apply bg-transparent;
+  }
+
+  /* facet / 側欄列 */
+  .frow {
+    @apply flex items-center gap-2 rounded-[7px] px-2 py-[5px] text-[13px]
+      text-text cursor-pointer;
+  }
+  .frow:hover {
+    @apply bg-raised;
+  }
+  .frow.on {
+    @apply bg-[rgba(34,211,238,0.08)] shadow-[inset_0_0_0_1px_rgba(34,211,238,0.22)];
+  }
+
+  /* 區段小標題 */
+  .facet-t {
+    @apply flex items-center gap-[7px] m-0 mb-2 px-[2px] text-[11px] font-semibold
+      uppercase tracking-[0.08em] text-muted;
+  }
+
+  /* 圓點(kind 色)*/
+  .dot {
+    @apply w-2 h-2 rounded-full shrink-0;
+    box-shadow: 0 0 7px -1px currentColor;
+  }
+}

@@ -1,53 +1,86 @@
-import { Component, Input, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
-import { PmApi, PhotoDetail } from '../api/pm-api';
-import { tagColor } from '../tag-color';
+import { Component, computed, input, signal } from '@angular/core';
+import {
+  artGradient,
+  getMockPhoto,
+  KIND_LABEL,
+  type MockPhoto,
+  type TagKind,
+} from '../mock/mock-data';
+import { TAG_COLOR } from '../tag-color';
 
+// 契約:右側檢視器。輸入選中的 photo id(signal input)。
+// 內容:預覽圖、身分→位置簽名、tag lanes(分色)、WD14 建議(虛線 chip + ✓/✕)、EXIF。
 @Component({
   selector: 'app-inspector',
-  standalone: true,
-  imports: [DecimalPipe],
-  styles: [`
-    .pad { padding: 12px; overflow: auto; height: 100vh; box-sizing: border-box; }
-    .hash { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--muted); word-break: break-all; }
-    .loc { font-size: 12px; padding: 4px 8px; background: var(--panel-2); border-radius: 6px; margin: 4px 0; }
-    .chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px;
-      margin: 2px; border: 1px solid; }
-    .empty { color: var(--muted); padding: 24px; text-align: center; }
-  `],
-  template: `
-    @if (photo(); as p) {
-      <div class="pad">
-        <img [src]="api.thumbUrl(p.id)" style="width:100%;border-radius:8px" />
-        <h4>身分</h4>
-        <div class="hash">{{ p.fileHash }}</div>
-        <h4>位置</h4>
-        @for (l of p.locations; track l.relPath) {
-          <div class="loc">{{ l.relPath }} <span style="color:var(--muted)">· {{ l.status }}</span></div>
-        }
-        <h4>標籤</h4>
-        @for (t of p.tags; track t.id) {
-          <span class="chip" [style.color]="color(t.kind)" [style.borderColor]="color(t.kind)"
-                [style.borderStyle]="t.source === 'wd14' ? 'dashed' : 'solid'">
-            {{ t.name }}@if (t.confidence != null) { <span> {{ (t.confidence * 100) | number:'1.0-0' }}%</span> }
-          </span>
-        }
-        @if (p.cameraModel) { <p class="hash">📷 {{ p.cameraModel }}</p> }
-      </div>
-    } @else {
-      <div class="empty">選一張圖看細節</div>
-    }
-  `,
+  imports: [],
+  templateUrl: './inspector.html',
+  styleUrl: './inspector.css',
 })
 export class Inspector {
-  api = inject(PmApi);
-  photo = signal<PhotoDetail | null>(null);
-  color = tagColor;
+  photoId = input<number | null>(null);
 
-  private _id: number | null = null;
-  @Input() set photoId(v: number | null) {
-    this._id = v;
-    if (v == null) { this.photo.set(null); return; }
-    this.api.photo(v).then(d => this.photo.set(d));
+  // null → 顯示空狀態;否則取對應 mock photo
+  readonly photo = computed<MockPhoto | null>(() => {
+    const id = this.photoId();
+    return id == null ? null : (getMockPhoto(id) ?? null);
+  });
+
+  // tag lane 的固定排序(依 kind)
+  private readonly laneOrder: TagKind[] = [
+    'character', 'copyright', 'general', 'meta', 'path', 'manual',
+  ];
+
+  // 依序組出有 tag 的 lane(空 lane 不顯示)
+  readonly lanes = computed(() => {
+    const p = this.photo();
+    if (!p) return [];
+    return this.laneOrder
+      .map((kind) => ({
+        kind,
+        label: KIND_LABEL[kind],
+        color: TAG_COLOR[kind],
+        tags: p.tags.filter((t) => t.kind === kind),
+      }))
+      .filter((lane) => lane.tags.length > 0);
+  });
+
+  // 預覽漸層(對齊 mockup 的 art(seed))
+  readonly previewBg = computed(() => {
+    const p = this.photo();
+    return p ? artGradient(p.seed) : '';
+  });
+
+  // SHA-256 身分:用 seed 假造 8 碼 hex(對齊 mockup (seed*2654435761>>>0).toString(16))
+  readonly hash = computed(() => {
+    const p = this.photo();
+    if (!p) return '';
+    return ((p.seed * 2654435761) >>> 0).toString(16).padStart(8, '0');
+  });
+
+  // hex → rgba helper(半透明底色 / 邊框用)
+  rgba(hex: string, a: number): string {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  }
+
+  kindColor(kind: TagKind): string {
+    return TAG_COLOR[kind];
+  }
+
+  pct(c: number): number {
+    return Math.round(c * 100);
+  }
+
+  // ---- WD14 建議的本地互動(本輪「按鈕先到位」,只記錄決定不打 API)----
+  // key = sugg 的 name,value = 'accept' | 'reject';用 signal 讓 UI 反應
+  private decisions = signal<Record<string, 'accept' | 'reject'>>({});
+  decisionOf(name: string): 'accept' | 'reject' | undefined {
+    return this.decisions()[name];
+  }
+  accept(name: string): void {
+    this.decisions.update((d) => ({ ...d, [name]: 'accept' }));
+  }
+  reject(name: string): void {
+    this.decisions.update((d) => ({ ...d, [name]: 'reject' }));
   }
 }

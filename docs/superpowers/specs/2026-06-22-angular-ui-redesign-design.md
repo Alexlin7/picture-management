@@ -15,7 +15,7 @@
 
 | # | 決策 | 選定 |
 |---|---|---|
-| 1 | UI 庫 | **PrimeNG(unstyled)+ Tailwind v4**。Tailwind 扛版面/樣式,PrimeNG 只挑行為重元件(Table、Dialog、Select、VirtualScroller、Overlay) |
+| 1 | UI 庫 | 原定 PrimeNG(unstyled)+ Tailwind v4。**實作時發現 PrimeNG 最新僅 v21、peer 鎖 Angular/CDK 21,與本專案 Angular 22 衝突** → 本輪改 **Tailwind v4 + 已內建 Angular CDK v22**(虛擬捲動/Overlay 自 CDK)。mockup 全客製 CSS,本輪用不到 PrimeNG;待其釋出 Angular 22 版再加(代碼不用大改) |
 | 2 | PostCSS | 隨 Tailwind v4 的 `@tailwindcss/postcss` 一併導入 |
 | 3 | 裝飾器 | 消滅 member decorator → `input()`/`output()`/`model()`/`viewChild()`;`@Component` 保留(decorator-less 未 GA) |
 | 4 | 路由 | **Shell + lazy 子路由**:常駐 workbench 殼 + 每個 view 用 Angular Router lazy 載入、獨立 code-split |

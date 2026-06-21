@@ -1,0 +1,30 @@
+<!-- 收藏的搜尋:vhead 標題 + 說明,下方卡片格 -->
+<div class="vhead">
+  <h1>收藏的搜尋</h1>
+  <p>存的是查詢,不是資料夾。同一張圖可以同時出現在多個搜尋裡 —— 多軸交集不會爆炸。</p>
+</div>
+
+<div class="panel-pad">
+  <div class="saved-grid">
+    @for (s of saved(); track s.title; let i = $index) {
+      <button
+        type="button"
+        class="saved"
+        [class.special]="s.special"
+        [class.on]="active() === i"
+        (mouseenter)="onEnter(i)"
+        (mouseleave)="onLeave()"
+        (click)="onPick(i)"
+      >
+        <div class="st">
+          @if (s.special) {
+            <span class="dot" [style.color]="metaColor" [style.background]="metaColor"></span>
+          }
+          {{ s.title }}
+        </div>
+        <div class="sq">{{ s.query }}</div>
+        <div class="hits">{{ s.hits.toLocaleString() }} 張命中</div>
+      </button>
+    }
+  </div>
+</div>

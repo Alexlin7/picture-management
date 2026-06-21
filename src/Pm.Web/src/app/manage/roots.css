@@ -1,0 +1,121 @@
+/* 圖庫來源 —— 對應 mockup .vhead / .panel-pad / .root / .ico / .rname / .rpath
+   / .rstat / .status-dot(ui-preview.html 約 195-202 行) */
+
+/* 主區:撐滿 1fr、整高、可捲動(對應 mockup .view) */
+:host {
+  display: block;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  min-width: 0;
+}
+
+/* ---- vhead 標題區 ---- */
+.vhead {
+  padding: 20px 24px 4px;
+}
+.vhead h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 21px;
+  margin: 0 0 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vhead p {
+  color: var(--color-muted);
+  font-size: 13px;
+  margin: 0;
+  max-width: 680px;
+}
+
+/* ---- panel-pad 內容區 ---- */
+.panel-pad {
+  padding: 16px 24px 40px;
+}
+
+/* ---- 來源列(mockup .root) ---- */
+.root {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 16px;
+  border: 1px solid var(--color-hair);
+  border-radius: var(--radius-card);
+  margin-bottom: 12px;
+  background: var(--color-panel);
+}
+
+/* 資料夾 icon 方塊(mockup .root .ico) */
+.ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 1px solid var(--color-hair);
+}
+.ico svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-accent);
+}
+
+/* 名稱 + 路徑 + 狀態區(撐開中段) */
+.rmeta {
+  min-width: 0;
+}
+.rname {
+  font-weight: 600;
+  font-size: 14px;
+}
+.rpath {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-faint);
+  margin-top: 2px;
+}
+
+/* 狀態點 + 文字(mockup .status-dot,inline margin-top:5px) */
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--color-muted);
+  margin-top: 5px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 7px -1px currentColor;
+}
+
+/* 右側檔數 + 重新掃描(mockup .root .rstat 靠右) */
+.rstat {
+  margin-left: auto;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--color-muted);
+}
+.rfiles b {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* 重新掃描按鈕(.btn 全域 primitive,這裡只加 mockup 的 margin-top:8px) */
+.rescan {
+  margin-top: 8px;
+}
+
+/* 底部新增來源(mockup 末尾 .btn margin-top:6px) */
+.add-source {
+  margin-top: 6px;
+}

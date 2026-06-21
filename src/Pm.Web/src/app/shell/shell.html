@@ -1,0 +1,45 @@
+<div class="app">
+  <nav class="activity">
+    <div class="logo" title="圖庫工作台"></div>
+
+    <a class="act" routerLink="/gallery" routerLinkActive="active">
+      <span class="lbl">圖庫</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+      </svg>
+    </a>
+
+    <a class="act" routerLink="/import" routerLinkActive="active">
+      <span class="lbl">匯入確認</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 3v12m0 0 4-4m-4 4-4-4" /><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+      </svg>
+    </a>
+
+    <a class="act" routerLink="/reconcile" routerLinkActive="active">
+      <span class="lbl">失蹤待辦</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M10.3 3.7 2.5 17a1.8 1.8 0 0 0 1.6 2.7h15.8a1.8 1.8 0 0 0 1.6-2.7L13.7 3.7a1.8 1.8 0 0 0-3.4 0Z" />
+        <path d="M12 9v4m0 4h0" />
+      </svg>
+    </a>
+
+    <a class="act" routerLink="/saved" routerLinkActive="active">
+      <span class="lbl">收藏的搜尋</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="m12 17-5.5 3 1-6.2L3 9.3l6.2-.9L12 3l2.8 5.4 6.2.9-4.5 4.5 1 6.2z" />
+      </svg>
+    </a>
+
+    <a class="act" routerLink="/roots" routerLinkActive="active">
+      <span class="lbl">圖庫來源</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
+        <path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
+      </svg>
+    </a>
+  </nav>
+
+  <main class="stage"><router-outlet /></main>
+</div>

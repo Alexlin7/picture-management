@@ -1,5 +1,6 @@
-# 產生的 UI 截圖(可由 ui-preview.html 重生)
+# 產生的 UI 截圖(可由 ui-preview.html 重生 / Playwright 重截)
 docs/mockups/shot-*.png
+docs/mockups/shots/
 
 # Playwright
 test-results/
