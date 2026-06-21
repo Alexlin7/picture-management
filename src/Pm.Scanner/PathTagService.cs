@@ -39,4 +39,50 @@ public sealed class PathTagService(PmDbContext db)
             .OrderByDescending(p => p.Count)
             .ToList();
     }
+
+    public async Task ApplyRuleAsync(
+        long? rootId, string segment, string action, string? tagName, CancellationToken ct = default)
+    {
+        long? tagId = null;
+        if (action is "map_to_tag" or "meta_year")
+        {
+            var name = action == "meta_year" ? segment : (tagName ?? segment);
+            var kind = action == "meta_year" ? "meta" : "path";
+            var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == name, ct);
+            if (tag is null)
+            {
+                tag = new Tag { Name = name, Kind = kind };
+                db.Tags.Add(tag);
+                await db.SaveChangesAsync(ct);
+            }
+            tagId = tag.Id;
+        }
+
+        var rule = await db.PathTagRules
+            .FirstOrDefaultAsync(r => r.LibraryRootId == rootId && r.Segment == segment, ct);
+        if (rule is null)
+            db.PathTagRules.Add(new PathTagRule { LibraryRootId = rootId, Segment = segment, Action = action, TagId = tagId });
+        else { rule.Action = action; rule.TagId = tagId; }
+        await db.SaveChangesAsync(ct);
+
+        if (tagId is not null)
+            await ApplySegmentTagAsync(rootId, segment, tagId.Value, ct);
+    }
+
+    private async Task ApplySegmentTagAsync(long? rootId, string segment, long tagId, CancellationToken ct)
+    {
+        var pat = segment;
+        var photoIds = await db.PhotoLocations
+            .Where(l => (rootId == null || l.LibraryRootId == rootId)
+                        && (l.RelPath.StartsWith(pat + "/") || l.RelPath.Contains("/" + pat + "/")))
+            .Select(l => l.PhotoId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        foreach (var pid in photoIds)
+            if (!await db.PhotoTags.AnyAsync(pt => pt.PhotoId == pid && pt.TagId == tagId, ct))
+                db.PhotoTags.Add(new PhotoTag { PhotoId = pid, TagId = tagId, Source = "path" });
+
+        await db.SaveChangesAsync(ct);
+    }
 }
