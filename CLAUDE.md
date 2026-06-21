@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 單一使用者本機**圖片管理系統**(Windows 11)。圖庫十萬量級、以動漫圖為主、少量個人照片。核心:把「邏輯分類(tag)」跟「檔案系統」徹底脫鉤 —— 就地索引、用 tag 與布林查詢看圖,資料夾只是眾多 tag 軸之一。
 
-**完整設計與所有決策理由在 `docs/superpowers/specs/2026-06-21-picture-management-design.md` —— 動手前先讀它。** 本檔只摘大方向與不可違反的鐵則。
+**完整設計與所有決策理由在 `docs/superpowers/specs/2026-06-21-picture-management-design.md` —— 動手前先讀它。** 本檔只摘大方向與不可違反的鐵則。UI/UX 見該文件 §6 與可點 mockup `docs/mockups/ui-preview.html`(瀏覽器開,`?view=` / `?only=inspector` 可切換截圖)。
 
 **狀態:設計已定案,尚未開始實作(repo 目前只有設計文件)。** 下方「指令」是已議定的工具鏈,實際 build/test 指令待 Phase 1 骨架建好後補上。
 

@@ -312,7 +312,45 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 
 ---
 
-## 6. 關鍵決策日誌
+## 6. UI / UX 設計
+
+可點的 mockup:`docs/mockups/ui-preview.html`(瀏覽器開啟;`?view=<gallery|import|reconcile|saved|roots>` 與 `?only=inspector` 供切換/截圖)。視覺方向仍可迭代。
+
+### 6.1 設計語言
+
+- **暗色三欄工作台**:圖片在暗中性背景最跳(Lightroom / booru 暗色模式同理),色彩只留給標籤,機殼維持中性 charcoal。
+- **Booru 分色標籤學(簽名)**:標籤顏色 = `tag.kind`,顏色本身即資訊,非裝飾。
+
+  | kind | 顏色 | 對應 |
+  |---|---|---|
+  | character | 綠 `#4ADE80` | 角色 |
+  | copyright | 紫 `#C084FC` | 作品 / 企劃 |
+  | general | 藍 `#818CF8` | 屬性 |
+  | meta | 琥珀 `#FBBF24` | 年份 / 其他 |
+  | path | 灰 `#94A3B8` | 資料夾(降級的軸) |
+  | manual | 粉 `#F472B6` | 我的手動標籤 |
+
+  app 功能強調色 = 青 `#22D3EE`(僅用於主要動作 / 選取 / 焦點);破壞性 = 紅 `#F0616D`。
+- **字體**:Space Grotesk(標題)/ Inter + Noto Sans TC(內文、中文)/ JetBrains Mono(hash、路徑、信心值等技術資料)。
+- **版面**:活動列(58px 圖示)→ 側欄(情境式:篩選 / 來源…)→ 主區 → 檢視器(選圖時顯示)。VS Code 式,單機單人工具導向。
+
+### 6.2 五個畫面
+
+1. **圖庫**:頂部布林 tag 搜尋列(token 化、空格=AND、`-`=排除);左側篩選(階層樹 + 平面 facet);中央 CDK virtual scroll 瀑布流縮圖(hover 浮出分色 mini 標籤、`可能是照片` 徽章、`2 份` 去重標記);右側檢視器。
+2. **檢視器(選圖)**:大預覽 →**「身分 → 位置」卡片(簽名元素)**:一個 `file_hash` 下掛多個位置 pill(本機 / 舊 GDrive…),直接把「身分 vs 位置」畫出來 → 標籤分色 lane(角色/作品/屬性/年份/資料夾)→ **WD14 建議**(虛線框 + 信心 % + 採用✓/拒絕✕)→ EXIF(動漫圖顯示「無相機 EXIF」,個人照片顯示相機/時間/GPS)。
+3. **匯入確認(路徑→tag)**:表列沒見過的資料夾段 → 出現次數 / 範例路徑 / 建議動作(對應標籤·分色 / 略過不產 tag / 標為年份)。套用一次寫進 `path_tag_rule`,之後只問新段。
+4. **失蹤待辦匣**:真失蹤(所有來源皆無、且無同 hash 副本)才進此;頂部提示「N 張只是換位置已自動續接」;每張可選 繼續等待 / 移到圖庫外 / 已刪除,並說明軟刪、同 hash 回來自動復原。
+5. **圖庫來源**:多 root 清單(狀態 / 檔案數 / 上次掃描 / 重新掃描 / 新增來源)。
+
+### 6.3 互動決策
+
+- **階層樹(DAG)**:左側「作品 / 企劃 → 角色」可展開;不知上游的 tag 落在 **「— 無上層分類 —」** 桶,照常可用;多父 tag 標 `↟2` 徽章;搜上層自動涵蓋旗下後代(tag implication)。
+- **標籤來源可辨**:已採用 = 實線分色 chip;WD14 建議 = 虛線 + 信心 %,逐一接受/拒絕。
+- **揪混入的個人照片**:置頂特殊 Saved Search「可能是個人照片」(`has:exif OR tag:realistic`)。
+- **存查詢不存資料夾**:Saved Search 為一級物件,同張圖可同時落在多個搜尋。
+- **品質底線**:十萬量級走 virtual scroll + keyset 分頁;鍵盤焦點可見;尊重 `prefers-reduced-motion`。
+
+## 7. 關鍵決策日誌
 
 | 決策 | 選擇 | 理由 |
 |---|---|---|
@@ -332,7 +370,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 
 ---
 
-## 7. 交付 / 安裝(方案 C 混合)
+## 8. 交付 / 安裝(方案 C 混合)
 
 - **Postgres 走 Docker**(`pgvector/pgvector` image)→ 最省事拿到 pgvector;
 - **.NET API + Python worker 原生跑** → 直接讀十萬本機檔、啟動快(避開 Windows bind-mount 檔案存取慢)。
@@ -340,7 +378,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 
 ---
 
-## 8. 錯誤處理 / 邊界
+## 9. 錯誤處理 / 邊界
 
 - **同 hash 多位置** → `photo_location` 多列,天然去重。
 - **檔案鎖定/讀不到** → 位置標 error,下輪重試,不阻斷整批。
@@ -351,21 +389,21 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 
 ---
 
-## 9. 測試策略
+## 10. 測試策略
 
 - **單元**:SHA-256 hash、路徑→tag 解析/規則套用、布林查詢產生器、**搬移 vs 刪除判定邏輯**(最該測)。
 - **整合**:掃 fixture 樹 → 驗 photo/location/tag 列數;改名一檔重掃 → 驗位置更新「不」重複;刪一檔 → 驗進待確認匣;WD14 用假模型 → 驗 job 狀態轉換 + photo_tag 寫入。
 
 ---
 
-## 10. 分階段
+## 11. 分階段
 
 - **Phase 1(核心)**:schema + 掃描/對帳 + 路徑→tag 確認 + 布林查詢 + Angular 相簿 + 縮圖 + WD14 worker。**不含** embedding/pgvector。
 - **Phase 2(語意搜尋)**:CLIP image embedding → `pgvector` hybrid query(結構化過濾 + 相似度排序);動漫上考慮日文/動漫微調 CLIP 變體。
 
 ---
 
-## 11. 待真正動工才會明朗(使用者明示)
+## 12. 待真正動工才會明朗(使用者明示)
 
 SQL schema 之後可改;以下細節留待實作中校正:
 - WD14 具體模型(`wd-vit-tagger-v3` vs `swinv2` vs `convnext`)與最終信心門檻。
