@@ -19,6 +19,7 @@ builder.Services.AddScoped<PathTagService>();
 builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
+builder.Services.AddScoped<TagService>();
 
 var app = builder.Build();
 
@@ -188,17 +189,12 @@ app.MapDelete("/api/photos/{id:long}", async (long id, PmDbContext db) =>
 });
 
 // 寫 manual tag(upsert tag,新增 photo_tag source='manual';已存在則 idempotent)
-app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db) =>
+app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db, TagService tags) =>
 {
     if (!await db.Photos.AnyAsync(p => p.Id == id)) return Results.NotFound();
 
-    var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == dto.Name);
-    if (tag is null)
-    {
-        tag = new Tag { Name = dto.Name, Kind = dto.Kind ?? "manual" };
-        db.Tags.Add(tag);
-        await db.SaveChangesAsync();
-    }
+    // 正規化 + 不分大小寫 upsert(blue/Blue 不會變兩個);全新名稱會進標籤庫。
+    var tag = await tags.UpsertByNameAsync(dto.Name, dto.Kind ?? "manual");
 
     var pt = await db.PhotoTags.FirstOrDefaultAsync(x => x.PhotoId == id && x.TagId == tag.Id);
     if (pt is null)
@@ -221,6 +217,25 @@ app.MapDelete("/api/photos/{id:long}/tags/{tagId:long}", async (long id, long ta
     return Results.NoContent();
 });
 
+// 標籤庫:列出 + 使用數(autocomplete 與管理頁共用);q 不分大小寫過濾
+app.MapGet("/api/tags", async (string? q, int? limit, TagService tags) =>
+    Results.Ok(await tags.ListAsync(q, Math.Clamp(limit ?? 50, 1, 500))));
+
+// 改名(撞既有名→合併);回 { merged }
+app.MapPut("/api/tags/{id:long}", async (long id, RenameTagDto dto, TagService tags) =>
+{
+    var (found, merged) = await tags.RenameAsync(id, dto.Name);
+    return found ? Results.Ok(new { merged }) : Results.NotFound();
+});
+
+// 刪除 tag(連帶關聯)
+app.MapDelete("/api/tags/{id:long}", async (long id, TagService tags) =>
+    await tags.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
+
+// 合併 id → targetId
+app.MapPost("/api/tags/{id:long}/merge/{targetId:long}", async (long id, long targetId, TagService tags) =>
+    await tags.MergeAsync(id, targetId) ? Results.Ok() : Results.NotFound());
+
 // SPA fallback:前端路由不被 API 404 攔截
 app.MapFallbackToFile("index.html");
 
@@ -231,5 +246,6 @@ public record PathRuleDto(long? RootId, string Segment, string Action, string? T
 public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
 public record SavedSearchDto(string Name, string QueryJson);
 public record ManualTagDto(string Name, string? Kind);
+public record RenameTagDto(string Name);
 
 public partial class Program { }   // 供 WebApplicationFactory 測試引用
