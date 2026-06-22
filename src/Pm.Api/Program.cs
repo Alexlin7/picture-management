@@ -30,7 +30,12 @@ var app = builder.Build();
 // 啟動時確保 schema 存在(本機單檔,直接 Migrate)
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<PmDbContext>().Database.Migrate();
+    var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
+    db.Database.Migrate();
+    // 開 WAL:API 請求與 WD14 背景 worker 同時寫入 pm.sqlite 時,讀寫不互卡(rollback journal 會)。
+    // WAL 為持久設定(寫入 db header),設一次後所有連線生效。短暫寫鎖則靠 Microsoft.Data.Sqlite
+    // 預設 command timeout(SQLITE_BUSY 自動重試)等待,而非立即「database is locked」。
+    db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
 }
 
 // 由 .NET serve Angular 靜態檔(ng build 輸出至 wwwroot),同源、免 CORS
@@ -196,6 +201,8 @@ app.MapDelete("/api/photos/{id:long}", async (long id, PmDbContext db) =>
 app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db, TagService tags) =>
 {
     if (!await db.Photos.AnyAsync(p => p.Id == id)) return Results.NotFound();
+    if (TagService.Normalize(dto.Name).Length == 0)
+        return Results.BadRequest(new { error = "標籤名不可為空白" });
 
     // 正規化 + 不分大小寫 upsert(blue/Blue 不會變兩個);全新名稱會進標籤庫。
     var tag = await tags.UpsertByNameAsync(dto.Name, dto.Kind ?? "manual");
@@ -228,6 +235,8 @@ app.MapGet("/api/tags", async (string? q, int? limit, TagService tags) =>
 // 改名(撞既有名→合併);回 { merged }
 app.MapPut("/api/tags/{id:long}", async (long id, RenameTagDto dto, TagService tags) =>
 {
+    if (TagService.Normalize(dto.Name).Length == 0)
+        return Results.BadRequest(new { error = "標籤名不可為空白" });
     var (found, merged) = await tags.RenameAsync(id, dto.Name);
     return found ? Results.Ok(new { merged }) : Results.NotFound();
 });
