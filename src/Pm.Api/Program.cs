@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Pm.Api;
 using Pm.Data;
 using Pm.Data.Entities;
 using Pm.Scanner;
@@ -20,6 +21,9 @@ builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
 builder.Services.AddScoped<TagService>();
+
+// WD14 自動標籤(opt-in:Inference:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
+builder.Services.AddWd14Tagging(builder.Configuration);
 
 var app = builder.Build();
 
