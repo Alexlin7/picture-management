@@ -40,11 +40,9 @@ export class PhotoGrid {
     return this.store.thumbUrl(id);
   }
 
-  // tile 高度:依 width/height 推 aspect ratio,較高 tile 較高。
-  // API 無尺寸時退預設 ar=1.0。
-  tileHeight(p: PhotoListItem): number {
-    const ar = p.width && p.height ? p.width / p.height : 1.0;
-    return Math.round(220 + (1 / ar) * 70);
+  // tile 用真實長寬比預留空間(無尺寸退 1:1):避免變形,且載入前先佔位不跳動。
+  aspect(p: PhotoListItem): string {
+    return p.width && p.height ? `${p.width}/${p.height}` : '1/1';
   }
 
   // kind → 顏色
@@ -76,6 +74,17 @@ export class PhotoGrid {
   // 載入下一頁
   loadMore(): void {
     void this.store.loadMore();
+  }
+
+  // 搜尋框送出:空格切多個 token 一次加入(無 '-' = AND;'-x' = 排除),觸發查詢。
+  addSearch(value: string, input: HTMLInputElement): void {
+    const parts = value.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return;
+    this.store.setTokens([
+      ...this.store.tokens(),
+      ...parts.map((p) => ({ text: p, kind: 'general' as const })),
+    ]);
+    input.value = '';
   }
 
   // hex → rgba helper(半透明底色)

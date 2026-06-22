@@ -210,8 +210,10 @@
 }
 .tile .art {
   width: 100%;
+  height: auto;          /* 高度由 aspect-ratio 推導:真實比例、不變形、不裁切 */
   display: block;
   position: relative;
+  background: var(--color-raised);   /* 載入前的佔位底色 */
 }
 .tile .art::after {
   content: "";

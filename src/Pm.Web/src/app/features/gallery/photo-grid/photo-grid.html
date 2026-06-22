@@ -12,7 +12,11 @@
           <span class="x" (click)="removeToken($index, $event)">×</span>
         </span>
       }
-      <input placeholder="加標籤 · 空格=AND · -排除" />
+      <input
+        #si
+        placeholder="加標籤 · 空格=AND · -排除"
+        (keydown.enter)="addSearch(si.value, si)"
+      />
     </div>
     <button class="btn ghost" title="儲存目前搜尋">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -62,7 +66,7 @@
     <div class="masonry">
       @for (p of photos(); track p.id) {
         <div class="tile" [class.sel]="selectedId() === p.id" (click)="pick(p)">
-          <img class="art" [src]="thumb(p.id)" [style.height.px]="tileHeight(p)" loading="lazy" alt="" />
+          <img class="art" [src]="thumb(p.id)" [style.aspect-ratio]="aspect(p)" loading="lazy" alt="" />
         </div>
       }
     </div>
