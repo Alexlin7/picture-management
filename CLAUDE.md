@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **完整設計與所有決策理由在 `docs/superpowers/specs/2026-06-21-picture-management-design.md` —— 動手前先讀它。** 本檔只摘大方向與不可違反的鐵則。UI/UX 見該文件 §6 與可點 mockup `docs/mockups/ui-preview.html`(瀏覽器開,`?view=` / `?only=inspector` 可切換截圖)。
 
-**狀態:設計已定案,尚未開始實作(repo 目前只有設計文件)。** 下方「指令」是已議定的工具鏈,實際 build/test 指令待 Phase 1 骨架建好後補上。
+**狀態(2026-06-22):Phase 1 核心可端對端運作** —— 後端掃描/對帳/查詢/路徑→tag/saved search/facet/軟硬刪/manual tag 端點皆完成且有測試;前端五頁已接真實 API(非 mock);單一 .NET 程序 serve API + 前端。**WD14 自動標籤 worker 尚未實作**(掃描已排 `tagging_job`,但無背景服務消化);CUDA/Windows ML 推論後端僅骨架;Phase 2(CLIP 語意搜尋)未開始。**現況、啟動方式、逐項功能狀態見根目錄 [`README.md`](README.md)。**
 
 ## 架構大方向
 
@@ -55,7 +55,7 @@ Angular SPA(ng build 靜態檔)──REST(localhost)──> 單一 .NET 程序
 - **安裝版(可選)**:Velopack / Inno 包裝同一顆 exe(捷徑、自動更新)。
 - **Docker image(可選,僅日後 NAS/Linux headless)**:Linux 內推論退 CPU(DirectML 為 Windows-only)。
 
-## 指令(議定的工具鏈;實際指令待骨架建好後補)
+## 指令(已可用;啟動細節與整合流程見 README.md)
 
 ```powershell
 # 後端(.NET 單程序,內含 SQLite + ONNX,免外部 DB)
