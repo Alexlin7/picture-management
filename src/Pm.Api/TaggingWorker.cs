@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Pm.Data;
 using Pm.Data.Entities;
 using Pm.Ml;
+using Pm.Scanner;
 
 namespace Pm.Api;
 
@@ -36,15 +37,11 @@ public sealed class TaggingWorker(
             var path = await ResolvePathAsync(db, job.PhotoId, ct)
                        ?? throw new FileNotFoundException($"photo {job.PhotoId} 無可用位置");
 
+            // 走 TagService:正規化 + 不分大小寫 upsert,避免 wd14 與手動標籤產生大小寫重複。
+            var tagSvc = new TagService(db);
             foreach (var (name, kind, conf) in await tagger.TagAsync(path, ct))
             {
-                var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == name, ct);
-                if (tag is null)
-                {
-                    tag = new Tag { Name = name, Kind = kind };
-                    db.Tags.Add(tag);
-                    await db.SaveChangesAsync(ct);
-                }
+                var tag = await tagSvc.UpsertByNameAsync(name, kind, ct);
                 if (!await db.PhotoTags.AnyAsync(pt => pt.PhotoId == job.PhotoId && pt.TagId == tag.Id, ct))
                     db.PhotoTags.Add(new PhotoTag { PhotoId = job.PhotoId, TagId = tag.Id, Source = "wd14", Confidence = conf });
             }

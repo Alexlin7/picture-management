@@ -89,6 +89,32 @@ public class TaggingWorkerTests : IDisposable
     }
 
     [Fact]
+    public async Task Reuses_existing_tag_case_insensitively_no_duplicate()
+    {
+        var photoId = await SeedPendingJob();
+
+        // 預先放一個「大小寫不同」的既有 tag(模擬手動建立的 1Girl)。
+        long existingId;
+        await using (var seed = NewContext())
+        {
+            var t = new Tag { Name = "1Girl", Kind = "manual" };
+            seed.Tags.Add(t);
+            await seed.SaveChangesAsync();
+            existingId = t.Id;
+        }
+
+        await using var ctx = NewContext();
+        await Worker(new FakeTagger()).ProcessNextAsync(ctx, default);   // fake 產 "1girl"
+
+        await using var verify = NewContext();
+        // 不分大小寫比對下,"1girl" 只能有一顆(不因大小寫不同就建第二顆)。
+        Assert.Equal(1, await verify.Tags.CountAsync(t => t.Name.ToLower() == "1girl"));
+        // wd14 的 photo_tag 應掛到「既有那顆」,而非新建的。
+        Assert.True(await verify.PhotoTags.AnyAsync(
+            pt => pt.PhotoId == photoId && pt.TagId == existingId && pt.Source == "wd14"));
+    }
+
+    [Fact]
     public async Task No_pending_returns_false()
     {
         await using var ctx = NewContext();
