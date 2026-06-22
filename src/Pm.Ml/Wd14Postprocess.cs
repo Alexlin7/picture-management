@@ -2,7 +2,8 @@ namespace Pm.Ml;
 
 public static class Wd14Postprocess
 {
-    // danbooru/WD14 category → 我們的 tag.kind
+    // danbooru/WD14 category → 我們的 tag.kind(完整對應表;rating 目前由 Select 過濾,
+    // 但保留 9→meta 對應以備日後想把 rating 收為 meta tag)。
     // 0=general, 3=copyright, 4=character, 9=rating(meta);其餘歸 general。
     // 註:實際 category 值以 selected_tags.csv 為準,必要時校正。
     public static string KindOf(int category) => category switch
