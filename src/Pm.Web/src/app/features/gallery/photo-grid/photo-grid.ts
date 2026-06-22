@@ -1,16 +1,9 @@
-import { Component, computed, output, signal } from '@angular/core';
-import { TAG_COLOR } from '../tag-color';
-import {
-  artGradient,
-  MOCK_HIT_COUNT,
-  MOCK_PHOTOS,
-  MOCK_SEARCH_TOKENS,
-  MOCK_WD14_QUEUE,
-  type MockPhoto,
-  type SearchToken,
-} from '../mock/mock-data';
+import { Component, computed, inject, signal } from '@angular/core';
+import { TAG_COLOR } from '@core/tag-color';
+import { artGradient } from '@core/placeholder-art';
+import { GalleryStore, type MockPhoto, type SearchToken } from '../gallery.store';
 
-// 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 發出 photo id。
+// 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
   selector: 'app-photo-grid',
   imports: [],
@@ -18,21 +11,21 @@ import {
   styleUrl: './photo-grid.css',
 })
 export class PhotoGrid {
-  selectPhoto = output<number>();
+  private readonly store = inject(GalleryStore);
 
-  // 假資料(本輪按鈕先到位)
-  readonly photos = MOCK_PHOTOS;
-  readonly hitCount = MOCK_HIT_COUNT;
-  readonly wd14Queue = MOCK_WD14_QUEUE;
+  // 資料來源:store(原假資料)
+  readonly photos = this.store.photos;
+  readonly hitCount = this.store.hitCount;
+  readonly wd14Queue = this.store.wd14Queue;
 
   // 頂欄目前搜尋 token(可 ×)
-  readonly tokens = signal<SearchToken[]>([...MOCK_SEARCH_TOKENS]);
+  readonly tokens = this.store.tokens;
 
-  // 選取狀態(signal)
-  readonly selectedId = signal<number | null>(null);
+  // 選取狀態(讀 store)
+  readonly selectedId = this.store.selectedId;
   readonly selCount = computed(() => (this.selectedId() === null ? 0 : 1));
 
-  // 兩段式檢視切換:dense=小圖密集 / large=大圖
+  // 兩段式檢視切換:dense=小圖密集 / large=大圖(純視覺本地狀態)
   readonly viewMode = signal<'dense' | 'large'>('dense');
 
   // 千分位
@@ -62,7 +55,7 @@ export class PhotoGrid {
   // 移除頂欄 token
   removeToken(idx: number, ev: Event): void {
     ev.stopPropagation();
-    this.tokens.update((ts) => ts.filter((_, i) => i !== idx));
+    this.store.removeToken(idx);
   }
 
   // token 膠囊樣式(分色,半透明底)
@@ -75,10 +68,9 @@ export class PhotoGrid {
     };
   }
 
-  // 點 tile → emit id + 標記 selected
+  // 點 tile → 寫入 store 選取
   pick(p: MockPhoto): void {
-    this.selectedId.set(p.id);
-    this.selectPhoto.emit(p.id);
+    this.store.select(p.id);
   }
 
   // hex → rgba helper(半透明底色)

@@ -1,25 +1,7 @@
 // 本輪 UI 用的假資料(按鈕先到位,真實 API 下輪)。
 // 模型沿用 docs/mockups/ui-preview.html 的 PHOTOS / TREE / IMPORT / RECON …,
 // 並盡量對齊 src/app/api/pm-api.ts 的型別,日後可平滑換成真實 API。
-import { TAG_COLOR } from '../tag-color';
-
-/* ---------- 漸層 placeholder art(無真圖時的暫代縮圖)---------- */
-export function artGradient(seed: number): string {
-  const h1 = (seed * 137.508) % 360;
-  const h2 = (h1 + 38 + ((seed * 53) % 90)) % 360;
-  const s = 48 + ((seed * 7) % 24);
-  return `linear-gradient(${(seed * 61) % 360}deg, hsl(${h1} ${s}% 47%), hsl(${h2} ${s - 10}% 29%))`;
-}
-
-export type TagKind = keyof typeof TAG_COLOR; // character|copyright|general|meta|path|manual
-export const KIND_LABEL: Record<TagKind, string> = {
-  character: '角色',
-  copyright: '作品',
-  general: '屬性',
-  meta: '年份／其他',
-  path: '資料夾',
-  manual: '我的標籤',
-};
+import { type TagKind } from '@core/tag-color';
 
 export interface MockTag {
   name: string;

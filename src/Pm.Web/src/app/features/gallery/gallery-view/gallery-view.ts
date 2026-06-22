@@ -1,8 +1,8 @@
-import { Component, signal } from '@angular/core';
-import { FacetSidebar } from './facet-sidebar';
-import { PhotoGrid } from './photo-grid';
-import { Inspector } from '../inspector/inspector';
-import { DEFAULT_SELECTED_ID } from '../mock/mock-data';
+import { Component, inject } from '@angular/core';
+import { FacetSidebar } from '../facet-sidebar/facet-sidebar';
+import { PhotoGrid } from '../photo-grid/photo-grid';
+import { Inspector } from '@features/inspector/inspector/inspector';
+import { GalleryStore } from '../gallery.store';
 
 // 相簿三欄:facet 側欄(252)· 圖牆(1fr)· 檢視器(350)。
 @Component({
@@ -11,8 +11,8 @@ import { DEFAULT_SELECTED_ID } from '../mock/mock-data';
   template: `
     <div class="gview">
       <app-facet-sidebar />
-      <app-photo-grid (selectPhoto)="selectedId.set($event)" />
-      <app-inspector [photoId]="selectedId()" />
+      <app-photo-grid />
+      <app-inspector [photoId]="store.selectedId()" />
     </div>
   `,
   styles: [
@@ -35,5 +35,5 @@ import { DEFAULT_SELECTED_ID } from '../mock/mock-data';
   ],
 })
 export class GalleryView {
-  selectedId = signal<number | null>(DEFAULT_SELECTED_ID);
+  readonly store = inject(GalleryStore);
 }

@@ -9,23 +9,23 @@ export const routes: Routes = [
       { path: '', redirectTo: 'gallery', pathMatch: 'full' },
       {
         path: 'gallery',
-        loadComponent: () => import('./gallery/gallery-view').then((m) => m.GalleryView),
+        loadComponent: () => import('./features/gallery/gallery-view/gallery-view').then((m) => m.GalleryView),
       },
       {
         path: 'import',
-        loadComponent: () => import('./manage/import-confirm').then((m) => m.ImportConfirm),
+        loadComponent: () => import('./features/manage/import-confirm/import-confirm').then((m) => m.ImportConfirm),
       },
       {
         path: 'reconcile',
-        loadComponent: () => import('./manage/reconcile').then((m) => m.Reconcile),
+        loadComponent: () => import('./features/manage/reconcile/reconcile').then((m) => m.Reconcile),
       },
       {
         path: 'saved',
-        loadComponent: () => import('./manage/saved-searches').then((m) => m.SavedSearches),
+        loadComponent: () => import('./features/manage/saved-searches/saved-searches').then((m) => m.SavedSearches),
       },
       {
         path: 'roots',
-        loadComponent: () => import('./manage/roots').then((m) => m.Roots),
+        loadComponent: () => import('./features/manage/roots/roots').then((m) => m.Roots),
       },
     ],
   },

@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
-import { MOCK_RECON, MOCK_RECON_RELOCATED, artGradient, type ReconRow } from '../mock/mock-data';
+import { Component, inject, signal } from '@angular/core';
+import { ManageStore, type ReconRow } from '../manage.store';
+import { artGradient } from '@core/placeholder-art';
 
 // 契約(route /reconcile):失蹤待辦匣 —— 縮圖卡 + 上次位置 + 三動作。
 type ReconState = 'pending' | 'waiting' | 'externalized' | 'deleted';
@@ -16,12 +17,14 @@ interface ReconItem extends ReconRow {
   styleUrl: './reconcile.css',
 })
 export class Reconcile {
+  private readonly store = inject(ManageStore);
+
   // 換位置(同 hash)已自動續接的張數,只是說明用
-  readonly relocated = MOCK_RECON_RELOCATED;
+  readonly relocated = this.store.relocated();
 
   // 失蹤清單;state 用 signal 管,按鈕點擊後就地切狀態
   readonly items = signal<ReconItem[]>(
-    MOCK_RECON.map((r) => ({ ...r, art: artGradient(r.seed), state: 'pending' as ReconState })),
+    this.store.reconRows().map((r) => ({ ...r, art: artGradient(r.seed), state: 'pending' as ReconState })),
   );
 
   // 還沒處理的(pending)張數 → vhead pill

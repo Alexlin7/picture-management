@@ -1,12 +1,6 @@
-import { Component, signal } from '@angular/core';
-import {
-  MOCK_IMPORT,
-  MOCK_IMPORT_SOURCE,
-  KIND_LABEL,
-  type ImportRow,
-  type TagKind,
-} from '../mock/mock-data';
-import { TAG_COLOR } from '../tag-color';
+import { Component, inject, signal } from '@angular/core';
+import { ManageStore, type ImportRow, type TagKind } from '../manage.store';
+import { TAG_COLOR, KIND_LABEL } from '@core/tag-color';
 
 // 契約(route /import):匯入確認 —— 路徑段 → tag 確認表。
 // 本輪「按鈕先到位」:互動用 signal 管狀態,禁止真實 HTTP。
@@ -17,13 +11,15 @@ import { TAG_COLOR } from '../tag-color';
   styleUrl: './import-confirm.css',
 })
 export class ImportConfirm {
+  private readonly store = inject(ManageStore);
+
   // hex → rgba helper(半透明底色用)
   protected rgba(hex: string, a: number): string {
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
   }
 
-  protected readonly source = MOCK_IMPORT_SOURCE;
+  protected readonly source = this.store.importSource();
   protected readonly KIND_LABEL = KIND_LABEL;
   protected readonly TAG_COLOR = TAG_COLOR;
 
@@ -31,7 +27,7 @@ export class ImportConfirm {
   protected readonly catOptions: TagKind[] = ['copyright', 'character', 'general', 'meta', 'path', 'manual'];
 
   // 每列狀態用 signal 包起來,讓動作膠囊/選單能即時切換
-  protected readonly rows = signal<ImportRow[]>(MOCK_IMPORT.map((r) => ({ ...r })));
+  protected readonly rows = signal<ImportRow[]>(this.store.importRows().map((r) => ({ ...r })));
 
   // 哪一列的「分類 ▾」選單正開著(null = 全關)
   protected readonly openMenu = signal<number | null>(null);

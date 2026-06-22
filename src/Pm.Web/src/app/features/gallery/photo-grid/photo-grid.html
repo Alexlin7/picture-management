@@ -55,7 +55,7 @@
   <!-- masonry 圖牆 -->
   <div class="view">
     <div class="masonry">
-      @for (p of photos; track p.id) {
+      @for (p of photos(); track p.id) {
         <div class="tile" [class.sel]="selectedId() === p.id" (click)="pick(p)">
           <div class="art" [style.background]="art(p.seed)" [style.height.px]="tileHeight(p)"></div>
           <div class="chips">

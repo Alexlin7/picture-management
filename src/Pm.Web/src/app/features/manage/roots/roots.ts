@@ -1,5 +1,5 @@
-import { Component, signal } from '@angular/core';
-import { MOCK_ROOTS, type RootRow } from '../mock/mock-data';
+import { Component, inject, signal } from '@angular/core';
+import { ManageStore, type RootRow } from '../manage.store';
 
 // 契約(route /roots):圖庫來源 —— 來源清單(資料夾 icon、狀態點、檔數、重新掃描)。
 @Component({
@@ -9,8 +9,10 @@ import { MOCK_ROOTS, type RootRow } from '../mock/mock-data';
   styleUrl: './roots.css',
 })
 export class Roots {
-  // 圖庫來源(假資料,本輪按鈕先到位,下輪接真實 API)
-  readonly roots = signal<RootRow[]>(MOCK_ROOTS);
+  private readonly store = inject(ManageStore);
+
+  // 圖庫來源(資料來源來自 store,下輪接真實 API)
+  readonly roots = signal<RootRow[]>(this.store.roots());
 
   // 正在重新掃描的來源 index(純視覺,signal 管狀態)
   readonly scanning = signal<number | null>(null);

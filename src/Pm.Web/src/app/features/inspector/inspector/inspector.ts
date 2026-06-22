@@ -1,12 +1,11 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
+import { artGradient } from '@core/placeholder-art';
 import {
-  artGradient,
-  getMockPhoto,
-  KIND_LABEL,
+  InspectorStore,
   type MockPhoto,
   type TagKind,
-} from '../mock/mock-data';
-import { TAG_COLOR } from '../tag-color';
+} from '../inspector.store';
+import { TAG_COLOR, KIND_LABEL } from '@core/tag-color';
 
 // 契約:右側檢視器。輸入選中的 photo id(signal input)。
 // 內容:預覽圖、身分→位置簽名、tag lanes(分色)、WD14 建議(虛線 chip + ✓/✕)、EXIF。
@@ -17,13 +16,14 @@ import { TAG_COLOR } from '../tag-color';
   styleUrl: './inspector.css',
 })
 export class Inspector {
+  private readonly store = inject(InspectorStore);
+
   photoId = input<number | null>(null);
 
-  // null → 顯示空狀態;否則取對應 mock photo
-  readonly photo = computed<MockPhoto | null>(() => {
-    const id = this.photoId();
-    return id == null ? null : (getMockPhoto(id) ?? null);
-  });
+  // null → 顯示空狀態;否則取對應 photo(資料來源接縫:InspectorStore)
+  readonly photo = computed<MockPhoto | null>(() =>
+    this.store.lookup(this.photoId()),
+  );
 
   // tag lane 的固定排序(依 kind)
   private readonly laneOrder: TagKind[] = [

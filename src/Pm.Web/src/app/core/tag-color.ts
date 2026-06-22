@@ -10,3 +10,13 @@ export const TAG_COLOR: Record<string, string> = {
 export const ACCENT = '#22D3EE';
 export const DANGER = '#F0616D';
 export const tagColor = (kind: string) => TAG_COLOR[kind] ?? TAG_COLOR['general'];
+
+export type TagKind = keyof typeof TAG_COLOR; // character|copyright|general|meta|path|manual
+export const KIND_LABEL: Record<TagKind, string> = {
+  character: '角色',
+  copyright: '作品',
+  general: '屬性',
+  meta: '年份／其他',
+  path: '資料夾',
+  manual: '我的標籤',
+};

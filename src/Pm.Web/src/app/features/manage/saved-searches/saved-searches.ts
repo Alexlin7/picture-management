@@ -1,6 +1,6 @@
-import { Component, signal } from '@angular/core';
-import { MOCK_SAVED, type SavedSearch } from '../mock/mock-data';
-import { TAG_COLOR } from '../tag-color';
+import { Component, inject, signal } from '@angular/core';
+import { ManageStore, type SavedSearch } from '../manage.store';
+import { TAG_COLOR } from '@core/tag-color';
 
 // 契約(route /saved):收藏的搜尋 —— 查詢卡片格。
 @Component({
@@ -10,8 +10,10 @@ import { TAG_COLOR } from '../tag-color';
   styleUrl: './saved-searches.css',
 })
 export class SavedSearches {
-  // 收藏的搜尋(假資料,本輪按鈕先到位)
-  readonly saved = signal<SavedSearch[]>(MOCK_SAVED);
+  private readonly store = inject(ManageStore);
+
+  // 收藏的搜尋(資料來源來自 store)
+  readonly saved = signal<SavedSearch[]>(this.store.saved());
 
   // meta 色點(special 卡片標題用)
   readonly metaColor = TAG_COLOR['meta'];
