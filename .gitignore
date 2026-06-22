@@ -5,6 +5,10 @@ docs/mockups/shots/
 # Playwright
 test-results/
 playwright-report/
+.playwright-mcp/
+
+# JetBrains Rider / IntelliJ
+.idea/
 
 # .NET
 bin/
@@ -22,3 +26,4 @@ src/Pm.Api/wwwroot/
 
 # 縮圖快取(衍生)
 src/Pm.Api/thumbs/
+/thumbs/
