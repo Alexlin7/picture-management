@@ -18,6 +18,7 @@ builder.Services.AddScoped<LibraryScanner>();
 builder.Services.AddScoped<PathTagService>();
 builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
+builder.Services.AddScoped<TagFacetService>();
 
 var app = builder.Build();
 
@@ -142,6 +143,84 @@ app.MapDelete("/api/saved-searches/{id:long}", async (long id, PmDbContext db) =
     return Results.NoContent();
 });
 
+// 側欄 facet 樹(餵 FacetSidebar)
+app.MapGet("/api/tags/tree", async (TagFacetService svc) =>
+{
+    var f = await svc.BuildAsync();
+
+    // FacetNode → 純物件;children 省略則 null(前端優雅隱藏)
+    static object MapNode(FacetNode n) => new
+    {
+        name = n.Name,
+        kind = n.Kind,
+        count = n.Count,
+        multi = n.Multi,
+        children = n.Children?.Select(MapNode).ToList()
+    };
+
+    return Results.Ok(new
+    {
+        tree = f.Tree.Select(MapNode).ToList(),
+        rootless = f.Rootless.Select(MapNode).ToList(),
+        general = f.General.Select(p => new object[] { p.Name, p.Count }).ToList(),
+        meta = f.Meta.Select(p => new object[] { p.Name, p.Count }).ToList()
+    });
+});
+
+// reconcile:軟刪(把該 photo 所有 location 標 archived,保留 photo+tags)
+app.MapPost("/api/photos/{id:long}/archive", async (long id, PmDbContext db) =>
+{
+    if (!await db.Photos.AnyAsync(p => p.Id == id)) return Results.NotFound();
+    var locs = await db.PhotoLocations.Where(l => l.PhotoId == id).ToListAsync();
+    foreach (var l in locs) l.Status = "archived";
+    await db.SaveChangesAsync();
+    return Results.Ok(new { archived = locs.Count });
+});
+
+// reconcile:硬刪 purge(cascade 連帶 location/photo_tag),僅明示端點才做
+app.MapDelete("/api/photos/{id:long}", async (long id, PmDbContext db) =>
+{
+    var photo = await db.Photos.FindAsync(id);
+    if (photo is null) return Results.NotFound();
+    db.Photos.Remove(photo);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
+// 寫 manual tag(upsert tag,新增 photo_tag source='manual';已存在則 idempotent)
+app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db) =>
+{
+    if (!await db.Photos.AnyAsync(p => p.Id == id)) return Results.NotFound();
+
+    var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == dto.Name);
+    if (tag is null)
+    {
+        tag = new Tag { Name = dto.Name, Kind = dto.Kind ?? "manual" };
+        db.Tags.Add(tag);
+        await db.SaveChangesAsync();
+    }
+
+    var pt = await db.PhotoTags.FirstOrDefaultAsync(x => x.PhotoId == id && x.TagId == tag.Id);
+    if (pt is null)
+    {
+        pt = new PhotoTag { PhotoId = id, TagId = tag.Id, Source = "manual", Confidence = null };
+        db.PhotoTags.Add(pt);
+        await db.SaveChangesAsync();
+    }
+
+    return Results.Ok(new { id = tag.Id, name = tag.Name, kind = tag.Kind, source = pt.Source, confidence = pt.Confidence });
+});
+
+// 移除 photo_tag
+app.MapDelete("/api/photos/{id:long}/tags/{tagId:long}", async (long id, long tagId, PmDbContext db) =>
+{
+    var pt = await db.PhotoTags.FirstOrDefaultAsync(x => x.PhotoId == id && x.TagId == tagId);
+    if (pt is null) return Results.NotFound();
+    db.PhotoTags.Remove(pt);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
 // SPA fallback:前端路由不被 API 404 攔截
 app.MapFallbackToFile("index.html");
 
@@ -151,5 +230,6 @@ public record CreateRootDto(string Name, string AbsPath);
 public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName);
 public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
 public record SavedSearchDto(string Name, string QueryJson);
+public record ManualTagDto(string Name, string? Kind);
 
 public partial class Program { }   // 供 WebApplicationFactory 測試引用
