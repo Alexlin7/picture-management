@@ -18,7 +18,7 @@
 - ✅ 標籤庫端點：列表（含使用數）/ 改名 / 合併 / 刪除，正規化 + **全 Unicode 不分大小寫去重**（`name_ci` 鍵 + 唯一索引，非 ASCII 角色/作品名也去重）（`TagService`）
 - ✅ 前端 gallery / import / reconcile / saved / roots + inspector + **標籤庫管理頁 `/tags`** 接真實 API（實機驗證）；檢視器以 combobox 加/刪標籤（查既有、防近似重複）
 - ✅ **WD14 自動標籤端到端就緒（opt-in）**：ML pipeline（前處理 448² BGR / WD14 ONNX in-proc / 後處理門檻）＋ `TaggingWorker` 已透過 `AddWd14Tagging` wire 進 host —— `Inference:Enabled=true` 時註冊推論工廠＋tagger＋背景服務消化 `tagging_job`，**預設關閉**（免下載模型）；worker 寫 tag 走 `TagService`（全 Unicode CI 去重、kind 語意升級不降級、與 manual 共用 `AttachTag` 路徑），不再與手動標籤撞大小寫或畫錯 lane；崩潰留下的 `running` job 啟動時自動回收重排
-- ⚠️ WD14 opt-in 後**尚未跑過真實圖庫**端到端（首次標註會 HF 下載模型 + `selected_tags.csv`；category↔kind 對應與門檻待實測校正）
+- ✅ **WD14 已在真實圖庫實機驗證（2026-06-22，AMD RX 9060 XT / DirectML）**：200 張動漫圖一輪 0 失敗；HF 模型 + `selected_tags.csv` 自動下載成功；DirectML 在 AMD GPU 推論成功；標籤品質佳（`1girl`/`long_hair`/`halo`/角色名…），`source=wd14`＋`confidence` 正確寫入。**category↔kind 對應確認無誤**：WD14 v3 的 csv 只有 category `0`(general)/`4`(character)/`9`(rating，被過濾)，無 `3`(copyright)，故 `KindOf` 的 `3→copyright` 為不觸發死碼（無害；作品名內嵌於角色標如 `aris_(blue_archive)`）。門檻 general 0.35 / character 0.85 表現合理（character 偏高精度，想多召回可調低）
 - 🚧 推論後端：CPU / DirectML 可用；CUDA、Windows ML 僅骨架（見 `src/Pm.Ml`）
 - 🔲 Phase 2（CLIP 語意搜尋）未開始
 
@@ -122,7 +122,6 @@ cd src/Pm.Web ; npm test          # 前端
 - 管理：來源檔數/掃描時間/狀態點、reconcile 已續接數、saved 命中數/特殊卡隱藏；新增來源用 prompt 收路徑（無資料夾挑選器）；saved 點卡套用查詢未接
 
 ### 🔲 尚未實作 / 待驗
-- **WD14 opt-in 實機驗證**：`Inference:Enabled=true`（並設 `Inference:Backend`，預設 directml）後首次標註會 HF 下載模型（~300MB）＋ `selected_tags.csv`；需在真實圖庫跑一遍,確認 category↔kind 對應正確、門檻合適（`Wd14Postprocess` 註明待校正）
 - **WD14 失敗 job 無自動重試**：`TaggingWorker` 失敗只標 `error` ＋ `Attempts++`，不自動重排（之後可加退避重試）。註：崩潰卡在 `running` 的 job 啟動時**會**自動回收重排（與此不同）
 - CUDA / Windows ML 推論後端（`Pm.Ml` 僅骨架；本 build 僅 cpu/directml，選到 cuda/winml 會明確報錯；Windows ML 為 Phase 2 待啟用）
 - 單檔自包含 exe 交付（`dotnet publish PublishSingleFile`）設定與驗證

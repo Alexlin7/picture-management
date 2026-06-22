@@ -27,3 +27,7 @@ src/Pm.Api/wwwroot/
 # 縮圖快取(衍生)
 src/Pm.Api/thumbs/
 /thumbs/
+
+# WD14 模型(首次標註自動 HF 下載,衍生資料,可重建,勿入庫)
+src/Pm.Api/models/
+/models/
