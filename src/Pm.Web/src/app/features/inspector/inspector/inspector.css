@@ -215,43 +215,6 @@
   opacity: 0.85;
 }
 
-/* WD14 建議:虛線 chip + ✓/✕ */
-.tag.sugg {
-  border-style: dashed;
-  opacity: 0.92;
-}
-.tag.sugg .acts {
-  display: inline-flex;
-  gap: 3px;
-  margin-left: 3px;
-}
-.tag .ic {
-  width: 15px;
-  height: 15px;
-  border-radius: 4px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1;
-}
-.tag .ic.y:hover {
-  background: rgba(74, 222, 128, 0.2);
-}
-.tag .ic.n:hover {
-  background: rgba(240, 97, 109, 0.2);
-}
-/* 已決定:採用→實線淡綠;拒絕→淡化刪除線 */
-.tag.sugg.accepted {
-  border-style: solid;
-  opacity: 1;
-}
-.tag.sugg.rejected {
-  opacity: 0.4;
-  text-decoration: line-through;
-}
-
 /* ---------- 手動加/刪標籤 ---------- */
 .tag .tx {
   border: 0;

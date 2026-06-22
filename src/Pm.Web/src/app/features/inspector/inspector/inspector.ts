@@ -7,6 +7,9 @@ import {
 } from '../inspector.store';
 import { TAG_COLOR, KIND_LABEL, tagColor } from '@core/tag-color';
 
+// combobox 浮層的列:既有標籤列 或 「建立新標籤」列。
+type ComboRow = { kind: 'tag'; tag: TagListRow } | { kind: 'create'; name: string };
+
 // 契約:右側檢視器。輸入選中的 photo id(signal input)。
 // 內容:預覽圖(縮圖)、身分→位置簽名、tag lanes(分色)、EXIF。
 // 資料來源接縫:InspectorStore(非同步載入 PhotoDetail)。
@@ -94,7 +97,7 @@ export class Inspector implements OnDestroy {
   // ---- 加標籤 combobox ----
   readonly suggestions = this.store.suggestions;
   readonly query = signal('');
-  readonly activeIndex = signal(-1);   // -1 = 未選;0..n-1 = 既有列;n = 「建立新標籤」列
+  readonly activeIndex = signal(-1);   // -1 = 未選;0..n-1 = comboRows 的列
   private debounce: ReturnType<typeof setTimeout> | null = null;
 
   // 是否已有「不分大小寫完全相符」的既有標籤(有的話就不顯示「建立新標籤」列)。
@@ -106,6 +109,14 @@ export class Inspector implements OnDestroy {
   // 只有「無完全相符」且有輸入時才顯示「建立新標籤」列。
   readonly showCreate = computed(() => !!this.query().trim() && !this.exactMatch());
 
+  // 浮層的列模型:既有標籤列 +(視情況)一列「建立新標籤」。
+  // 把「建立列」當成 list 的一員,而非靠 index===length 的特例,讓 move/onEnter/template 共用單一索引空間。
+  readonly comboRows = computed<ComboRow[]>(() => {
+    const rows: ComboRow[] = this.suggestions().map((tag) => ({ kind: 'tag', tag }));
+    if (this.showCreate()) rows.push({ kind: 'create', name: this.query().trim() });
+    return rows;
+  });
+
   // 打字 → debounce 查既有標籤;重置選取游標。
   onType(v: string): void {
     this.query.set(v);
@@ -114,9 +125,9 @@ export class Inspector implements OnDestroy {
     this.debounce = setTimeout(() => void this.store.suggest(v), 180);
   }
 
-  // ↑↓ 在「既有列 + 建立新標籤列」之間移動游標。
+  // ↑↓ 在 comboRows 之間移動游標。
   move(delta: number): void {
-    const count = this.suggestions().length + (this.showCreate() ? 1 : 0);
+    const count = this.comboRows().length;
     if (count === 0) return;
     const next = this.activeIndex() + delta;
     this.activeIndex.set(Math.max(0, Math.min(next, count - 1)));
@@ -131,23 +142,26 @@ export class Inspector implements OnDestroy {
       this.debounce = null;
       await this.store.suggest(this.query());
     }
-    const rows = this.suggestions();
+    const rows = this.comboRows();
     const i = this.activeIndex();
     if (i >= 0 && i < rows.length) {
-      this.pick(rows[i]);
+      this.activate(rows[i]);
       return;
     }
-    if (i === rows.length && this.showCreate()) {
-      this.createNew();
-      return;
-    }
+    // 無游標:CI 完全相符用既有,否則(有輸入)建新。
     const q = this.query().trim().toLowerCase();
-    const exact = rows.find((r) => r.name.toLowerCase() === q);
+    const exact = this.suggestions().find((r) => r.name.toLowerCase() === q);
     if (exact) {
       this.pick(exact);
       return;
     }
     if (this.query().trim()) this.createNew();
+  }
+
+  // 觸發某一列(點擊 / Enter 共用)。
+  activate(row: ComboRow): void {
+    if (row.kind === 'tag') this.pick(row.tag);
+    else this.createNew(row.name);
   }
 
   // 點/選既有標籤:用「那個既有名」加到圖上(後端 upsert 命中既有,不會建新)。

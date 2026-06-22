@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { tagColor } from '@core/tag-color';
+import { tagColor, DANGER } from '@core/tag-color';
 import { type PhotoListItem } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
 
@@ -54,14 +54,16 @@ export class PhotoGrid {
     this.store.removeToken(idx);
   }
 
-  // token 膠囊樣式(分色,半透明底)
+  // token 膠囊樣式(分色,半透明底);排除 token(-x)用 DANGER 紅 + 刪除線區分。
   tokenStyle(t: SearchToken): Record<string, string> {
-    const c = this.kindColor(t.kind);
-    return {
+    const excl = t.text.startsWith('-');
+    const c = excl ? DANGER : this.kindColor(t.kind);
+    const base = {
       color: c,
       background: this.rgba(c, 0.12),
       'border-color': this.rgba(c, 0.3),
     };
+    return excl ? { ...base, 'text-decoration': 'line-through' } : base;
   }
 
   // 點 tile → 寫入 store 選取

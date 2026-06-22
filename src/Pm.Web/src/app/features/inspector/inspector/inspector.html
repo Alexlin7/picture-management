@@ -80,27 +80,28 @@
           />
           @if (query().trim()) {
             <div class="combo-pop">
-              @for (s of suggestions(); track s.id; let i = $index) {
-                <button
-                  type="button"
-                  class="combo-row"
-                  [class.active]="activeIndex() === i"
-                  (mousedown)="$event.preventDefault()"
-                  (click)="pick(s)"
-                >
-                  <span class="dot" [style.color]="dotColor(s.kind)" [style.background]="dotColor(s.kind)"></span>
-                  <span class="cname">{{ s.name }}</span>
-                  <span class="ccount">{{ s.count }}</span>
-                </button>
-              }
-              @if (showCreate()) {
-                <button
-                  type="button"
-                  class="combo-row create"
-                  [class.active]="activeIndex() === suggestions().length"
-                  (mousedown)="$event.preventDefault()"
-                  (click)="createNew()"
-                >＋ 建立新標籤「{{ query().trim() }}」</button>
+              @for (r of comboRows(); track $index; let i = $index) {
+                @if (r.kind === 'tag') {
+                  <button
+                    type="button"
+                    class="combo-row"
+                    [class.active]="activeIndex() === i"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="pick(r.tag)"
+                  >
+                    <span class="dot" [style.color]="dotColor(r.tag.kind)" [style.background]="dotColor(r.tag.kind)"></span>
+                    <span class="cname">{{ r.tag.name }}</span>
+                    <span class="ccount">{{ r.tag.count }}</span>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="combo-row create"
+                    [class.active]="activeIndex() === i"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="createNew(r.name)"
+                  >＋ 建立新標籤「{{ r.name }}」</button>
+                }
               }
             </div>
           }
