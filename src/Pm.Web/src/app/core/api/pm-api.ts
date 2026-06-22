@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 export interface PhotoListItem { id: number; fileHash: string; width?: number; height?: number; mime?: string; }
@@ -20,6 +20,7 @@ export interface TagTree {
   tree: TagTreeNode[]; rootless: TagTreeNode[];
   general: [string, number][]; meta: [string, number][];
 }
+export interface TagListRow { id: number; name: string; kind: string; count: number; }
 
 @Injectable({ providedIn: 'root' })
 export class PmApi {
@@ -78,5 +79,22 @@ export class PmApi {
   }
   removeTag(photoId: number, tagId: number): Promise<unknown> {
     return firstValueFrom(this.http.delete(`/api/photos/${photoId}/tags/${tagId}`));
+  }
+
+  // ---- 標籤庫(管理頁 + autocomplete 共用)----
+  tags(q?: string, limit?: number): Promise<TagListRow[]> {
+    let params = new HttpParams();
+    if (q) params = params.set('q', q);
+    if (limit != null) params = params.set('limit', String(limit));
+    return firstValueFrom(this.http.get<TagListRow[]>('/api/tags', { params }));
+  }
+  renameTag(id: number, name: string): Promise<{ merged: boolean }> {
+    return firstValueFrom(this.http.put<{ merged: boolean }>(`/api/tags/${id}`, { name }));
+  }
+  deleteTag(id: number): Promise<unknown> {
+    return firstValueFrom(this.http.delete(`/api/tags/${id}`));
+  }
+  mergeTags(id: number, targetId: number): Promise<unknown> {
+    return firstValueFrom(this.http.post(`/api/tags/${id}/merge/${targetId}`, {}));
   }
 }

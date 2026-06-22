@@ -27,6 +27,10 @@ export const routes: Routes = [
         path: 'roots',
         loadComponent: () => import('./features/manage/roots/roots').then((m) => m.Roots),
       },
+      {
+        path: 'tags',
+        loadComponent: () => import('./features/tags/tag-manager/tag-manager').then((m) => m.TagManager),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

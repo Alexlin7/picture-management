@@ -1,0 +1,49 @@
+<div class="tagmgr">
+  <header class="hd">
+    <h1>標籤庫</h1>
+    <p class="sub">
+      管理 DB 裡所有標籤。改名成「既有標籤」會自動合併;刪除會一併解除它在圖上的關聯(不刪圖)。
+      共 {{ tags().length }} 個標籤。
+    </p>
+  </header>
+
+  <div class="bar">
+    <input #qi class="q" type="text" placeholder="過濾標籤名…(不分大小寫)" (input)="filter(qi.value)" />
+  </div>
+
+  @if (error()) {
+    <div class="empty">載入失敗:{{ error() }}</div>
+  } @else if (!loading() && tags().length === 0) {
+    <div class="empty">沒有符合的標籤。在檢視器手動加標籤、或匯入確認頁把路徑段確認成標籤後會出現在這裡。</div>
+  }
+
+  <div class="list">
+    @for (t of tags(); track t.id) {
+      <div class="row">
+        <span class="dot" [style.color]="color(t.kind)" [style.background]="color(t.kind)"></span>
+
+        @if (editingId() === t.id) {
+          <input
+            #re
+            class="rename"
+            [value]="t.name"
+            (keydown.enter)="saveEdit(t, re.value)"
+            (keydown.escape)="cancelEdit()"
+          />
+          <span class="acts">
+            <button class="b primary" (click)="saveEdit(t, re.value)">儲存</button>
+            <button class="b ghost" (click)="cancelEdit()">取消</button>
+          </span>
+        } @else {
+          <span class="name">{{ t.name }}</span>
+          <span class="kind" [style.color]="color(t.kind)">{{ t.kind }}</span>
+          <span class="count">{{ t.count }} 張</span>
+          <span class="acts">
+            <button class="b" (click)="startEdit(t)">改名</button>
+            <button class="b danger" (click)="remove(t)">刪除</button>
+          </span>
+        }
+      </div>
+    }
+  </div>
+</div>
