@@ -1,0 +1,267 @@
+/* ---------- 檢視器容器(對齊 mockup .inspector)---------- */
+:host {
+  display: flex;
+  flex-direction: column;
+  width: 350px;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--color-panel);
+  border-left: 1px solid var(--color-hair);
+}
+
+/* ---------- 空狀態 ---------- */
+.insp-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--color-faint);
+  padding: 30px;
+}
+.insp-empty svg {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+.insp-empty .sub {
+  font-size: 11.5px;
+  margin-top: 6px;
+}
+
+/* ---------- 預覽圖 ---------- */
+.preview {
+  position: relative;
+  width: 100%;
+}
+.preview .pimg {
+  width: 100%;
+  display: block;
+}
+.preview .grad {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 60%, var(--color-panel));
+}
+
+/* ---------- 主體 ---------- */
+.ibody {
+  padding: 14px 16px 26px;
+}
+.iname {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.iser {
+  color: var(--color-muted);
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}
+
+/* ---------- key/value(EXIF personal)---------- */
+.kvs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.kvs .k {
+  color: var(--color-faint);
+}
+.kvs .v {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  text-align: right;
+  word-break: break-all;
+}
+
+/* ---------- 區段 ---------- */
+.isec {
+  margin-top: 20px;
+}
+.isec-h {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.isec-h .line {
+  height: 1px;
+  background: var(--color-hair);
+  flex: 1;
+}
+.isec-h .legend {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-faint);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+/* ---------- 身分 → 位置(簽名)---------- */
+.idcard {
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hair);
+  border-radius: var(--radius-soft);
+  padding: 11px 12px;
+}
+.idhash {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--color-t-character);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.idhash .lk {
+  color: var(--color-faint);
+}
+.loc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 1px dashed var(--color-hair);
+  margin-top: 8px;
+  font-size: 11.5px;
+}
+.loc:first-of-type {
+  border-top: 0;
+  margin-top: 9px;
+}
+.loc svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-faint);
+  flex: none;
+}
+.loc .rp {
+  font-family: var(--font-mono);
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.loc .rt {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--color-faint);
+  background: var(--color-raised);
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex: none;
+}
+.dupnote {
+  font-size: 10.5px;
+  color: var(--color-faint);
+  margin-top: 9px;
+  font-family: var(--font-mono);
+}
+
+/* ---------- tag lanes ---------- */
+.lane {
+  margin-bottom: 12px;
+}
+.lane-t {
+  font-size: 11px;
+  color: var(--color-muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lane-t .n {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-faint);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 7px -1px currentColor;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+  background: transparent;
+}
+.tag .conf {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+/* WD14 建議:虛線 chip + ✓/✕ */
+.tag.sugg {
+  border-style: dashed;
+  opacity: 0.92;
+}
+.tag.sugg .acts {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 3px;
+}
+.tag .ic {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+}
+.tag .ic.y:hover {
+  background: rgba(74, 222, 128, 0.2);
+}
+.tag .ic.n:hover {
+  background: rgba(240, 97, 109, 0.2);
+}
+/* 已決定:採用→實線淡綠;拒絕→淡化刪除線 */
+.tag.sugg.accepted {
+  border-style: solid;
+  opacity: 1;
+}
+.tag.sugg.rejected {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+/* ---------- EXIF 空框 ---------- */
+.exif-empty {
+  font-size: 12px;
+  color: var(--color-faint);
+  font-style: normal;
+  background: var(--color-canvas);
+  border: 1px dashed var(--color-hair);
+  border-radius: var(--radius-soft);
+  padding: 9px 11px;
+}
+.exif-empty code {
+  font-family: var(--font-mono);
+}

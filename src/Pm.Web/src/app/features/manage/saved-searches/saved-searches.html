@@ -1,0 +1,42 @@
+<!-- 收藏的搜尋:vhead 標題 + 說明,下方卡片格 -->
+<div class="vhead">
+  <h1>收藏的搜尋</h1>
+  <p>存的是查詢,不是資料夾。同一張圖可以同時出現在多個搜尋裡 —— 多軸交集不會爆炸。</p>
+</div>
+
+<div class="panel-pad">
+  @if (error()) {
+    <div class="note">{{ error() }}</div>
+  }
+
+  @if (loading() && saved().length === 0) {
+    <div class="note">載入中…</div>
+  } @else if (saved().length === 0) {
+    <div class="note">還沒有收藏的搜尋。在相簿裡存下查詢就會出現在這裡。</div>
+  }
+
+  <div class="saved-grid">
+    @for (s of saved(); track s.id) {
+      <button
+        type="button"
+        class="saved"
+        [class.on]="active() === s.id"
+        (mouseenter)="onEnter(s.id)"
+        (mouseleave)="onLeave()"
+        (click)="onPick(s.id)"
+      >
+        <div class="st">
+          <span class="st-title">{{ s.title }}</span>
+          @if (hovered() === s.id) {
+            <span class="del" role="button" aria-label="刪除" (click)="onDelete(s.id, $event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 6 18 18M18 6 6 18" />
+              </svg>
+            </span>
+          }
+        </div>
+        <div class="sq">{{ s.query }}</div>
+      </button>
+    }
+  </div>
+</div>

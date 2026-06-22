@@ -1,0 +1,64 @@
+<!-- 失蹤待辦匣:撐滿 1fr、整區可捲動 -->
+<div class="rc-scroll">
+  <!-- 標題區 vhead -->
+  <div class="vhead">
+    <h1>
+      失蹤待辦匣
+      <span class="pill pill-danger">{{ pendingCount() }} 張待處理</span>
+    </h1>
+    <p>這些圖上次掃描後在所有來源都找不到了,且沒有同 hash 副本在別處。是搬到圖庫外、還是刪掉了?</p>
+  </div>
+
+  <!-- 內容區 panel-pad -->
+  <div class="panel-pad">
+    @if (error()) {
+      <div class="note">{{ error() }}</div>
+    }
+
+    @if (loading() && items().length === 0) {
+      <div class="note">載入中…</div>
+    } @else if (items().length === 0) {
+      <div class="note">沒有失蹤的圖,一切都對得上。</div>
+    }
+
+    <!-- 失蹤清單 -->
+    @for (it of items(); track it.id) {
+      <div class="rinbox" [class.resolved]="it.state !== 'pending'">
+        <!-- 74px 真實縮圖 + 失蹤遮罩 -->
+        <div class="th">
+          <img [src]="thumb(it.id)" alt="" loading="lazy" />
+          <div class="miss">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="m2 2 20 20M10.6 5.1A9 9 0 0 1 21 12s-1 1.8-2.7 3.4M6.6 6.6A9 9 0 0 0 3 12s3 6 9 6a8.6 8.6 0 0 0 3.4-.7" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- 檔名 + 上次出現位置 + 軟刪說明 -->
+        <div class="rinfo">
+          <div class="rt2">{{ it.title }}</div>
+          <div class="rlast">上次出現:{{ it.last }}</div>
+          <div class="rnote">標籤與身分都還留著 —— 軟刪,同 hash 回來會自動復原。</div>
+        </div>
+
+        <!-- 三按鈕 / 已處理狀態 -->
+        <div class="ractions">
+          @if (it.state === 'pending') {
+            <button class="btn btn-ghost" (click)="keepWaiting(it.id)">繼續等待</button>
+            <button class="btn" (click)="externalize(it.id)">移到圖庫外</button>
+            <button class="btn btn-del" (click)="markDeleted(it.id)">已刪除</button>
+          } @else {
+            <span class="done-pill">
+              @switch (it.state) {
+                @case ('waiting') { 已標記繼續等待 }
+                @case ('externalized') { 已移到圖庫外 }
+                @case ('deleted') { 已標記刪除 }
+              }
+            </span>
+            <button class="btn btn-ghost btn-undo" (click)="undo(it.id)">復原</button>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

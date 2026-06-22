@@ -1,0 +1,89 @@
+:host {
+  display: contents;
+}
+.app {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  height: 100vh;
+}
+/* routed 元件容器 = 第 2 欄;router-outlet 注入的元件在此填滿,
+   不再變成 .app grid 的直接項目(否則會掉到第 1 欄被壓成 58px)。 */
+.stage {
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---------- activity bar ---------- */
+.activity {
+  background: #101216;
+  border-right: 1px solid var(--color-hair);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0;
+  gap: 4px;
+}
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  background: conic-gradient(from 220deg, #22d3ee, #818cf8, #c084fc, #4ade80, #22d3ee);
+  box-shadow: 0 0 0 1px #0c0e12, 0 6px 18px -6px rgba(34, 211, 238, 0.6);
+}
+.act {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  border: 0;
+  background: transparent;
+  color: var(--color-faint);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  position: relative;
+  transition: 0.15s;
+}
+.act svg {
+  width: 20px;
+  height: 20px;
+}
+.act:hover {
+  background: var(--color-raised);
+  color: var(--color-muted);
+}
+.act.active {
+  color: var(--color-accent);
+  background: rgba(34, 211, 238, 0.1);
+}
+.act.active::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--color-accent);
+}
+.act .lbl {
+  position: absolute;
+  left: 48px;
+  background: var(--color-raised-2);
+  color: var(--color-text);
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-4px);
+  transition: 0.13s;
+  z-index: 40;
+  border: 1px solid var(--color-hair);
+}
+.act:hover .lbl {
+  opacity: 1;
+  transform: translateX(0);
+}

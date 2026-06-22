@@ -1,0 +1,113 @@
+@if (photo(); as p) {
+  <!-- 預覽圖:縮圖;aspect-ratio 依 width/height(無則自然) -->
+  <div class="preview">
+    @if (thumbUrl(); as url) {
+      <img
+        class="pimg"
+        [src]="url"
+        [style.aspect-ratio]="p.width && p.height ? p.width + '/' + p.height : null"
+        alt=""
+      />
+    }
+    <div class="grad"></div>
+  </div>
+
+  <div class="ibody">
+    <!-- 名稱:取首個位置的檔名(API 無 title 欄位) -->
+    <div class="iname">{{ fileName(p) }}</div>
+
+    <!-- 身分 → 位置簽名 -->
+    <div class="isec">
+      <div class="isec-h">身分 → 位置<span class="line"></span></div>
+      <div class="idcard">
+        <div class="idhash">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />
+          </svg>{{ hash() }}…<span class="lk">· SHA-256 身分</span>
+        </div>
+        @for (l of p.locations; track $index) {
+          <div class="loc">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            </svg>
+            <span class="rp">{{ l.relPath }}</span>
+            <span class="rt">{{ l.status }}</span>
+          </div>
+        }
+        @if (p.locations.length > 1) {
+          <div class="dupnote">同一張圖、多個位置 → 去重為一筆身分</div>
+        }
+      </div>
+    </div>
+
+    <!-- 標籤 lanes(依 kind 分色)。source ∈ path/manual/wd14 由顏色與信心呈現 -->
+    <div class="isec">
+      <div class="isec-h">標籤<span class="line"></span></div>
+
+      @for (lane of lanes(); track lane.kind) {
+        <div class="lane">
+          <div class="lane-t">
+            <span class="dot" [style.color]="lane.color" [style.background]="lane.color"></span>{{ lane.label }}<span class="n">{{ lane.tags.length }}</span>
+          </div>
+          <div class="tags">
+            @for (t of lane.tags; track t.id) {
+              <span
+                class="tag"
+                [style.color]="lane.color"
+                [style.border-color]="rgba(lane.color, 0.4)"
+                [style.background]="rgba(lane.color, 0.08)"
+              >{{ t.name }}@if (t.confidence != null) {<span class="conf">{{ pct(t.confidence) }}%</span>}</span>
+            }
+          </div>
+        </div>
+      } @empty {
+        <div class="exif-empty">尚無標籤。</div>
+      }
+    </div>
+
+    <!-- EXIF -->
+    <div class="isec">
+      <div class="isec-h">EXIF<span class="line"></span></div>
+      @if (hasExif()) {
+        <div class="kvs">
+          @if (p.takenAt) {
+            <span class="k">拍攝時間</span><span class="v">{{ p.takenAt }}</span>
+          }
+          @if (p.cameraModel) {
+            <span class="k">相機</span><span class="v">{{ p.cameraModel }}</span>
+          }
+        </div>
+      } @else {
+        <div class="exif-empty">
+          無相機 EXIF — 下載的動漫圖。<code>taken_at</code> 退化為檔案時間。
+        </div>
+      }
+    </div>
+  </div>
+} @else if (loading()) {
+  <div class="insp-empty">
+    <div>
+      <div>載入中…</div>
+    </div>
+  </div>
+} @else if (error()) {
+  <div class="insp-empty">
+    <div>
+      <div>{{ error() }}</div>
+      <div class="sub">無法載入這張圖的詳情</div>
+    </div>
+  </div>
+} @else {
+  <!-- 空狀態 -->
+  <div class="insp-empty">
+    <div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 16l5-5 4 4 3-3 6 6" />
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+      </svg>
+      <div>選一張圖看詳情</div>
+      <div class="sub">身分、位置、標籤與 EXIF</div>
+    </div>
+  </div>
+}

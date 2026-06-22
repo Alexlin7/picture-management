@@ -1,6 +1,24 @@
-# 產生的 UI 截圖(可由 ui-preview.html 重生)
+# 產生的 UI 截圖(可由 ui-preview.html 重生 / Playwright 重截)
 docs/mockups/shot-*.png
+docs/mockups/shots/
 
 # Playwright
 test-results/
 playwright-report/
+
+# .NET
+bin/
+obj/
+*.user
+
+# SQLite 本機資料庫(衍生,不入庫)
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Angular
+node_modules/
+src/Pm.Api/wwwroot/
+
+# 縮圖快取(衍生)
+src/Pm.Api/thumbs/

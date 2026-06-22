@@ -1,0 +1,115 @@
+<!-- 匯入確認 · 路徑 → 標籤(撐滿 1fr、可捲動;mockup view-import 267-287) -->
+<div class="import-view">
+  <div class="vhead">
+    <h1>匯入確認 · 路徑 → 標籤</h1>
+    <p>
+      新掃描發現這些<b>沒見過的資料夾段</b>。確認一次,規則就記住,之後重掃只問新的段。
+    </p>
+  </div>
+
+  <div class="panel-pad">
+    @if (error()) {
+      <div class="note">{{ error() }}</div>
+    }
+
+    <!-- 藍色 note -->
+    <div class="note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 8h0m0 3v5" />
+      </svg>
+      @if (source()) {
+        來源「{{ source() }}」,{{ pending() }} 個新路徑段待確認。已套用過的段不再出現。
+      } @else {
+        尚無圖庫來源,或沒有待確認的路徑段。
+      }
+    </div>
+
+    @if (loading() && rows().length === 0) {
+      <div class="note">載入中…</div>
+    }
+
+    <table>
+      <thead>
+        <tr>
+          <th>路徑段</th>
+          <th>出現次數</th>
+          <th>範例路徑</th>
+          <th class="col-act">動作</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of rows(); track r.seg) {
+          <tr>
+            <td class="seg-path">{{ r.seg }}</td>
+            <td class="num">{{ fmt(r.n) }}</td>
+            <td class="ex-path">{{ r.ex }}</td>
+            <td>
+              @switch (r.action) {
+                @case ('ignore') {
+                  <span
+                    class="pill"
+                    [style.color]="'var(--color-faint)'"
+                    [style.border-color]="'var(--color-hair)'"
+                    [style.background]="'var(--color-canvas)'"
+                    >略過 · 不產標籤</span
+                  >
+                }
+                @case ('year') {
+                  <span
+                    class="pill"
+                    [style.color]="TAG_COLOR['meta']"
+                    [style.border-color]="rgba(TAG_COLOR['meta'], 0.4)"
+                    [style.background]="rgba(TAG_COLOR['meta'], 0.1)"
+                    >標為年份</span
+                  >
+                }
+                @case ('map') {
+                  <span class="act-wrap">
+                    <span
+                      class="pill"
+                      [style.color]="pillColor(r)"
+                      [style.border-color]="rgba(pillColor(r), 0.4)"
+                      [style.background]="rgba(pillColor(r), 0.1)"
+                      >→ {{ r.tag }}</span
+                    >
+                    <span class="cat-pick">
+                      <button class="sel-mini" type="button" (click)="toggleMenu(r.seg, $event)">
+                        {{ KIND_LABEL[r.cat ?? 'general'] }} ▾
+                      </button>
+                      @if (openMenu() === r.seg) {
+                        <div class="cat-menu">
+                          @for (c of catOptions; track c) {
+                            <button
+                              type="button"
+                              class="cat-item"
+                              [class.on]="(r.cat ?? 'general') === c"
+                              (click)="pickCat(r.seg, c)"
+                            >
+                              <span class="dot" [style.color]="TAG_COLOR[c]" [style.background]="TAG_COLOR[c]"></span>
+                              {{ KIND_LABEL[c] }}
+                            </button>
+                          }
+                        </div>
+                      }
+                    </span>
+                  </span>
+                }
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="actions-bar">
+      <button class="btn btn-primary" type="button" (click)="applyAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+        套用全部並完成匯入
+      </button>
+      <button class="btn btn-ghost" type="button" (click)="skipAll()">略過全部</button>
+    </div>
+  </div>
+</div>
