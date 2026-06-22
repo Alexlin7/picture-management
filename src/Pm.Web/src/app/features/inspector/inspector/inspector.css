@@ -272,7 +272,14 @@
   gap: 6px;
   margin-top: 10px;
 }
+/* combobox 容器:input 在上、浮層清單絕對定位於其下 */
+.combo {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
 .addtag-in {
+  width: 100%;
   flex: 1;
   min-width: 0;
   font-size: 12px;
@@ -280,6 +287,61 @@
   border-radius: 6px;
   border: 1px solid var(--color-hair);
   background: var(--color-canvas);
+  color: inherit;
+}
+.combo-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--color-panel);
+  border: 1px solid var(--color-hair);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.45);
+  padding: 4px;
+}
+.combo-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.combo-row:hover,
+.combo-row.active {
+  background: var(--color-raised);
+}
+.combo-row .cname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.combo-row .ccount {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-faint);
+}
+.combo-row.create {
+  color: var(--color-muted);
+  border-top: 1px solid var(--color-hair);
+  border-radius: 0 0 6px 6px;
+  margin-top: 2px;
+}
+.combo-row.create.active,
+.combo-row.create:hover {
   color: inherit;
 }
 .addtag-in:focus {

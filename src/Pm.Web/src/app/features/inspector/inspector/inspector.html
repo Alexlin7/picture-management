@@ -64,16 +64,48 @@
         <div class="exif-empty">尚無標籤。</div>
       }
 
-      <!-- 手動加標籤:打名字 Enter / 加入;全新名稱會建成 manual 標籤進標籤庫 -->
+      <!-- 加標籤 combobox:查既有標籤、避免近似重複;無完全相符才顯示「建立新標籤」 -->
       <div class="addtag">
-        <input
-          #ti
-          class="addtag-in"
-          type="text"
-          placeholder="加標籤…(空白分隔多字會當一個標籤名)"
-          (keydown.enter)="add(ti.value); ti.value = ''"
-        />
-        <button class="addtag-btn" type="button" (click)="add(ti.value); ti.value = ''">加入</button>
+        <div class="combo">
+          <input
+            class="addtag-in"
+            type="text"
+            placeholder="加標籤…(查既有,避免重複)"
+            [value]="query()"
+            (input)="onType($any($event.target).value)"
+            (keydown.arrowdown)="$event.preventDefault(); move(1)"
+            (keydown.arrowup)="$event.preventDefault(); move(-1)"
+            (keydown.enter)="onEnter()"
+            (keydown.escape)="close()"
+          />
+          @if (query().trim()) {
+            <div class="combo-pop">
+              @for (s of suggestions(); track s.id; let i = $index) {
+                <button
+                  type="button"
+                  class="combo-row"
+                  [class.active]="activeIndex() === i"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="pick(s)"
+                >
+                  <span class="dot" [style.color]="dotColor(s.kind)" [style.background]="dotColor(s.kind)"></span>
+                  <span class="cname">{{ s.name }}</span>
+                  <span class="ccount">{{ s.count }}</span>
+                </button>
+              }
+              @if (showCreate()) {
+                <button
+                  type="button"
+                  class="combo-row create"
+                  [class.active]="activeIndex() === suggestions().length"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="createNew()"
+                >＋ 建立新標籤「{{ query().trim() }}」</button>
+              }
+            </div>
+          }
+        </div>
+        <button class="addtag-btn" type="button" (click)="onEnter()">加入</button>
       </div>
     </div>
 

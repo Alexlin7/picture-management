@@ -1,8 +1,9 @@
-import { Component, computed, effect, inject, input } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import {
   InspectorStore,
   type PhotoDetail,
   type TagKind,
+  type TagListRow,
 } from '../inspector.store';
 import { TAG_COLOR, KIND_LABEL } from '@core/tag-color';
 
@@ -83,12 +84,85 @@ export class Inspector {
     return parts[parts.length - 1] || rel;
   }
 
-  // 手動加標籤:全新名稱會在後端建成 source='manual' 的 tag(同時進標籤庫)並掛到這張圖。
-  add(name: string): void {
+  // ---- 加標籤 combobox ----
+  readonly suggestions = this.store.suggestions;
+  readonly query = signal('');
+  readonly activeIndex = signal(-1);   // -1 = 未選;0..n-1 = 既有列;n = 「建立新標籤」列
+  private debounce: ReturnType<typeof setTimeout> | null = null;
+
+  // 是否已有「不分大小寫完全相符」的既有標籤(有的話就不顯示「建立新標籤」列)。
+  readonly exactMatch = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    return !!q && this.suggestions().some((s) => s.name.toLowerCase() === q);
+  });
+
+  // 只有「無完全相符」且有輸入時才顯示「建立新標籤」列。
+  readonly showCreate = computed(() => !!this.query().trim() && !this.exactMatch());
+
+  // 打字 → debounce 查既有標籤;重置選取游標。
+  onType(v: string): void {
+    this.query.set(v);
+    this.activeIndex.set(-1);
+    if (this.debounce) clearTimeout(this.debounce);
+    this.debounce = setTimeout(() => void this.store.suggest(v), 180);
+  }
+
+  // ↑↓ 在「既有列 + 建立新標籤列」之間移動游標。
+  move(delta: number): void {
+    const count = this.suggestions().length + (this.showCreate() ? 1 : 0);
+    if (count === 0) return;
+    const next = this.activeIndex() + delta;
+    this.activeIndex.set(Math.max(0, Math.min(next, count - 1)));
+  }
+
+  // Enter:有游標→用游標那列;無游標→有完全相符用既有,否則建新。
+  onEnter(): void {
+    const rows = this.suggestions();
+    const i = this.activeIndex();
+    if (i >= 0 && i < rows.length) {
+      this.pick(rows[i]);
+      return;
+    }
+    if (i === rows.length && this.showCreate()) {
+      this.createNew();
+      return;
+    }
+    const q = this.query().trim().toLowerCase();
+    const exact = rows.find((r) => r.name.toLowerCase() === q);
+    if (exact) {
+      this.pick(exact);
+      return;
+    }
+    if (this.query().trim()) this.createNew();
+  }
+
+  // 點/選既有標籤:用「那個既有名」加到圖上(後端 upsert 命中既有,不會建新)。
+  pick(row: TagListRow): void {
     const id = this.photoId();
-    const n = name.trim();
+    if (id == null) return;
+    void this.store.addTag(id, { name: row.name });
+    this.close();
+  }
+
+  // 建立新標籤(僅在無完全相符時才會走到):後端建成 source='manual' 並進標籤庫。
+  createNew(name?: string): void {
+    const id = this.photoId();
+    const n = (name ?? this.query()).trim();
     if (id == null || !n) return;
     void this.store.addTag(id, { name: n });
+    this.close();
+  }
+
+  // Esc / 選完:收起清單、清空輸入。
+  close(): void {
+    this.query.set('');
+    this.activeIndex.set(-1);
+    this.store.clearSuggestions();
+  }
+
+  // 既有標籤分色點:依 kind 取色,未知 kind 退灰。
+  dotColor(kind: string): string {
+    return (TAG_COLOR as Record<string, string>)[kind] ?? 'var(--color-faint)';
   }
 
   // 移除這張圖上的某個標籤關聯(不刪標籤庫裡的 tag 本身)。
