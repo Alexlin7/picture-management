@@ -22,7 +22,8 @@ public sealed class TaggingWorker(
         {
             using var scope = scopes.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
-            var processed = await ProcessNextAsync(db, ct);
+            var tagSvc = scope.ServiceProvider.GetRequiredService<TagService>();
+            var processed = await ProcessNextAsync(db, tagSvc, ct);
             if (!processed) await Task.Delay(TimeSpan.FromSeconds(2), ct);
         }
     }
@@ -37,7 +38,7 @@ public sealed class TaggingWorker(
                 .SetProperty(j => j.State, "pending")
                 .SetProperty(j => j.UpdatedAt, DateTimeOffset.UtcNow), ct);
 
-    public async Task<bool> ProcessNextAsync(PmDbContext db, CancellationToken ct)
+    public async Task<bool> ProcessNextAsync(PmDbContext db, TagService tagSvc, CancellationToken ct)
     {
         var job = await db.TaggingJobs
             .Where(j => j.State == "pending")
@@ -54,13 +55,13 @@ public sealed class TaggingWorker(
             var path = await ResolvePathAsync(db, job.PhotoId, ct)
                        ?? throw new FileNotFoundException($"photo {job.PhotoId} 無可用位置");
 
-            // 走 TagService:正規化 + 不分大小寫 upsert,避免 wd14 與手動標籤產生大小寫重複。
-            var tagSvc = new TagService(db);
+            // 走 TagService:正規化 + CI upsert(避免大小寫重複)+ 共用 AttachTag 路徑(與 manual 一致)。
+            // 預載既有 tagId 一次,迴圈內不再逐 tag 查 photo_tag(消 N+1);photo_tag 最後一次 flush。
+            var existing = await tagSvc.PhotoTagIdsAsync(job.PhotoId, ct);
             foreach (var (name, kind, conf) in await tagger.TagAsync(path, ct))
             {
                 var tag = await tagSvc.UpsertByNameAsync(name, kind, ct);
-                if (!await db.PhotoTags.AnyAsync(pt => pt.PhotoId == job.PhotoId && pt.TagId == tag.Id, ct))
-                    db.PhotoTags.Add(new PhotoTag { PhotoId = job.PhotoId, TagId = tag.Id, Source = "wd14", Confidence = conf });
+                await tagSvc.AttachTagAsync(job.PhotoId, tag.Id, "wd14", conf, existing, ct);
             }
 
             job.State = "done";

@@ -205,16 +205,11 @@ app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDb
         return Results.BadRequest(new { error = "標籤名不可為空白" });
 
     // 正規化 + 不分大小寫 upsert(blue/Blue 不會變兩個);全新名稱會進標籤庫。
+    // 加 photo_tag 走與 wd14 worker 共用的 AttachTagAsync(idempotent)。
     var tag = await tags.UpsertByNameAsync(dto.Name, dto.Kind ?? "manual");
+    if (await tags.AttachTagAsync(id, tag.Id, "manual", null)) await db.SaveChangesAsync();
 
-    var pt = await db.PhotoTags.FirstOrDefaultAsync(x => x.PhotoId == id && x.TagId == tag.Id);
-    if (pt is null)
-    {
-        pt = new PhotoTag { PhotoId = id, TagId = tag.Id, Source = "manual", Confidence = null };
-        db.PhotoTags.Add(pt);
-        await db.SaveChangesAsync();
-    }
-
+    var pt = await db.PhotoTags.FirstAsync(x => x.PhotoId == id && x.TagId == tag.Id);
     return Results.Ok(new { id = tag.Id, name = tag.Name, kind = tag.Kind, source = pt.Source, confidence = pt.Confidence });
 });
 

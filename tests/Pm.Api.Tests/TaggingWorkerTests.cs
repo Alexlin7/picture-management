@@ -6,6 +6,7 @@ using Pm.Api;
 using Pm.Data;
 using Pm.Data.Entities;
 using Pm.Ml;
+using Pm.Scanner;
 using Xunit;
 
 namespace Pm.Api.Tests;
@@ -78,7 +79,7 @@ public class TaggingWorkerTests : IDisposable
         var photoId = await SeedPendingJob();
 
         await using var ctx = NewContext();
-        var ok = await Worker(new FakeTagger()).ProcessNextAsync(ctx, default);
+        var ok = await Worker(new FakeTagger()).ProcessNextAsync(ctx, new TagService(ctx), default);
         Assert.True(ok);
 
         await using var verify = NewContext();
@@ -104,7 +105,7 @@ public class TaggingWorkerTests : IDisposable
         }
 
         await using var ctx = NewContext();
-        await Worker(new FakeTagger()).ProcessNextAsync(ctx, default);   // fake 產 "1girl"
+        await Worker(new FakeTagger()).ProcessNextAsync(ctx, new TagService(ctx), default);   // fake 產 "1girl"
 
         await using var verify = NewContext();
         // 不分大小寫比對下,"1girl" 只能有一顆(不因大小寫不同就建第二顆)。
@@ -118,7 +119,7 @@ public class TaggingWorkerTests : IDisposable
     public async Task No_pending_returns_false()
     {
         await using var ctx = NewContext();
-        Assert.False(await Worker(new FakeTagger()).ProcessNextAsync(ctx, default));
+        Assert.False(await Worker(new FakeTagger()).ProcessNextAsync(ctx, new TagService(ctx), default));
     }
 
     [Fact]
@@ -147,7 +148,7 @@ public class TaggingWorkerTests : IDisposable
         await SeedPendingJob();
 
         await using var ctx = NewContext();
-        await Worker(new ThrowingTagger()).ProcessNextAsync(ctx, default);
+        await Worker(new ThrowingTagger()).ProcessNextAsync(ctx, new TagService(ctx), default);
 
         await using var verify = NewContext();
         var job = await verify.TaggingJobs.SingleAsync();

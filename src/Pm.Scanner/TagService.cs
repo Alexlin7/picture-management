@@ -54,6 +54,26 @@ public sealed partial class TagService(PmDbContext db)
         return tag;
     }
 
+    // 把 tag 掛到 photo(帶 source/confidence),已存在則略過;不 SaveChanges(由呼叫端批次決定)。
+    // 回是否新增。manual endpoint 與 wd14 worker 共用此路徑,避免各自 hand-roll「查 photo_tag→Add」。
+    // existing 可傳入「該 photo 既有 tagId 集合」以免逐一查 DB(批次標註消 N+1);不傳則自行查。
+    public async Task<bool> AttachTagAsync(long photoId, long tagId, string source, float? confidence,
+        ISet<long>? existing = null, CancellationToken ct = default)
+    {
+        var has = existing is not null
+            ? existing.Contains(tagId)
+            : await db.PhotoTags.AnyAsync(pt => pt.PhotoId == photoId && pt.TagId == tagId, ct);
+        if (has) return false;
+
+        db.PhotoTags.Add(new PhotoTag { PhotoId = photoId, TagId = tagId, Source = source, Confidence = confidence });
+        existing?.Add(tagId);
+        return true;
+    }
+
+    // 一次抓某 photo 既有 tagId 集合(批次標註前預載,給 AttachTagAsync 的 existing 用)。
+    public async Task<HashSet<long>> PhotoTagIdsAsync(long photoId, CancellationToken ct = default)
+        => (await db.PhotoTags.Where(pt => pt.PhotoId == photoId).Select(pt => pt.TagId).ToListAsync(ct)).ToHashSet();
+
     // 列出 tag + 使用數;q 不分大小寫 contains 過濾;依使用數 desc、名稱 asc;限 limit 筆。
     public async Task<IReadOnlyList<TagListItem>> ListAsync(string? q, int limit, CancellationToken ct = default)
     {
