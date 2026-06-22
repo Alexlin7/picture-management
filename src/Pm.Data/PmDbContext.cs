@@ -72,8 +72,10 @@ public class PmDbContext(DbContextOptions<PmDbContext> options) : DbContext(opti
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).HasColumnName("id");
             e.Property(x => x.Name).HasColumnName("name").HasMaxLength(128).IsRequired();
+            e.Property(x => x.NameCi).HasColumnName("name_ci").HasMaxLength(128).IsRequired();
             e.Property(x => x.Kind).HasColumnName("kind").HasMaxLength(32).HasDefaultValue("manual");
             e.HasIndex(x => x.Name).IsUnique();
+            e.HasIndex(x => x.NameCi).IsUnique().HasDatabaseName("ux_tag_name_ci");   // CI 去重的真正保證
         });
 
         b.Entity<TagRelation>(e =>
@@ -137,5 +139,27 @@ public class PmDbContext(DbContextOptions<PmDbContext> options) : DbContext(opti
             e.HasOne<Photo>().WithMany().HasForeignKey(x => x.PhotoId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.State).HasDatabaseName("ix_job_state").HasFilter("state IN ('pending','error')");
         });
+    }
+
+    // 自動維護 tag.name_ci(= Name 的全 Unicode 小寫鍵);集中於此,呼叫端只需設 Name。
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        SyncTagNameCi();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default)
+    {
+        SyncTagNameCi();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+    }
+
+    private void SyncTagNameCi()
+    {
+        foreach (var entry in ChangeTracker.Entries<Tag>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified)
+                entry.Entity.NameCi = entry.Entity.Name.ToLowerInvariant();
+        }
     }
 }

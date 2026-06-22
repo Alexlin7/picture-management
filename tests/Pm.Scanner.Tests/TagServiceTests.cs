@@ -59,6 +59,57 @@ public class TagServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Upsert_dedupes_non_ascii_case_insensitively()
+    {
+        await using var ctx = NewContext();
+        var svc = new TagService(ctx);
+        // 西里爾「Ёжик」大小寫變體:SQLite 內建 lower() 只折 ASCII,
+        // 需靠 name_ci(C# ToLowerInvariant)才會去重(否則變兩筆)。
+        var a = await svc.UpsertByNameAsync("Ёжик", "general");
+        var b = await svc.UpsertByNameAsync("ёжик", "general");
+
+        Assert.Equal(a.Id, b.Id);
+        Assert.Equal("Ёжик", a.Name);                  // 保留首見拼寫
+        Assert.Equal(1, await ctx.Tags.CountAsync());  // 只有一個 tag
+    }
+
+    [Fact]
+    public async Task Upsert_upgrades_kind_semantically_but_never_downgrades()
+    {
+        await using var ctx = NewContext();
+        var svc = new TagService(ctx);
+        // 先手動加(manual=未分類佔位),再被 wd14 標為 character → 升級。
+        var t1 = await svc.UpsertByNameAsync("reimu", "manual");
+        var t2 = await svc.UpsertByNameAsync("reimu", "character");
+        Assert.Equal(t1.Id, t2.Id);
+        Assert.Equal("character", (await ctx.Tags.FindAsync(t1.Id))!.Kind);
+
+        // 之後較弱的 kind(general / manual)不得把 character 降級回去。
+        await svc.UpsertByNameAsync("reimu", "general");
+        await svc.UpsertByNameAsync("reimu", "manual");
+        Assert.Equal("character", (await ctx.Tags.FindAsync(t1.Id))!.Kind);
+    }
+
+    [Fact]
+    public async Task Upsert_rejects_blank_name()
+    {
+        await using var ctx = NewContext();
+        var svc = new TagService(ctx);
+        await Assert.ThrowsAsync<ArgumentException>(() => svc.UpsertByNameAsync("   ", "manual"));
+        Assert.Equal(0, await ctx.Tags.CountAsync());
+    }
+
+    [Fact]
+    public async Task Rename_to_blank_is_rejected()
+    {
+        await using var ctx = NewContext();
+        var svc = new TagService(ctx);
+        var t = await svc.UpsertByNameAsync("keep", "manual");
+        await Assert.ThrowsAsync<ArgumentException>(() => svc.RenameAsync(t.Id, "   "));
+        Assert.Equal("keep", (await ctx.Tags.FindAsync(t.Id))!.Name);   // 未被改成空
+    }
+
+    [Fact]
     public async Task List_returns_usage_counts_and_ci_filter()
     {
         var photoId = await SeedPhoto('a');

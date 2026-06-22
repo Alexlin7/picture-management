@@ -19,13 +19,34 @@ public sealed partial class TagService(PmDbContext db)
     public static string Normalize(string name)
         => WhitespaceRun().Replace((name ?? string.Empty).Trim(), " ");
 
-    // 以名稱「不分大小寫」找既有 tag;沒有才建(用正規化後拼寫)。→ blue/Blue 不再變兩個。
+    // kind 語意強度:character/copyright/meta(具體分類)> general(屬性)> manual/path(未分類佔位)。
+    // 用於 upsert 命中既有時的「語意升級、不降級」決策。
+    private static int KindRank(string kind) => kind switch
+    {
+        "character" => 3,
+        "copyright" => 3,
+        "meta" => 2,
+        "general" => 1,
+        _ => 0,   // manual / path / 未知:未分類佔位,不蓋掉既有語意
+    };
+
+    // 以名稱「不分大小寫」找既有 tag(走 name_ci,全 Unicode);沒有才建(保留首見拼寫)。
+    // 命中既有時:若新 kind 語意更強則升級既有 tag.Kind,但絕不降級(wd14 character 不被手動 manual 蓋掉)。
     public async Task<Tag> UpsertByNameAsync(string rawName, string kind, CancellationToken ct = default)
     {
         var name = Normalize(rawName);
-        var lower = name.ToLowerInvariant();
-        var existing = await db.Tags.FirstOrDefaultAsync(t => t.Name.ToLower() == lower, ct);
-        if (existing is not null) return existing;
+        if (name.Length == 0) throw new ArgumentException("標籤名不可為空白", nameof(rawName));
+        var ci = name.ToLowerInvariant();
+        var existing = await db.Tags.FirstOrDefaultAsync(t => t.NameCi == ci, ct);
+        if (existing is not null)
+        {
+            if (KindRank(kind) > KindRank(existing.Kind))
+            {
+                existing.Kind = kind;
+                await db.SaveChangesAsync(ct);
+            }
+            return existing;
+        }
 
         var tag = new Tag { Name = name, Kind = kind };
         db.Tags.Add(tag);
@@ -39,19 +60,17 @@ public sealed partial class TagService(PmDbContext db)
         var query = db.Tags.AsQueryable();
         if (!string.IsNullOrWhiteSpace(q))
         {
-            var lower = q.Trim().ToLowerInvariant();
-            query = query.Where(t => t.Name.ToLower().Contains(lower));
+            var ci = q.Trim().ToLowerInvariant();
+            query = query.Where(t => t.NameCi.Contains(ci));   // 走 name_ci,全 Unicode CI 過濾
         }
-        // SQL 做 WHERE + 投影(含 count 相關子查詢);排序/take 在記憶體
-        // (SQLite 無法 ORDER BY 相關子查詢結果;tag 量級不大,可接受)。
-        var items = await query
+        // 先對 tag 排序(ORDER BY (SELECT COUNT...) SQLite 可翻)再 LIMIT,最後才投影,
+        // 把 take 推到 SQL,避免每次 autocomplete 把整張 tag 表撈進記憶體再排序。
+        return await query
+            .OrderByDescending(t => db.PhotoTags.Count(pt => pt.TagId == t.Id))
+            .ThenBy(t => t.Name)
+            .Take(limit)
             .Select(t => new TagListItem(t.Id, t.Name, t.Kind, db.PhotoTags.Count(pt => pt.TagId == t.Id)))
             .ToListAsync(ct);
-        return items
-            .OrderByDescending(i => i.Count)
-            .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
-            .Take(limit)
-            .ToList();
     }
 
     // 刪除 tag(連帶 photo_tag / tag_relation 由 FK cascade 處理)。回是否存在。
@@ -96,8 +115,9 @@ public sealed partial class TagService(PmDbContext db)
         if (tag is null) return (false, false);
 
         var name = Normalize(newName);
-        var lower = name.ToLowerInvariant();
-        var clash = await db.Tags.FirstOrDefaultAsync(t => t.Id != id && t.Name.ToLower() == lower, ct);
+        if (name.Length == 0) throw new ArgumentException("標籤名不可為空白", nameof(newName));
+        var ci = name.ToLowerInvariant();
+        var clash = await db.Tags.FirstOrDefaultAsync(t => t.Id != id && t.NameCi == ci, ct);
         if (clash is not null)
         {
             await MergeAsync(id, clash.Id, ct);
