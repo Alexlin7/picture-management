@@ -1,11 +1,11 @@
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, OnDestroy, computed, effect, inject, input, signal } from '@angular/core';
 import {
   InspectorStore,
   type PhotoDetail,
   type TagKind,
   type TagListRow,
 } from '../inspector.store';
-import { TAG_COLOR, KIND_LABEL } from '@core/tag-color';
+import { TAG_COLOR, KIND_LABEL, tagColor } from '@core/tag-color';
 
 // 契約:右側檢視器。輸入選中的 photo id(signal input)。
 // 內容:預覽圖(縮圖)、身分→位置簽名、tag lanes(分色)、EXIF。
@@ -16,7 +16,7 @@ import { TAG_COLOR, KIND_LABEL } from '@core/tag-color';
   templateUrl: './inspector.html',
   styleUrl: './inspector.css',
 })
-export class Inspector {
+export class Inspector implements OnDestroy {
   private readonly store = inject(InspectorStore);
 
   photoId = input<number | null>(null);
@@ -28,10 +28,17 @@ export class Inspector {
   readonly thumbUrl = this.store.thumbUrl;
 
   constructor() {
-    // id 變動 → 觸發載入(store 內處理競態與清空)
+    // id 變動 → 觸發載入(store 內處理競態與清空),並收起/清空加標籤 combobox
+    // (避免殘留上一張圖的輸入與建議浮層)。
     effect(() => {
-      void this.store.load(this.photoId());
+      const id = this.photoId();
+      this.close();
+      void this.store.load(id);
     });
+  }
+
+  ngOnDestroy(): void {
+    if (this.debounce) clearTimeout(this.debounce);
   }
 
   // tag lane 的固定排序(依 kind)
@@ -116,7 +123,14 @@ export class Inspector {
   }
 
   // Enter:有游標→用游標那列;無游標→有完全相符用既有,否則建新。
-  onEnter(): void {
+  async onEnter(): Promise<void> {
+    // 若 debounce 還沒落地,先即時查一次,確保用「目前輸入字」的最新建議判斷;
+    // 否則快速打字後立刻 Enter/點加入會讀到上一輪陳舊 suggestions 而誤走「建立新標籤」。
+    if (this.debounce) {
+      clearTimeout(this.debounce);
+      this.debounce = null;
+      await this.store.suggest(this.query());
+    }
     const rows = this.suggestions();
     const i = this.activeIndex();
     if (i >= 0 && i < rows.length) {
@@ -160,9 +174,9 @@ export class Inspector {
     this.store.clearSuggestions();
   }
 
-  // 既有標籤分色點:依 kind 取色,未知 kind 退灰。
+  // 既有標籤分色點:沿用共用 tagColor(未知 kind 退 general),與相簿/標籤庫一致。
   dotColor(kind: string): string {
-    return (TAG_COLOR as Record<string, string>)[kind] ?? 'var(--color-faint)';
+    return tagColor(kind);
   }
 
   // 移除這張圖上的某個標籤關聯(不刪標籤庫裡的 tag 本身)。

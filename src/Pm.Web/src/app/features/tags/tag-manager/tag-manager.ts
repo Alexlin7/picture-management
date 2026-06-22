@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { TagsStore, type TagListRow } from '../tags.store';
-import { TAG_COLOR } from '@core/tag-color';
+import { tagColor } from '@core/tag-color';
 
 // 路由 /tags:標籤庫管理 —— 列出 DB 所有標籤 + 使用數,改名(改成既有名=合併)/刪除。
 @Component({
@@ -21,9 +21,7 @@ export class TagManager {
     void this.store.load('');
   }
 
-  color(kind: string): string {
-    return TAG_COLOR[kind] ?? TAG_COLOR['general'];
-  }
+  color = tagColor;   // 共用分色 helper(未知 kind 退 general)
 
   filter(q: string): void {
     void this.store.load(q.trim());

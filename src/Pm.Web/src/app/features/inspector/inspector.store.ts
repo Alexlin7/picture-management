@@ -67,17 +67,23 @@ export class InspectorStore {
   private readonly _suggestions = signal<TagListRow[]>([]);
   readonly suggestions = this._suggestions.asReadonly();
 
+  // 目前查詢字,用來丟棄過期回應(快速打字 / 切圖時的競態,比照 load 的 currentId)。
+  private suggestTerm = '';
+
   // 依關鍵字查標籤庫(不分大小寫,後端已處理);空字串清空。
   async suggest(q: string): Promise<void> {
     const term = q.trim();
+    this.suggestTerm = term;
     if (!term) {
       this._suggestions.set([]);
       return;
     }
     try {
-      this._suggestions.set(await this.api.tags(term, 8));
+      const rows = await this.api.tags(term, 8);
+      if (this.suggestTerm !== term) return; // 已有更新的查詢,丟棄這份過期回應
+      this._suggestions.set(rows);
     } catch {
-      this._suggestions.set([]);
+      if (this.suggestTerm === term) this._suggestions.set([]);
     }
   }
 

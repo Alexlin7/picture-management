@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { TAG_COLOR } from '@core/tag-color';
+import { tagColor } from '@core/tag-color';
 import { type PhotoListItem } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
 
@@ -45,10 +45,8 @@ export class PhotoGrid {
     return p.width && p.height ? `${p.width}/${p.height}` : '1/1';
   }
 
-  // kind → 顏色
-  kindColor(kind: string): string {
-    return TAG_COLOR[kind] ?? TAG_COLOR['general'];
-  }
+  // kind → 顏色(共用分色 helper)
+  kindColor = tagColor;
 
   // 移除頂欄 token
   removeToken(idx: number, ev: Event): void {
