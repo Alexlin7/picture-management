@@ -5,25 +5,37 @@
 </div>
 
 <div class="panel-pad">
+  @if (error()) {
+    <div class="note">{{ error() }}</div>
+  }
+
+  @if (loading() && saved().length === 0) {
+    <div class="note">載入中…</div>
+  } @else if (saved().length === 0) {
+    <div class="note">還沒有收藏的搜尋。在相簿裡存下查詢就會出現在這裡。</div>
+  }
+
   <div class="saved-grid">
-    @for (s of saved(); track s.title; let i = $index) {
+    @for (s of saved(); track s.id) {
       <button
         type="button"
         class="saved"
-        [class.special]="s.special"
-        [class.on]="active() === i"
-        (mouseenter)="onEnter(i)"
+        [class.on]="active() === s.id"
+        (mouseenter)="onEnter(s.id)"
         (mouseleave)="onLeave()"
-        (click)="onPick(i)"
+        (click)="onPick(s.id)"
       >
         <div class="st">
-          @if (s.special) {
-            <span class="dot" [style.color]="metaColor" [style.background]="metaColor"></span>
+          <span class="st-title">{{ s.title }}</span>
+          @if (hovered() === s.id) {
+            <span class="del" role="button" aria-label="刪除" (click)="onDelete(s.id, $event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 6 18 18M18 6 6 18" />
+              </svg>
+            </span>
           }
-          {{ s.title }}
         </div>
         <div class="sq">{{ s.query }}</div>
-        <div class="hits">{{ s.hits.toLocaleString() }} 張命中</div>
       </button>
     }
   </div>

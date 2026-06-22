@@ -1,15 +1,20 @@
 @if (photo(); as p) {
-  <!-- 預覽圖:漸層 placeholder,aspect-ratio 依 ar;底部漸層淡入 panel -->
+  <!-- 預覽圖:縮圖;aspect-ratio 依 width/height(無則自然) -->
   <div class="preview">
-    <div class="pimg" [style.background]="previewBg()" [style.aspect-ratio]="p.ar"></div>
+    @if (thumbUrl(); as url) {
+      <img
+        class="pimg"
+        [src]="url"
+        [style.aspect-ratio]="p.width && p.height ? p.width + '/' + p.height : null"
+        alt=""
+      />
+    }
     <div class="grad"></div>
   </div>
 
   <div class="ibody">
-    <div class="iname">{{ p.title }}</div>
-    <div class="iser">
-      {{ p.series }}@if (p.personal) {<span> · </span><span style="color:var(--color-t-meta)">可能是個人照片</span>}
-    </div>
+    <!-- 名稱:取首個位置的檔名(API 無 title 欄位) -->
+    <div class="iname">{{ fileName(p) }}</div>
 
     <!-- 身分 → 位置簽名 -->
     <div class="isec">
@@ -20,24 +25,24 @@
             <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18" />
           </svg>{{ hash() }}…<span class="lk">· SHA-256 身分</span>
         </div>
-        @for (l of p.locs; track $index) {
+        @for (l of p.locations; track $index) {
           <div class="loc">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             </svg>
-            <span class="rp">{{ l.path }}</span>
-            <span class="rt">{{ l.root }}</span>
+            <span class="rp">{{ l.relPath }}</span>
+            <span class="rt">{{ l.status }}</span>
           </div>
         }
-        @if (p.dup) {
-          <div class="dupnote">同一張圖、兩個位置 → 去重為一筆身分</div>
+        @if (p.locations.length > 1) {
+          <div class="dupnote">同一張圖、多個位置 → 去重為一筆身分</div>
         }
       </div>
     </div>
 
-    <!-- 標籤 lanes(依 kind 分色)+ WD14 建議 -->
+    <!-- 標籤 lanes(依 kind 分色)。source ∈ path/manual/wd14 由顏色與信心呈現 -->
     <div class="isec">
-      <div class="isec-h">標籤<span class="line"></span><span class="legend">綠=採用 紅=拒絕</span></div>
+      <div class="isec-h">標籤<span class="line"></span></div>
 
       @for (lane of lanes(); track lane.kind) {
         <div class="lane">
@@ -45,7 +50,7 @@
             <span class="dot" [style.color]="lane.color" [style.background]="lane.color"></span>{{ lane.label }}<span class="n">{{ lane.tags.length }}</span>
           </div>
           <div class="tags">
-            @for (t of lane.tags; track t.name) {
+            @for (t of lane.tags; track t.id) {
               <span
                 class="tag"
                 [style.color]="lane.color"
@@ -55,47 +60,41 @@
             }
           </div>
         </div>
-      }
-
-      @if (p.sugg.length) {
-        <div class="lane">
-          <div class="lane-t" style="color:var(--color-muted)">
-            WD14 建議 · 待你決定<span class="n">{{ p.sugg.length }}</span>
-          </div>
-          <div class="tags">
-            @for (s of p.sugg; track s.name) {
-              <span
-                class="tag sugg"
-                [class.accepted]="decisionOf(s.name) === 'accept'"
-                [class.rejected]="decisionOf(s.name) === 'reject'"
-                [style.color]="kindColor(s.kind)"
-                [style.border-color]="rgba(kindColor(s.kind), 0.5)"
-              >{{ s.name }}<span class="conf">{{ pct(s.confidence) }}%</span>
-                <span class="acts">
-                  <span class="ic y" title="採用" (click)="accept(s.name)">✓</span>
-                  <span class="ic n" title="拒絕" (click)="reject(s.name)">✕</span>
-                </span>
-              </span>
-            }
-          </div>
-        </div>
+      } @empty {
+        <div class="exif-empty">尚無標籤。</div>
       }
     </div>
 
     <!-- EXIF -->
     <div class="isec">
       <div class="isec-h">EXIF<span class="line"></span></div>
-      @if (p.personal) {
+      @if (hasExif()) {
         <div class="kvs">
-          <span class="k">拍攝時間</span><span class="v">2024:08:14 16:32</span>
-          <span class="k">相機</span><span class="v">iPhone 15 Pro</span>
-          <span class="k">GPS</span><span class="v">26.21, 127.68</span>
+          @if (p.takenAt) {
+            <span class="k">拍攝時間</span><span class="v">{{ p.takenAt }}</span>
+          }
+          @if (p.cameraModel) {
+            <span class="k">相機</span><span class="v">{{ p.cameraModel }}</span>
+          }
         </div>
       } @else {
         <div class="exif-empty">
           無相機 EXIF — 下載的動漫圖。<code>taken_at</code> 退化為檔案時間。
         </div>
       }
+    </div>
+  </div>
+} @else if (loading()) {
+  <div class="insp-empty">
+    <div>
+      <div>載入中…</div>
+    </div>
+  </div>
+} @else if (error()) {
+  <div class="insp-empty">
+    <div>
+      <div>{{ error() }}</div>
+      <div class="sub">無法載入這張圖的詳情</div>
     </div>
   </div>
 } @else {

@@ -1,14 +1,14 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
-import { artGradient } from '@core/placeholder-art';
+import { Component, computed, effect, inject, input } from '@angular/core';
 import {
   InspectorStore,
-  type MockPhoto,
+  type PhotoDetail,
   type TagKind,
 } from '../inspector.store';
 import { TAG_COLOR, KIND_LABEL } from '@core/tag-color';
 
 // 契約:右側檢視器。輸入選中的 photo id(signal input)。
-// 內容:預覽圖、身分→位置簽名、tag lanes(分色)、WD14 建議(虛線 chip + ✓/✕)、EXIF。
+// 內容:預覽圖(縮圖)、身分→位置簽名、tag lanes(分色)、EXIF。
+// 資料來源接縫:InspectorStore(非同步載入 PhotoDetail)。
 @Component({
   selector: 'app-inspector',
   imports: [],
@@ -20,17 +20,26 @@ export class Inspector {
 
   photoId = input<number | null>(null);
 
-  // null → 顯示空狀態;否則取對應 photo(資料來源接縫:InspectorStore)
-  readonly photo = computed<MockPhoto | null>(() =>
-    this.store.lookup(this.photoId()),
-  );
+  // store 的非同步狀態(元件只讀)
+  readonly photo = this.store.detail;
+  readonly loading = this.store.loading;
+  readonly error = this.store.error;
+  readonly thumbUrl = this.store.thumbUrl;
+
+  constructor() {
+    // id 變動 → 觸發載入(store 內處理競態與清空)
+    effect(() => {
+      void this.store.load(this.photoId());
+    });
+  }
 
   // tag lane 的固定排序(依 kind)
   private readonly laneOrder: TagKind[] = [
     'character', 'copyright', 'general', 'meta', 'path', 'manual',
   ];
 
-  // 依序組出有 tag 的 lane(空 lane 不顯示)
+  // 依序組出有 tag 的 lane(空 lane 不顯示)。
+  // 注意:tag.kind 來自 API(string),以 TAG_COLOR/KIND_LABEL 之 key 比對分色。
   readonly lanes = computed(() => {
     const p = this.photo();
     if (!p) return [];
@@ -44,17 +53,16 @@ export class Inspector {
       .filter((lane) => lane.tags.length > 0);
   });
 
-  // 預覽漸層(對齊 mockup 的 art(seed))
-  readonly previewBg = computed(() => {
+  // EXIF 是否有相機資訊(takenAt / cameraModel 任一存在)
+  readonly hasExif = computed(() => {
     const p = this.photo();
-    return p ? artGradient(p.seed) : '';
+    return !!p && (p.takenAt != null || p.cameraModel != null);
   });
 
-  // SHA-256 身分:用 seed 假造 8 碼 hex(對齊 mockup (seed*2654435761>>>0).toString(16))
+  // SHA-256 身分:取 fileHash 前 8 碼。
   readonly hash = computed(() => {
     const p = this.photo();
-    if (!p) return '';
-    return ((p.seed * 2654435761) >>> 0).toString(16).padStart(8, '0');
+    return p ? p.fileHash.slice(0, 8) : '';
   });
 
   // hex → rgba helper(半透明底色 / 邊框用)
@@ -63,24 +71,15 @@ export class Inspector {
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   }
 
-  kindColor(kind: TagKind): string {
-    return TAG_COLOR[kind];
-  }
-
   pct(c: number): number {
     return Math.round(c * 100);
   }
 
-  // ---- WD14 建議的本地互動(本輪「按鈕先到位」,只記錄決定不打 API)----
-  // key = sugg 的 name,value = 'accept' | 'reject';用 signal 讓 UI 反應
-  private decisions = signal<Record<string, 'accept' | 'reject'>>({});
-  decisionOf(name: string): 'accept' | 'reject' | undefined {
-    return this.decisions()[name];
-  }
-  accept(name: string): void {
-    this.decisions.update((d) => ({ ...d, [name]: 'accept' }));
-  }
-  reject(name: string): void {
-    this.decisions.update((d) => ({ ...d, [name]: 'reject' }));
+  // API 無 title 欄位:取首個位置 relPath 的檔名當標題,無位置則退回 hash。
+  fileName(p: PhotoDetail): string {
+    const rel = p.locations[0]?.relPath;
+    if (!rel) return p.fileHash.slice(0, 12);
+    const parts = rel.split(/[\\/]/);
+    return parts[parts.length - 1] || rel;
   }
 }

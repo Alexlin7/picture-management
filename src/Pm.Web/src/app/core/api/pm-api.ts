@@ -14,6 +14,12 @@ export interface PhotoDetail {
 export interface Root { id: number; name: string; absPath: string; }
 export interface PendingSegment { segment: string; count: number; samplePath: string; suggestedAction: string; }
 export interface SearchReq { all?: string[]; none?: string[]; afterId?: number | null; pageSize?: number; }
+export interface SavedSearchRow { id: number; name: string; queryJson: string; createdAt: string; }
+export interface TagTreeNode { name: string; kind: string; count: number; multi?: boolean; children?: TagTreeNode[] | null; }
+export interface TagTree {
+  tree: TagTreeNode[]; rootless: TagTreeNode[];
+  general: [string, number][]; meta: [string, number][];
+}
 
 @Injectable({ providedIn: 'root' })
 export class PmApi {
@@ -42,5 +48,35 @@ export class PmApi {
   }
   applyRule(dto: { rootId?: number; segment: string; action: string; tagName?: string }): Promise<unknown> {
     return firstValueFrom(this.http.post('/api/path-rules', dto));
+  }
+  applyPathTags(rootId: number): Promise<unknown> {
+    return firstValueFrom(this.http.post(`/api/roots/${rootId}/apply-path-tags`, {}));
+  }
+
+  savedSearches(): Promise<SavedSearchRow[]> {
+    return firstValueFrom(this.http.get<SavedSearchRow[]>('/api/saved-searches'));
+  }
+  createSavedSearch(dto: { name: string; queryJson: string }): Promise<{ id: number }> {
+    return firstValueFrom(this.http.post<{ id: number }>('/api/saved-searches', dto));
+  }
+  deleteSavedSearch(id: number): Promise<unknown> {
+    return firstValueFrom(this.http.delete(`/api/saved-searches/${id}`));
+  }
+
+  tagTree(): Promise<TagTree> {
+    return firstValueFrom(this.http.get<TagTree>('/api/tags/tree'));
+  }
+
+  archivePhoto(id: number): Promise<{ archived: number }> {
+    return firstValueFrom(this.http.post<{ archived: number }>(`/api/photos/${id}/archive`, {}));
+  }
+  purgePhoto(id: number): Promise<unknown> {
+    return firstValueFrom(this.http.delete(`/api/photos/${id}`));
+  }
+  addTag(photoId: number, dto: { name: string; kind?: string }): Promise<TagView> {
+    return firstValueFrom(this.http.post<TagView>(`/api/photos/${photoId}/tags`, dto));
+  }
+  removeTag(photoId: number, tagId: number): Promise<unknown> {
+    return firstValueFrom(this.http.delete(`/api/photos/${photoId}/tags/${tagId}`));
   }
 }

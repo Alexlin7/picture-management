@@ -84,6 +84,43 @@
   align-items: center;
   gap: 7px;
 }
+.st-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* hover 時出現的刪除小鈕 */
+.del {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  color: var(--color-faint);
+}
+.del:hover {
+  color: var(--color-danger);
+  background: rgba(240, 97, 109, 0.12);
+}
+.del svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* note 提示條(空狀態 / 錯誤) */
+.note {
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: var(--radius-soft);
+  padding: 11px 13px;
+  color: #bfeff7;
+  font-size: 12.5px;
+  margin-bottom: 18px;
+}
 
 /* 查詢字串(mockup .saved .sq) */
 .sq {

@@ -1,41 +1,43 @@
-import { Component, inject, signal } from '@angular/core';
-import { ManageStore, type ReconRow } from '../manage.store';
-import { artGradient } from '@core/placeholder-art';
+import { Component, OnInit, inject } from '@angular/core';
+import { ManageStore } from '../manage.store';
 
 // 契約(route /reconcile):失蹤待辦匣 —— 縮圖卡 + 上次位置 + 三動作。
-type ReconState = 'pending' | 'waiting' | 'externalized' | 'deleted';
-
-interface ReconItem extends ReconRow {
-  art: string;
-  state: ReconState;
-}
-
+// 資料一律來自 ManageStore(PmApi.missing());縮圖改用真實 thumbUrl(不再用漸層 seed)。
 @Component({
   selector: 'app-reconcile',
   imports: [],
   templateUrl: './reconcile.html',
   styleUrl: './reconcile.css',
 })
-export class Reconcile {
+export class Reconcile implements OnInit {
   private readonly store = inject(ManageStore);
 
-  // 換位置(同 hash)已自動續接的張數,只是說明用
-  readonly relocated = this.store.relocated();
+  // 失蹤清單 + 載入/錯誤/待處理數(讀 store signal)
+  readonly items = this.store.recon;
+  readonly loading = this.store.reconLoading;
+  readonly error = this.store.reconError;
+  readonly pendingCount = this.store.reconPending;
 
-  // 失蹤清單;state 用 signal 管,按鈕點擊後就地切狀態
-  readonly items = signal<ReconItem[]>(
-    this.store.reconRows().map((r) => ({ ...r, art: artGradient(r.seed), state: 'pending' as ReconState })),
-  );
-
-  // 還沒處理的(pending)張數 → vhead pill
-  pendingCount(): number {
-    return this.items().filter((it) => it.state === 'pending').length;
+  ngOnInit(): void {
+    void this.store.loadRecon();
   }
 
-  // 三動作:就地改 state(本輪按鈕先到位,真實 API 下輪)
-  setState(target: ReconItem, state: ReconState): void {
-    this.items.update((list) =>
-      list.map((it) => (it === target ? { ...it, state } : it)),
-    );
+  // 縮圖 URL(依 photo id;絕不碰原圖)
+  thumb(id: number): string {
+    return this.store.thumbUrl(id);
+  }
+
+  // 三動作:對應軟刪 / 硬刪 / 等待。
+  keepWaiting(id: number): void {
+    void this.store.keepWaiting(id);
+  }
+  externalize(id: number): void {
+    void this.store.externalize(id);
+  }
+  markDeleted(id: number): void {
+    void this.store.purge(id);
+  }
+  undo(id: number): void {
+    this.store.resetReconState(id);
   }
 }

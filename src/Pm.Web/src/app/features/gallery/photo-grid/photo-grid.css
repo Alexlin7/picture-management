@@ -161,6 +161,19 @@
   min-height: 0;
 }
 
+/* 空 / 載入 / 錯誤狀態 */
+.empty {
+  padding: 28px 18px;
+  color: var(--color-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.loadmore {
+  display: flex;
+  justify-content: center;
+  padding: 8px 18px 24px;
+}
+
 /* gallery 圖牆:CSS columns masonry。
    注意:class 名不可用 .grid(會撞 Tailwind 的 .grid utility = display:grid,
    會把 column-count 整個蓋掉)。 */

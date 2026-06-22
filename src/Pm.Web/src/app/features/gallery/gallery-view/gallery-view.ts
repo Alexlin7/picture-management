@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FacetSidebar } from '../facet-sidebar/facet-sidebar';
 import { PhotoGrid } from '../photo-grid/photo-grid';
 import { Inspector } from '@features/inspector/inspector/inspector';
@@ -34,6 +34,10 @@ import { GalleryStore } from '../gallery.store';
     `,
   ],
 })
-export class GalleryView {
+export class GalleryView implements OnInit {
   readonly store = inject(GalleryStore);
+
+  ngOnInit(): void {
+    void this.store.load();
+  }
 }

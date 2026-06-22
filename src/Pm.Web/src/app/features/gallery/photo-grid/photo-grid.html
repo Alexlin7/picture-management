@@ -54,34 +54,25 @@
 
   <!-- masonry 圖牆 -->
   <div class="view">
+    @if (error()) {
+      <div class="empty">載入失敗:{{ error() }}</div>
+    } @else if (!loading() && photos().length === 0) {
+      <div class="empty">沒有符合的圖片</div>
+    }
     <div class="masonry">
       @for (p of photos(); track p.id) {
         <div class="tile" [class.sel]="selectedId() === p.id" (click)="pick(p)">
-          <div class="art" [style.background]="art(p.seed)" [style.height.px]="tileHeight(p)"></div>
-          <div class="chips">
-            @for (c of chips(p); track $index) {
-              <span class="mini">
-                <span class="d" [style.background]="kindColor(c.kind)"></span>{{ c.name }}
-              </span>
-            }
-          </div>
-          @if (p.personal) {
-            <span class="badge-photo">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />
-                <circle cx="12" cy="13" r="3.2" />
-              </svg>可能是照片
-            </span>
-          }
-          @if (p.dup) {
-            <span class="dupflag">2 份</span>
-          }
-          <div class="meta">
-            <div class="ttl">{{ p.title }}</div>
-            <div class="ser">{{ p.series }}</div>
-          </div>
+          <img class="art" [src]="thumb(p.id)" [style.height.px]="tileHeight(p)" loading="lazy" alt="" />
         </div>
       }
     </div>
+    @if (loading()) {
+      <div class="empty">載入中…</div>
+    }
+    @if (hasMore() && !loading()) {
+      <div class="loadmore">
+        <button class="btn ghost" (click)="loadMore()">載入更多</button>
+      </div>
+    }
   </div>
 </div>

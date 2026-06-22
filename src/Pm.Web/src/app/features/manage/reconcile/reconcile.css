@@ -90,7 +90,7 @@
   border-color: var(--color-hair-soft);
 }
 
-/* 74px 漸層縮圖 + 失蹤遮罩 */
+/* 74px 真實縮圖 + 失蹤遮罩 */
 .th {
   width: 74px;
   height: 74px;
@@ -99,6 +99,13 @@
   border: 1px solid var(--color-hair);
   position: relative;
   overflow: hidden;
+  background: var(--color-canvas);
+}
+.th img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .th .miss {
   position: absolute;

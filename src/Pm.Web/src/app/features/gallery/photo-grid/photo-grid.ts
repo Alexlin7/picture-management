@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { TAG_COLOR } from '@core/tag-color';
-import { artGradient } from '@core/placeholder-art';
-import { GalleryStore, type MockPhoto, type SearchToken } from '../gallery.store';
+import { type PhotoListItem } from '@core/api/pm-api';
+import { GalleryStore, type SearchToken } from '../gallery.store';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
@@ -13,10 +13,13 @@ import { GalleryStore, type MockPhoto, type SearchToken } from '../gallery.store
 export class PhotoGrid {
   private readonly store = inject(GalleryStore);
 
-  // 資料來源:store(原假資料)
+  // 資料來源:store(來自 PmApi)
   readonly photos = this.store.photos;
   readonly hitCount = this.store.hitCount;
   readonly wd14Queue = this.store.wd14Queue;
+  readonly loading = this.store.loading;
+  readonly error = this.store.error;
+  readonly hasMore = this.store.hasMore;
 
   // 頂欄目前搜尋 token(可 ×)
   readonly tokens = this.store.tokens;
@@ -29,22 +32,19 @@ export class PhotoGrid {
   readonly viewMode = signal<'dense' | 'large'>('dense');
 
   // 千分位
-  readonly hitCountText = computed(() => this.hitCount.toLocaleString('en-US'));
+  readonly hitCountText = computed(() => this.hitCount().toLocaleString('en-US'));
   readonly wd14QueueText = computed(() => this.wd14Queue.toLocaleString('en-US'));
 
-  // tile 高度:較高 tile = round(220 + (1/ar)*70) px
-  tileHeight(p: MockPhoto): number {
-    return Math.round(220 + (1 / p.ar) * 70);
+  // 縮圖 URL(依 hash,絕不碰原圖)
+  thumb(id: number): string {
+    return this.store.thumbUrl(id);
   }
 
-  // tile 背景漸層(無真圖)
-  art(seed: number): string {
-    return artGradient(seed);
-  }
-
-  // hover 顯示前 3 個 tag 的 mini chips
-  chips(p: MockPhoto) {
-    return p.tags.slice(0, 3);
+  // tile 高度:依 width/height 推 aspect ratio,較高 tile 較高。
+  // API 無尺寸時退預設 ar=1.0。
+  tileHeight(p: PhotoListItem): number {
+    const ar = p.width && p.height ? p.width / p.height : 1.0;
+    return Math.round(220 + (1 / ar) * 70);
   }
 
   // kind → 顏色
@@ -69,8 +69,13 @@ export class PhotoGrid {
   }
 
   // 點 tile → 寫入 store 選取
-  pick(p: MockPhoto): void {
+  pick(p: PhotoListItem): void {
     this.store.select(p.id);
+  }
+
+  // 載入下一頁
+  loadMore(): void {
+    void this.store.loadMore();
   }
 
   // hex → rgba helper(半透明底色)

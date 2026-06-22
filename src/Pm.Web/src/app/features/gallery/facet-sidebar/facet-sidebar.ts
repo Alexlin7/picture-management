@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { GalleryStore, type TreeNode } from '../gallery.store';
+import { Component, computed, inject, signal } from '@angular/core';
+import { GalleryStore, type FacetNode } from '../gallery.store';
 import { TAG_COLOR } from '@core/tag-color';
 
 // 契約:相簿左側 facet 側欄(作品/角色 DAG 樹、屬性、年份)。
@@ -13,28 +13,34 @@ import { TAG_COLOR } from '@core/tag-color';
 export class FacetSidebar {
   private readonly store = inject(GalleryStore);
 
-  // 資料來源:store(原假資料)
+  // 資料來源:store(來自 PmApi.tagTree())
   readonly tree = this.store.tree;
   readonly rootless = this.store.rootless;
   readonly general = this.store.facetsGeneral;
   readonly meta = this.store.facetsMeta;
+  readonly hitCount = this.store.hitCount;
 
   // kind → 顏色
   readonly color = (kind: string): string => TAG_COLOR[kind] ?? TAG_COLOR['general'];
 
-  // 展開狀態:用節點物件當 key(WeakSet 不能在 template 用,改 signal<Set>)。
-  // 預設展開第一層(depth 0)有 children 的節點。(純視覺本地狀態)
-  private readonly openSet = signal<Set<TreeNode>>(
-    new Set(this.store.tree.filter((n) => n.children?.length)),
+  // 使用者手動覆寫的展開/收合(true=展開,false=收合)。
+  private readonly overrides = signal<Map<FacetNode, boolean>>(new Map());
+
+  // 預設展開:第一層有 children 的節點(隨 tree 變動而重算)。
+  private readonly defaultOpen = computed(
+    () => new Set(this.tree().filter((n) => n.children?.length)),
   );
 
-  readonly isOpen = (node: TreeNode): boolean => this.openSet().has(node);
+  readonly isOpen = (node: FacetNode): boolean => {
+    const ov = this.overrides().get(node);
+    if (ov !== undefined) return ov;
+    return this.defaultOpen().has(node);
+  };
 
-  toggle(node: TreeNode): void {
-    const next = new Set(this.openSet());
-    if (next.has(node)) next.delete(node);
-    else next.add(node);
-    this.openSet.set(next);
+  toggle(node: FacetNode): void {
+    const next = new Map(this.overrides());
+    next.set(node, !this.isOpen(node));
+    this.overrides.set(next);
   }
 
   // 千分位數字
@@ -43,5 +49,5 @@ export class FacetSidebar {
   // 縮排:8 + depth*13 (px),對齊 mockup renderTree()
   readonly pad = (depth: number): string => `${8 + depth * 13}px`;
 
-  readonly hasKids = (node: TreeNode): boolean => !!(node.children && node.children.length);
+  readonly hasKids = (node: FacetNode): boolean => !!(node.children && node.children.length);
 }

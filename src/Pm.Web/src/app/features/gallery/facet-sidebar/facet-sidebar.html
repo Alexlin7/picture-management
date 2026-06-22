@@ -1,5 +1,5 @@
 <aside class="sidebar">
-  <div class="side-h">篩選 <span class="sub">3,184 命中</span></div>
+  <div class="side-h">篩選 <span class="sub">{{ fmt(hitCount()) }} 命中</span></div>
 
   <!-- 作品/企劃 → 角色 DAG 樹 -->
   <div class="facet">
@@ -10,7 +10,7 @@
     </div>
 
     <!-- depth 0 -->
-    @for (n0 of tree; track n0.name) {
+    @for (n0 of tree(); track n0.name) {
       <div class="tnode">
         <div class="frow" [style.padding-left]="pad(0)" (click)="hasKids(n0) ? toggle(n0) : null">
           @if (hasKids(n0)) {
@@ -72,7 +72,7 @@
 
     <!-- 無上層分類 -->
     <div class="facet-t rootless-h">— 無上層分類 —</div>
-    @for (r of rootless; track r.name) {
+    @for (r of rootless(); track r.name) {
       <div class="tnode">
         <div class="frow" [style.padding-left]="pad(0)">
           <span class="tspacer"></span>
@@ -93,7 +93,7 @@
       <span class="dot" [style.color]="color('general')" [style.background]="color('general')"></span>
       屬性
     </div>
-    @for (row of general; track row[0]) {
+    @for (row of general(); track row[0]) {
       <div class="frow">
         <span class="tspacer"></span>
         <span>{{ row[0] }}</span>
@@ -108,7 +108,7 @@
       <span class="dot" [style.color]="color('meta')" [style.background]="color('meta')"></span>
       年份
     </div>
-    @for (row of meta; track row[0]) {
+    @for (row of meta(); track row[0]) {
       <div class="frow">
         <span class="tspacer"></span>
         <span>{{ row[0] }}</span>
