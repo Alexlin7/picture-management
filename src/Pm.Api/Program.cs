@@ -227,12 +227,25 @@ app.MapDelete("/api/photos/{id:long}/tags/{tagId:long}", async (long id, long ta
 app.MapGet("/api/tags", async (string? q, int? limit, TagService tags) =>
     Results.Ok(await tags.ListAsync(q, Math.Clamp(limit ?? 50, 1, 500))));
 
-// 改名(撞既有名→合併);回 { merged }
-app.MapPut("/api/tags/{id:long}", async (long id, RenameTagDto dto, TagService tags) =>
+// 建純標籤(不掛圖):name + kind(預設 manual)。撞既有(CI)回 200 + existed:true;否則 201。
+app.MapPost("/api/tags", async (CreateTagDto dto, TagService tags, PmDbContext db) =>
 {
-    if (TagService.Normalize(dto.Name).Length == 0)
+    var name = TagService.Normalize(dto.Name);
+    if (name.Length == 0) return Results.BadRequest(new { error = "標籤名不可為空白" });
+    var ci = name.ToLowerInvariant();
+    var existing = await db.Tags.FirstOrDefaultAsync(t => t.NameCi == ci);
+    if (existing is not null)
+        return Results.Ok(new { id = existing.Id, name = existing.Name, kind = existing.Kind, existed = true });
+    var tag = await tags.UpsertByNameAsync(name, dto.Kind ?? "manual");
+    return Results.Created($"/api/tags/{tag.Id}", new { id = tag.Id, name = tag.Name, kind = tag.Kind, existed = false });
+});
+
+// 編輯:改名 and/or 改 kind(任一可省);改名撞既有→合併。回 { merged }
+app.MapPut("/api/tags/{id:long}", async (long id, UpdateTagDto dto, TagService tags) =>
+{
+    if (dto.Name is not null && TagService.Normalize(dto.Name).Length == 0)
         return Results.BadRequest(new { error = "標籤名不可為空白" });
-    var (found, merged) = await tags.RenameAsync(id, dto.Name);
+    var (found, merged) = await tags.UpdateAsync(id, dto.Name, dto.Kind);
     return found ? Results.Ok(new { merged }) : Results.NotFound();
 });
 
@@ -254,6 +267,7 @@ public record PathRuleDto(long? RootId, string Segment, string Action, string? T
 public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
 public record SavedSearchDto(string Name, string QueryJson);
 public record ManualTagDto(string Name, string? Kind);
-public record RenameTagDto(string Name);
+public record CreateTagDto(string Name, string? Kind);
+public record UpdateTagDto(string? Name, string? Kind);
 
 public partial class Program { }   // 供 WebApplicationFactory 測試引用

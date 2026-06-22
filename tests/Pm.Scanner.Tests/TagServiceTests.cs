@@ -100,6 +100,46 @@ public class TagServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Update_sets_kind_directly_without_semantic_rules()
+    {
+        await using var ctx = NewContext();
+        var svc = new TagService(ctx);
+        var t = await svc.UpsertByNameAsync("reimu", "character");
+        // 標籤庫「明示」改 kind:character→general 即使是降級也照辦(不走 upsert 的 KindRank)。
+        var (found, merged) = await svc.UpdateAsync(t.Id, null, "general");
+        Assert.True(found);
+        Assert.False(merged);
+        Assert.Equal("general", (await ctx.Tags.FindAsync(t.Id))!.Kind);
+    }
+
+    [Fact]
+    public async Task Update_changes_name_and_kind_together()
+    {
+        await using var ctx = NewContext();
+        var svc = new TagService(ctx);
+        var t = await svc.UpsertByNameAsync("oldname", "manual");
+        var (found, merged) = await svc.UpdateAsync(t.Id, "NewName", "copyright");
+        Assert.True(found);
+        Assert.False(merged);
+        var u = await ctx.Tags.FindAsync(t.Id);
+        Assert.Equal("NewName", u!.Name);     // 改名 + 保留拼寫
+        Assert.Equal("copyright", u.Kind);    // 同時改 kind
+    }
+
+    [Fact]
+    public async Task Update_rename_to_existing_still_merges()
+    {
+        await using var ctx = NewContext();
+        var svc = new TagService(ctx);
+        var src = await svc.UpsertByNameAsync("blu", "general");
+        await svc.UpsertByNameAsync("blue", "general");
+        var (found, merged) = await svc.UpdateAsync(src.Id, "Blue", null);   // 撞既有(CI)→ 合併
+        Assert.True(found);
+        Assert.True(merged);
+        Assert.Null(await ctx.Tags.FindAsync(src.Id));
+    }
+
+    [Fact]
     public async Task Rename_to_blank_is_rejected()
     {
         await using var ctx = NewContext();

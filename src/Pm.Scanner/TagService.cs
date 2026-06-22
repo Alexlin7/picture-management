@@ -128,22 +128,37 @@ public sealed partial class TagService(PmDbContext db)
         return true;
     }
 
-    // 改名:正規化;若有「另一個」tag 同名(CI)→ 合併到它;否則純改名。回 (found, merged)。
-    public async Task<(bool Found, bool Merged)> RenameAsync(long id, string newName, CancellationToken ct = default)
+    // 改名(薄包裝,委派 UpdateAsync)。
+    public Task<(bool Found, bool Merged)> RenameAsync(long id, string newName, CancellationToken ct = default)
+        => UpdateAsync(id, newName, null, ct);
+
+    // 標籤庫編輯:可同時改 name 與 kind(任一為 null 表示不動)。回 (found, merged)。
+    // - kind 由使用者「明示」設定,直接覆寫(不走 upsert 的 KindRank 語意升級,允許降級)。
+    // - name 撞既有(CI)→ 合併到它(此時 kind 改動隨來源 tag 被刪而捨棄,因為已併入既有)。
+    public async Task<(bool Found, bool Merged)> UpdateAsync(
+        long id, string? newName, string? kind, CancellationToken ct = default)
     {
         var tag = await db.Tags.FindAsync([id], ct);
         if (tag is null) return (false, false);
 
-        var name = Normalize(newName);
-        if (name.Length == 0) throw new ArgumentException("標籤名不可為空白", nameof(newName));
-        var ci = name.ToLowerInvariant();
-        var clash = await db.Tags.FirstOrDefaultAsync(t => t.Id != id && t.NameCi == ci, ct);
-        if (clash is not null)
+        if (!string.IsNullOrWhiteSpace(kind)) tag.Kind = kind;
+
+        if (newName is not null)
         {
-            await MergeAsync(id, clash.Id, ct);
-            return (true, true);
+            var name = Normalize(newName);
+            if (name.Length == 0) throw new ArgumentException("標籤名不可為空白", nameof(newName));
+            if (!string.Equals(name, tag.Name, StringComparison.Ordinal))
+            {
+                var ci = name.ToLowerInvariant();
+                var clash = await db.Tags.FirstOrDefaultAsync(t => t.Id != id && t.NameCi == ci, ct);
+                if (clash is not null)
+                {
+                    await MergeAsync(id, clash.Id, ct);
+                    return (true, true);
+                }
+                tag.Name = name;
+            }
         }
-        tag.Name = name;
         await db.SaveChangesAsync(ct);
         return (true, false);
     }
