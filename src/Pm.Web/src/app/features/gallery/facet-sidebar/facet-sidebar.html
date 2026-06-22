@@ -12,7 +12,7 @@
     <!-- depth 0 -->
     @for (n0 of tree(); track n0.name) {
       <div class="tnode">
-        <div class="frow" [style.padding-left]="pad(0)" (click)="hasKids(n0) ? toggle(n0) : null">
+        <div class="frow pickable" [style.padding-left]="pad(0)" (click)="pick(n0)">
           @if (hasKids(n0)) {
             <span class="ttoggle" [class.open]="isOpen(n0)" (click)="$event.stopPropagation(); toggle(n0)">▶</span>
           } @else {
@@ -31,7 +31,7 @@
             <!-- depth 1 -->
             @for (n1 of n0.children; track n1.name) {
               <div class="tnode">
-                <div class="frow" [style.padding-left]="pad(1)" (click)="hasKids(n1) ? toggle(n1) : null">
+                <div class="frow pickable" [style.padding-left]="pad(1)" (click)="pick(n1)">
                   @if (hasKids(n1)) {
                     <span class="ttoggle" [class.open]="isOpen(n1)" (click)="$event.stopPropagation(); toggle(n1)">▶</span>
                   } @else {
@@ -50,7 +50,7 @@
                     <!-- depth 2 -->
                     @for (n2 of n1.children; track n2.name) {
                       <div class="tnode">
-                        <div class="frow" [style.padding-left]="pad(2)">
+                        <div class="frow pickable" [style.padding-left]="pad(2)" (click)="pick(n2)">
                           <span class="tspacer"></span>
                           <span class="dot" [style.color]="color(n2.kind)" [style.background]="color(n2.kind)"></span>
                           <span>{{ n2.name }}</span>
@@ -74,7 +74,7 @@
     <div class="facet-t rootless-h">— 無上層分類 —</div>
     @for (r of rootless(); track r.name) {
       <div class="tnode">
-        <div class="frow" [style.padding-left]="pad(0)">
+        <div class="frow pickable" [style.padding-left]="pad(0)" (click)="pick(r)">
           <span class="tspacer"></span>
           <span class="dot" [style.color]="color(r.kind)" [style.background]="color(r.kind)"></span>
           <span>{{ r.name }}</span>
@@ -94,7 +94,7 @@
       屬性
     </div>
     @for (row of general(); track row[0]) {
-      <div class="frow">
+      <div class="frow pickable" (click)="pickName(row[0], 'general')">
         <span class="tspacer"></span>
         <span>{{ row[0] }}</span>
         <span class="n">{{ fmt(row[1]) }}</span>
@@ -109,7 +109,7 @@
       年份
     </div>
     @for (row of meta(); track row[0]) {
-      <div class="frow">
+      <div class="frow pickable" (click)="pickName(row[0], 'meta')">
         <span class="tspacer"></span>
         <span>{{ row[0] }}</span>
         <span class="n">{{ fmt(row[1]) }}</span>

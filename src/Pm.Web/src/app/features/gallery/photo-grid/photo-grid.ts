@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { tagColor, DANGER } from '@core/tag-color';
-import { type PhotoListItem } from '@core/api/pm-api';
+import { PmApi, type PhotoListItem, type TagListRow } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
@@ -12,6 +12,7 @@ import { GalleryStore, type SearchToken } from '../gallery.store';
 })
 export class PhotoGrid {
   private readonly store = inject(GalleryStore);
+  private readonly api = inject(PmApi);
 
   // 資料來源:store(來自 PmApi)
   readonly photos = this.store.photos;
@@ -85,6 +86,61 @@ export class PhotoGrid {
       ...parts.map((p) => ({ text: p, kind: 'general' as const })),
     ]);
     input.value = '';
+  }
+
+  // ---- 搜尋框 autocomplete(查既有標籤;與 inspector combobox 同模式,日後可抽共用)----
+  readonly suggestions = signal<TagListRow[]>([]);
+  readonly acIndex = signal(-1);
+  private acDebounce: ReturnType<typeof setTimeout> | null = null;
+  private acSeq = 0;
+
+  // 打字 → debounce 查既有標籤(去掉排除前綴 '-' 再查)。
+  onType(v: string): void {
+    this.acIndex.set(-1);
+    const term = v.replace(/^-/, '').trim();
+    if (this.acDebounce) clearTimeout(this.acDebounce);
+    if (!term) { this.suggestions.set([]); return; }
+    this.acDebounce = setTimeout(() => void this.doSuggest(term), 180);
+  }
+
+  private async doSuggest(term: string): Promise<void> {
+    const seq = ++this.acSeq;   // 過期防護:丟棄較舊查詢的回應
+    try {
+      const rows = await this.api.tags(term, 8);
+      if (seq === this.acSeq) this.suggestions.set(rows);
+    } catch {
+      if (seq === this.acSeq) this.suggestions.set([]);
+    }
+  }
+
+  acMove(delta: number): void {
+    const n = this.suggestions().length;
+    if (!n) return;
+    this.acIndex.set(Math.max(0, Math.min(this.acIndex() + delta, n - 1)));
+  }
+
+  // Enter:有選中建議→加那個既有標籤 token;否則走 addSearch(支援空格多 token + 排除語法)。
+  onEnter(input: HTMLInputElement): void {
+    const rows = this.suggestions();
+    const i = this.acIndex();
+    if (i >= 0 && i < rows.length) {
+      this.pickSuggestion(rows[i], input);
+      return;
+    }
+    this.addSearch(input.value, input);
+    this.closeAc();
+  }
+
+  pickSuggestion(s: TagListRow, input: HTMLInputElement): void {
+    this.store.addToken({ text: s.name, kind: s.kind as SearchToken['kind'] });
+    input.value = '';
+    this.closeAc();
+  }
+
+  closeAc(): void {
+    this.suggestions.set([]);
+    this.acIndex.set(-1);
+    if (this.acDebounce) { clearTimeout(this.acDebounce); this.acDebounce = null; }
   }
 
   // hex → rgba helper(半透明底色)

@@ -164,9 +164,12 @@ export class GalleryStore {
     void this.search();
   }
 
-  // 加一個 token(text 無 '-' = all;'-x' = none)並重新搜尋。
+  // 加一個 token(text 無 '-' = all;'-x' = none)並重新搜尋;已有同 text 則略過(去重)。
   addToken(token: SearchToken): void {
-    this._tokens.update((ts) => [...ts, token]);
+    const text = token.text.trim();
+    if (!text) return;
+    if (this._tokens().some((x) => x.text === text)) return;
+    this._tokens.update((ts) => [...ts, { ...token, text }]);
     void this.search();
   }
 
