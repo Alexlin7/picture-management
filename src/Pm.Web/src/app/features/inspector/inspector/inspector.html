@@ -56,13 +56,25 @@
                 [style.color]="lane.color"
                 [style.border-color]="rgba(lane.color, 0.4)"
                 [style.background]="rgba(lane.color, 0.08)"
-              >{{ t.name }}@if (t.confidence != null) {<span class="conf">{{ pct(t.confidence) }}%</span>}</span>
+              >{{ t.name }}@if (t.confidence != null) {<span class="conf">{{ pct(t.confidence) }}%</span>}<button class="tx" type="button" title="從這張圖移除" (click)="remove(t.id)">×</button></span>
             }
           </div>
         </div>
       } @empty {
         <div class="exif-empty">尚無標籤。</div>
       }
+
+      <!-- 手動加標籤:打名字 Enter / 加入;全新名稱會建成 manual 標籤進標籤庫 -->
+      <div class="addtag">
+        <input
+          #ti
+          class="addtag-in"
+          type="text"
+          placeholder="加標籤…(空白分隔多字會當一個標籤名)"
+          (keydown.enter)="add(ti.value); ti.value = ''"
+        />
+        <button class="addtag-btn" type="button" (click)="add(ti.value); ti.value = ''">加入</button>
+      </div>
     </div>
 
     <!-- EXIF -->

@@ -82,4 +82,19 @@ export class Inspector {
     const parts = rel.split(/[\\/]/);
     return parts[parts.length - 1] || rel;
   }
+
+  // 手動加標籤:全新名稱會在後端建成 source='manual' 的 tag(同時進標籤庫)並掛到這張圖。
+  add(name: string): void {
+    const id = this.photoId();
+    const n = name.trim();
+    if (id == null || !n) return;
+    void this.store.addTag(id, { name: n });
+  }
+
+  // 移除這張圖上的某個標籤關聯(不刪標籤庫裡的 tag 本身)。
+  remove(tagId: number): void {
+    const id = this.photoId();
+    if (id == null) return;
+    void this.store.removeTag(id, tagId);
+  }
 }

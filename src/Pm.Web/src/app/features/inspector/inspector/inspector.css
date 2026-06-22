@@ -252,6 +252,55 @@
   text-decoration: line-through;
 }
 
+/* ---------- 手動加/刪標籤 ---------- */
+.tag .tx {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.45;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+  margin-left: 1px;
+}
+.tag .tx:hover {
+  opacity: 1;
+}
+.addtag {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.addtag-in {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--color-hair);
+  background: var(--color-canvas);
+  color: inherit;
+}
+.addtag-in:focus {
+  outline: none;
+  border-color: var(--color-muted);
+}
+.addtag-btn {
+  flex: none;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--color-hair);
+  background: var(--color-raised);
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.addtag-btn:hover {
+  color: inherit;
+  border-color: var(--color-muted);
+}
+
 /* ---------- EXIF 空框 ---------- */
 .exif-empty {
   font-size: 12px;
