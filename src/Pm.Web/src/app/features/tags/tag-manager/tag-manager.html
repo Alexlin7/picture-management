@@ -2,48 +2,92 @@
   <header class="hd">
     <h1>標籤庫</h1>
     <p class="sub">
-      管理 DB 裡所有標籤。改名成「既有標籤」會自動合併;刪除會一併解除它在圖上的關聯(不刪圖)。
+      新增 / 改名 / 改類別 / 合併 / 刪除。改名成「既有標籤」會自動合併;刪除會解除它在圖上的關聯(不刪圖)。
       共 {{ tags().length }} 個標籤。
     </p>
   </header>
 
+  <!-- 新增純標籤(name + kind,不掛圖) -->
+  <div class="add">
+    <input #ni class="q" type="text" placeholder="新標籤名…" (keydown.enter)="add(ni.value, nk.value, ni)" />
+    <select #nk class="ksel" aria-label="類別">
+      @for (k of kinds; track k) {
+        <option [value]="k" [selected]="k === 'manual'">{{ kindLabel(k) }}</option>
+      }
+    </select>
+    <button class="b primary" (click)="add(ni.value, nk.value, ni)">＋ 新增</button>
+  </div>
+
+  <!-- 過濾 + 批次操作 -->
   <div class="bar">
     <input #qi class="q" type="text" placeholder="過濾標籤名…(不分大小寫)" (input)="filter(qi.value)" />
+    @if (selCount() > 0) {
+      <span class="selinfo">已選 {{ selCount() }}</span>
+      @if (selCount() === 2) {
+        <button class="b" (click)="mergeSelected()">合併選取</button>
+      }
+      <button class="b danger" (click)="removeSelected()">刪除選取</button>
+      <button class="b ghost" (click)="clearSel()">清除</button>
+    }
   </div>
 
   @if (error()) {
     <div class="empty">載入失敗:{{ error() }}</div>
   } @else if (!loading() && tags().length === 0) {
-    <div class="empty">沒有符合的標籤。在檢視器手動加標籤、或匯入確認頁把路徑段確認成標籤後會出現在這裡。</div>
+    <div class="empty">沒有符合的標籤。用上方新增、或在檢視器/匯入確認頁產生標籤後會出現在這裡。</div>
+  } @else {
+    <!-- 排序表頭 -->
+    <div class="thead">
+      <span class="c-sel"><input type="checkbox" [checked]="allSelected()" (change)="toggleAll()" aria-label="全選" /></span>
+      <span class="c-name sortable" (click)="sort('name')">名稱 <i>{{ arrow('name') }}</i></span>
+      <span class="c-kind sortable" (click)="sort('kind')">類別 <i>{{ arrow('kind') }}</i></span>
+      <span class="c-count sortable" (click)="sort('count')">使用數 <i>{{ arrow('count') }}</i></span>
+      <span class="c-recent sortable" (click)="sort('recent')">建立 <i>{{ arrow('recent') }}</i></span>
+      <span class="c-acts"></span>
+    </div>
+
+    <div class="list">
+      @for (t of tags(); track t.id) {
+        <div class="row" [class.sel]="isSel(t.id)">
+          <span class="c-sel"><input type="checkbox" [checked]="isSel(t.id)" (change)="toggleSel(t.id)" /></span>
+
+          @if (editingId() === t.id) {
+            <span class="c-name">
+              <input
+                #re
+                class="rename"
+                [value]="t.name"
+                (keydown.enter)="saveEdit(t, re.value, ke.value)"
+                (keydown.escape)="cancelEdit()"
+              />
+            </span>
+            <span class="c-kind">
+              <select #ke class="ksel">
+                @for (k of kinds; track k) {
+                  <option [value]="k" [selected]="k === t.kind">{{ kindLabel(k) }}</option>
+                }
+              </select>
+            </span>
+            <span class="c-count">{{ t.count }} 張</span>
+            <span class="c-recent">#{{ t.id }}</span>
+            <span class="c-acts">
+              <button class="b primary" (click)="saveEdit(t, re.value, ke.value)">儲存</button>
+              <button class="b ghost" (click)="cancelEdit()">取消</button>
+            </span>
+          } @else {
+            <span class="c-name">
+              <span class="dot" [style.color]="color(t.kind)" [style.background]="color(t.kind)"></span>{{ t.name }}
+            </span>
+            <span class="c-kind" [style.color]="color(t.kind)">{{ kindLabel(t.kind) }}</span>
+            <span class="c-count">{{ t.count }} 張</span>
+            <span class="c-recent">#{{ t.id }}</span>
+            <span class="c-acts">
+              <button class="b" (click)="startEdit(t)">編輯</button>
+              <button class="b danger" (click)="remove(t)">刪除</button>
+            </span>
+          }
+        </div>
+      }
+    </div>
   }
-
-  <div class="list">
-    @for (t of tags(); track t.id) {
-      <div class="row">
-        <span class="dot" [style.color]="color(t.kind)" [style.background]="color(t.kind)"></span>
-
-        @if (editingId() === t.id) {
-          <input
-            #re
-            class="rename"
-            [value]="t.name"
-            (keydown.enter)="saveEdit(t, re.value)"
-            (keydown.escape)="cancelEdit()"
-          />
-          <span class="acts">
-            <button class="b primary" (click)="saveEdit(t, re.value)">儲存</button>
-            <button class="b ghost" (click)="cancelEdit()">取消</button>
-          </span>
-        } @else {
-          <span class="name">{{ t.name }}</span>
-          <span class="kind" [style.color]="color(t.kind)">{{ t.kind }}</span>
-          <span class="count">{{ t.count }} 張</span>
-          <span class="acts">
-            <button class="b" (click)="startEdit(t)">改名</button>
-            <button class="b danger" (click)="remove(t)">刪除</button>
-          </span>
-        }
-      </div>
-    }
-  </div>
 </div>

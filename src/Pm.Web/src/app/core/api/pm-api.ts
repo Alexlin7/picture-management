@@ -88,8 +88,13 @@ export class PmApi {
     if (limit != null) params = params.set('limit', String(limit));
     return firstValueFrom(this.http.get<TagListRow[]>('/api/tags', { params }));
   }
-  renameTag(id: number, name: string): Promise<{ merged: boolean }> {
-    return firstValueFrom(this.http.put<{ merged: boolean }>(`/api/tags/${id}`, { name }));
+  createTag(name: string, kind?: string): Promise<{ id: number; name: string; kind: string; existed: boolean }> {
+    return firstValueFrom(
+      this.http.post<{ id: number; name: string; kind: string; existed: boolean }>('/api/tags', { name, kind }),
+    );
+  }
+  updateTag(id: number, dto: { name?: string; kind?: string }): Promise<{ merged: boolean }> {
+    return firstValueFrom(this.http.put<{ merged: boolean }>(`/api/tags/${id}`, dto));
   }
   deleteTag(id: number): Promise<unknown> {
     return firstValueFrom(this.http.delete(`/api/tags/${id}`));
