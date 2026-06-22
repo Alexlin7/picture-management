@@ -11,6 +11,13 @@ public sealed class TaggingWorker(
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        // 啟動先回收上次崩潰留下的孤兒 job(見 RecoverStuckJobsAsync)。
+        using (var startScope = scopes.CreateScope())
+        {
+            var startDb = startScope.ServiceProvider.GetRequiredService<PmDbContext>();
+            await RecoverStuckJobsAsync(startDb, ct);
+        }
+
         while (!ct.IsCancellationRequested)
         {
             using var scope = scopes.CreateScope();
@@ -19,6 +26,16 @@ public sealed class TaggingWorker(
             if (!processed) await Task.Delay(TimeSpan.FromSeconds(2), ct);
         }
     }
+
+    // 啟動回收:程序若在「設 running 後、設 done/error 前」崩潰,job 會永遠卡在 "running"
+    // (ProcessNextAsync 只撈 "pending")。啟動時把孤兒 "running" 重設回 "pending" 重排。
+    // 單一 worker 前提下安全;未來多 consumer 需改用帶租約的 atomic claim。回收筆數。
+    public async Task<int> RecoverStuckJobsAsync(PmDbContext db, CancellationToken ct = default)
+        => await db.TaggingJobs
+            .Where(j => j.State == "running")
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(j => j.State, "pending")
+                .SetProperty(j => j.UpdatedAt, DateTimeOffset.UtcNow), ct);
 
     public async Task<bool> ProcessNextAsync(PmDbContext db, CancellationToken ct)
     {

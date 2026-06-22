@@ -122,6 +122,26 @@ public class TaggingWorkerTests : IDisposable
     }
 
     [Fact]
+    public async Task Recovers_stuck_running_jobs_to_pending_on_startup()
+    {
+        await SeedPendingJob();
+        // 模擬上次程序崩潰於推論中:job 卡在 "running"(查詢只撈 "pending",否則永不再被處理)。
+        await using (var seed = NewContext())
+        {
+            var job = await seed.TaggingJobs.SingleAsync();
+            job.State = "running";
+            await seed.SaveChangesAsync();
+        }
+
+        await using var ctx = NewContext();
+        var recovered = await Worker(new FakeTagger()).RecoverStuckJobsAsync(ctx, default);
+        Assert.Equal(1, recovered);
+
+        await using var verify = NewContext();
+        Assert.Equal("pending", (await verify.TaggingJobs.SingleAsync()).State);   // 回到可被處理
+    }
+
+    [Fact]
     public async Task Failure_marks_error_and_increments_attempts()
     {
         await SeedPendingJob();
