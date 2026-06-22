@@ -43,11 +43,34 @@
     </div>
   }
 
-  <!-- 底部新增來源 -->
-  <button class="btn add-source" (click)="onAddSource()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-    新增來源
-  </button>
+  <!-- 底部新增來源(inline 表單,取代原生 prompt) -->
+  @if (adding()) {
+    <div class="add-form">
+      <input
+        #pi
+        class="af-in"
+        type="text"
+        placeholder="來源資料夾絕對路徑(例:D:/pics,正斜線免跳脫)"
+        (keydown.enter)="ni.focus()"
+      />
+      <input
+        #ni
+        class="af-in"
+        type="text"
+        placeholder="來源名稱(可留空 = 用路徑)"
+        (keydown.enter)="submitAdd(pi.value, ni.value, pi)"
+      />
+      <div class="af-acts">
+        <button class="btn primary" (click)="submitAdd(pi.value, ni.value, pi)">新增</button>
+        <button class="btn btn-ghost" (click)="adding.set(false)">取消</button>
+      </div>
+    </div>
+  } @else {
+    <button class="btn add-source" (click)="adding.set(true)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      新增來源
+    </button>
+  }
 </div>

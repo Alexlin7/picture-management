@@ -272,6 +272,7 @@ CREATE INDEX ix_job_state    ON tagging_job (state) WHERE state IN ('pending','e
 1. **身分 / 位置兩層拆開(②③)** → 換碟、搬資料夾、同圖兩份全是 `photo_location` 的增刪,`photo` 身分不動 = 標籤與檔案系統脫鉤。
 2. **`tag.kind` 軸別 + `photo_tag.source`/`confidence`** → 手動 IP 分類(path/manual)與 WD14 自動標(帶信心)分得開;可「只看手動」「WD14 信心 > 門檻才採用」「逐一接受/拒絕」。
 3. **揪出混入的個人照片** → `camera_model`/`gps`/`exif` 存在性 + WD14 `realistic`/`photo` tag,組成 Saved Search 一鍵撈出。
+4. **tag 不分大小寫去重靠 `name_ci`(全 Unicode 小寫鍵)+ 唯一索引(2026-06-22)** → SQLite 內建 `lower()`/`NOCASE` 只折 ASCII,西里爾/重音字(角色名、作品名)的大小寫變體會漏去重;故 `tag` 表存一欄 `name_ci = Name.ToLowerInvariant()`(由 `PmDbContext.SaveChanges` 自動維護)+ 唯一索引 `ux_tag_name_ci`,所有 upsert / 改名 / 列表的 CI 比對都走它。`name` 仍保留首見顯示拼寫(`VSpo!`、角色名大小寫不被吃掉)。命中既有時 `kind` 採「語意升級、不降級」(見 §7)。
 
 ### 4.4 布林多軸查詢(含全部 N 個 tag 的交集)
 
@@ -388,6 +389,10 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 | API 認證 | 無(localhost only) | 單機單人;**離開 localhost 即必須加**(見 §11) |
 | 外部開啟 | 後端代開檔案總管 / 預設程式;下載原圖留 Phase 2 | 瀏覽器沙盒開不了,原生後端可;只認 photo_id 防路徑注入 |
 | 後端語言 | C#/.NET 10(單程序);Python 僅未來可選 sidecar | web 啟動快、交付為單一 exe;ML 生態之門以 sidecar 保留可重開 |
+| **tag CI 去重**(2026-06-22) | **`name_ci` 全 Unicode 小寫鍵 + 唯一索引** | SQLite `lower()`/`NOCASE` 僅折 ASCII,非 ASCII 大小寫變體會漏;`name_ci` 由 `SaveChanges` 自動維護,保留 `name` 顯示拼寫(見 §4.3) |
+| **tag.kind 跨來源**(2026-06-22) | **語意升級、不降級**(character/copyright/meta > general > manual/path) | upsert 命中既有時較具體的 kind 可升級既有,wd14 `character` 不被既有 `manual` 蓋住而在檢視器畫錯 lane;手動策展的語意 kind 不被自動標降級 |
+| **SQLite 並發**(2026-06-22) | **開 WAL**(背景 worker + API 雙寫入者) | `TaggingWorker` 是常駐第二寫入者,WAL 讓讀寫不互卡;短暫寫鎖靠 Microsoft.Data.Sqlite 預設 command timeout 重試 |
+| **tagging_job 復原**(2026-06-22) | **啟動回收孤兒 `running`→`pending`** | 程序崩潰於推論中(首次標註要 HF 下載 ~300MB,視窗長)會讓 job 卡 `running` 永不再撈;單一 worker 前提下啟動回收,未來多 consumer 改帶租約的 atomic claim |
 
 ---
 

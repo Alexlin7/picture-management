@@ -1,8 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { PmApi, type PhotoDetail, type TagView } from '@core/api/pm-api';
+import { PmApi, type PhotoDetail, type TagView, type TagListRow } from '@core/api/pm-api';
 
 // 對外 re-export 型別,讓元件只從 store 取型別。
-export type { PhotoDetail, TagView, LocationView } from '@core/api/pm-api';
+export type { PhotoDetail, TagView, LocationView, TagListRow } from '@core/api/pm-api';
 export type { TagKind } from '@core/tag-color';
 
 // Inspector 資料接縫:以 selectedId 非同步載入 PhotoDetail(PmApi.photo(id))。
@@ -61,6 +61,34 @@ export class InspectorStore {
   async removeTag(photoId: number, tagId: number): Promise<void> {
     await this.api.removeTag(photoId, tagId);
     if (this.currentId === photoId) await this.refresh();
+  }
+
+  // ---- 加標籤 combobox:查既有標籤,避免打出近似重複 ----
+  private readonly _suggestions = signal<TagListRow[]>([]);
+  readonly suggestions = this._suggestions.asReadonly();
+
+  // 目前查詢字,用來丟棄過期回應(快速打字 / 切圖時的競態,比照 load 的 currentId)。
+  private suggestTerm = '';
+
+  // 依關鍵字查標籤庫(不分大小寫,後端已處理);空字串清空。
+  async suggest(q: string): Promise<void> {
+    const term = q.trim();
+    this.suggestTerm = term;
+    if (!term) {
+      this._suggestions.set([]);
+      return;
+    }
+    try {
+      const rows = await this.api.tags(term, 8);
+      if (this.suggestTerm !== term) return; // 已有更新的查詢,丟棄這份過期回應
+      this._suggestions.set(rows);
+    } catch {
+      if (this.suggestTerm === term) this._suggestions.set([]);
+    }
+  }
+
+  clearSuggestions(): void {
+    this._suggestions.set([]);
   }
 
   // 目前 detail 的縮圖 URL(無 detail 回 null)。

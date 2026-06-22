@@ -12,7 +12,34 @@
           <span class="x" (click)="removeToken($index, $event)">×</span>
         </span>
       }
-      <input placeholder="加標籤 · 空格=AND · -排除" />
+      <div class="ac-wrap">
+        <input
+          #si
+          placeholder="加標籤 · 空格=AND · -排除"
+          (input)="onType(si.value)"
+          (keydown.arrowdown)="$event.preventDefault(); acMove(1)"
+          (keydown.arrowup)="$event.preventDefault(); acMove(-1)"
+          (keydown.enter)="onEnter(si)"
+          (keydown.escape)="closeAc()"
+        />
+        @if (suggestions().length) {
+          <div class="ac-pop">
+            @for (s of suggestions(); track s.id; let i = $index) {
+              <button
+                type="button"
+                class="ac-row"
+                [class.active]="acIndex() === i"
+                (mousedown)="$event.preventDefault()"
+                (click)="pickSuggestion(s, si)"
+              >
+                <span class="dot" [style.color]="kindColor(s.kind)" [style.background]="kindColor(s.kind)"></span>
+                <span class="acname">{{ s.name }}</span>
+                <span class="account">{{ s.count }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
     </div>
     <button class="btn ghost" title="儲存目前搜尋">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -62,7 +89,7 @@
     <div class="masonry">
       @for (p of photos(); track p.id) {
         <div class="tile" [class.sel]="selectedId() === p.id" (click)="pick(p)">
-          <img class="art" [src]="thumb(p.id)" [style.height.px]="tileHeight(p)" loading="lazy" alt="" />
+          <img class="art" [src]="thumb(p.id)" [style.aspect-ratio]="aspect(p)" loading="lazy" alt="" />
         </div>
       }
     </div>

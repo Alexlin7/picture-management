@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Pm.Api;
 using Pm.Data;
 using Pm.Data.Entities;
 using Pm.Scanner;
@@ -19,13 +20,22 @@ builder.Services.AddScoped<PathTagService>();
 builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
+builder.Services.AddScoped<TagService>();
+
+// WD14 自動標籤(opt-in:Inference:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
+builder.Services.AddWd14Tagging(builder.Configuration);
 
 var app = builder.Build();
 
 // 啟動時確保 schema 存在(本機單檔,直接 Migrate)
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<PmDbContext>().Database.Migrate();
+    var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
+    db.Database.Migrate();
+    // 開 WAL:API 請求與 WD14 背景 worker 同時寫入 pm.sqlite 時,讀寫不互卡(rollback journal 會)。
+    // WAL 為持久設定(寫入 db header),設一次後所有連線生效。短暫寫鎖則靠 Microsoft.Data.Sqlite
+    // 預設 command timeout(SQLITE_BUSY 自動重試)等待,而非立即「database is locked」。
+    db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
 }
 
 // 由 .NET serve Angular 靜態檔(ng build 輸出至 wwwroot),同源、免 CORS
@@ -188,26 +198,18 @@ app.MapDelete("/api/photos/{id:long}", async (long id, PmDbContext db) =>
 });
 
 // 寫 manual tag(upsert tag,新增 photo_tag source='manual';已存在則 idempotent)
-app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db) =>
+app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db, TagService tags) =>
 {
     if (!await db.Photos.AnyAsync(p => p.Id == id)) return Results.NotFound();
+    if (TagService.Normalize(dto.Name).Length == 0)
+        return Results.BadRequest(new { error = "標籤名不可為空白" });
 
-    var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == dto.Name);
-    if (tag is null)
-    {
-        tag = new Tag { Name = dto.Name, Kind = dto.Kind ?? "manual" };
-        db.Tags.Add(tag);
-        await db.SaveChangesAsync();
-    }
+    // 正規化 + 不分大小寫 upsert(blue/Blue 不會變兩個);全新名稱會進標籤庫。
+    // 加 photo_tag 走與 wd14 worker 共用的 AttachTagAsync(idempotent)。
+    var tag = await tags.UpsertByNameAsync(dto.Name, dto.Kind ?? "manual");
+    if (await tags.AttachTagAsync(id, tag.Id, "manual", null)) await db.SaveChangesAsync();
 
-    var pt = await db.PhotoTags.FirstOrDefaultAsync(x => x.PhotoId == id && x.TagId == tag.Id);
-    if (pt is null)
-    {
-        pt = new PhotoTag { PhotoId = id, TagId = tag.Id, Source = "manual", Confidence = null };
-        db.PhotoTags.Add(pt);
-        await db.SaveChangesAsync();
-    }
-
+    var pt = await db.PhotoTags.FirstAsync(x => x.PhotoId == id && x.TagId == tag.Id);
     return Results.Ok(new { id = tag.Id, name = tag.Name, kind = tag.Kind, source = pt.Source, confidence = pt.Confidence });
 });
 
@@ -221,6 +223,40 @@ app.MapDelete("/api/photos/{id:long}/tags/{tagId:long}", async (long id, long ta
     return Results.NoContent();
 });
 
+// 標籤庫:列出 + 使用數(autocomplete 與管理頁共用);q 不分大小寫過濾
+app.MapGet("/api/tags", async (string? q, int? limit, TagService tags) =>
+    Results.Ok(await tags.ListAsync(q, Math.Clamp(limit ?? 50, 1, 500))));
+
+// 建純標籤(不掛圖):name + kind(預設 manual)。撞既有(CI)回 200 + existed:true;否則 201。
+app.MapPost("/api/tags", async (CreateTagDto dto, TagService tags, PmDbContext db) =>
+{
+    var name = TagService.Normalize(dto.Name);
+    if (name.Length == 0) return Results.BadRequest(new { error = "標籤名不可為空白" });
+    var ci = name.ToLowerInvariant();
+    var existing = await db.Tags.FirstOrDefaultAsync(t => t.NameCi == ci);
+    if (existing is not null)
+        return Results.Ok(new { id = existing.Id, name = existing.Name, kind = existing.Kind, existed = true });
+    var tag = await tags.UpsertByNameAsync(name, dto.Kind ?? "manual");
+    return Results.Created($"/api/tags/{tag.Id}", new { id = tag.Id, name = tag.Name, kind = tag.Kind, existed = false });
+});
+
+// 編輯:改名 and/or 改 kind(任一可省);改名撞既有→合併。回 { merged }
+app.MapPut("/api/tags/{id:long}", async (long id, UpdateTagDto dto, TagService tags) =>
+{
+    if (dto.Name is not null && TagService.Normalize(dto.Name).Length == 0)
+        return Results.BadRequest(new { error = "標籤名不可為空白" });
+    var (found, merged) = await tags.UpdateAsync(id, dto.Name, dto.Kind);
+    return found ? Results.Ok(new { merged }) : Results.NotFound();
+});
+
+// 刪除 tag(連帶關聯)
+app.MapDelete("/api/tags/{id:long}", async (long id, TagService tags) =>
+    await tags.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
+
+// 合併 id → targetId
+app.MapPost("/api/tags/{id:long}/merge/{targetId:long}", async (long id, long targetId, TagService tags) =>
+    await tags.MergeAsync(id, targetId) ? Results.Ok() : Results.NotFound());
+
 // SPA fallback:前端路由不被 API 404 攔截
 app.MapFallbackToFile("index.html");
 
@@ -231,5 +267,7 @@ public record PathRuleDto(long? RootId, string Segment, string Action, string? T
 public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
 public record SavedSearchDto(string Name, string QueryJson);
 public record ManualTagDto(string Name, string? Kind);
+public record CreateTagDto(string Name, string? Kind);
+public record UpdateTagDto(string? Name, string? Kind);
 
 public partial class Program { }   // 供 WebApplicationFactory 測試引用

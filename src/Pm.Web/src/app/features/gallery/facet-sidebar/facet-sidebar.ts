@@ -50,4 +50,13 @@ export class FacetSidebar {
   readonly pad = (depth: number): string => `${8 + depth * 13}px`;
 
   readonly hasKids = (node: FacetNode): boolean => !!(node.children && node.children.length);
+
+  // 點標籤名 → 加進上方搜尋(AND token);展開箭頭仍只負責收合(已 stopPropagation)。
+  pick(node: FacetNode): void {
+    this.store.addToken({ text: node.name, kind: node.kind });
+  }
+  // 屬性/年份區(無 kind 的 [name,count])。
+  pickName(name: string, kind: 'general' | 'meta'): void {
+    this.store.addToken({ text: name, kind });
+  }
 }

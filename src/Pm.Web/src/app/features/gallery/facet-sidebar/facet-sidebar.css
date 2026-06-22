@@ -95,3 +95,12 @@
   margin-left: 6px;
   line-height: 1.4;
 }
+
+/* 可點:點標籤名加進上方搜尋 */
+.frow.pickable {
+  cursor: pointer;
+  border-radius: 6px;
+}
+.frow.pickable:hover {
+  background: var(--color-raised);
+}

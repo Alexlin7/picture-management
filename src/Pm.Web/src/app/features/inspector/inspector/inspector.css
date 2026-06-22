@@ -215,41 +215,115 @@
   opacity: 0.85;
 }
 
-/* WD14 建議:虛線 chip + ✓/✕ */
-.tag.sugg {
-  border-style: dashed;
-  opacity: 0.92;
-}
-.tag.sugg .acts {
-  display: inline-flex;
-  gap: 3px;
-  margin-left: 3px;
-}
-.tag .ic {
-  width: 15px;
-  height: 15px;
-  border-radius: 4px;
-  display: grid;
-  place-items: center;
+/* ---------- 手動加/刪標籤 ---------- */
+.tag .tx {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.45;
   cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1;
+  padding: 0;
+  margin-left: 1px;
 }
-.tag .ic.y:hover {
-  background: rgba(74, 222, 128, 0.2);
-}
-.tag .ic.n:hover {
-  background: rgba(240, 97, 109, 0.2);
-}
-/* 已決定:採用→實線淡綠;拒絕→淡化刪除線 */
-.tag.sugg.accepted {
-  border-style: solid;
+.tag .tx:hover {
   opacity: 1;
 }
-.tag.sugg.rejected {
-  opacity: 0.4;
-  text-decoration: line-through;
+.addtag {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+/* combobox 容器:input 在上、浮層清單絕對定位於其下 */
+.combo {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.addtag-in {
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--color-hair);
+  background: var(--color-canvas);
+  color: inherit;
+}
+.combo-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--color-panel);
+  border: 1px solid var(--color-hair);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.45);
+  padding: 4px;
+}
+.combo-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.combo-row:hover,
+.combo-row.active {
+  background: var(--color-raised);
+}
+.combo-row .cname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.combo-row .ccount {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-faint);
+}
+.combo-row.create {
+  color: var(--color-muted);
+  border-top: 1px solid var(--color-hair);
+  border-radius: 0 0 6px 6px;
+  margin-top: 2px;
+}
+.combo-row.create.active,
+.combo-row.create:hover {
+  color: inherit;
+}
+.addtag-in:focus {
+  outline: none;
+  border-color: var(--color-muted);
+}
+.addtag-btn {
+  flex: none;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--color-hair);
+  background: var(--color-raised);
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.addtag-btn:hover {
+  color: inherit;
+  border-color: var(--color-muted);
 }
 
 /* ---------- EXIF 空框 ---------- */

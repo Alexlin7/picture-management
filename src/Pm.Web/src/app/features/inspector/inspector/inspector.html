@@ -56,13 +56,58 @@
                 [style.color]="lane.color"
                 [style.border-color]="rgba(lane.color, 0.4)"
                 [style.background]="rgba(lane.color, 0.08)"
-              >{{ t.name }}@if (t.confidence != null) {<span class="conf">{{ pct(t.confidence) }}%</span>}</span>
+              >{{ t.name }}@if (t.confidence != null) {<span class="conf">{{ pct(t.confidence) }}%</span>}<button class="tx" type="button" title="從這張圖移除" (click)="remove(t.id)">×</button></span>
             }
           </div>
         </div>
       } @empty {
         <div class="exif-empty">尚無標籤。</div>
       }
+
+      <!-- 加標籤 combobox:查既有標籤、避免近似重複;無完全相符才顯示「建立新標籤」 -->
+      <div class="addtag">
+        <div class="combo">
+          <input
+            class="addtag-in"
+            type="text"
+            placeholder="加標籤…(查既有,避免重複)"
+            [value]="query()"
+            (input)="onType($any($event.target).value)"
+            (keydown.arrowdown)="$event.preventDefault(); move(1)"
+            (keydown.arrowup)="$event.preventDefault(); move(-1)"
+            (keydown.enter)="onEnter()"
+            (keydown.escape)="close()"
+          />
+          @if (query().trim()) {
+            <div class="combo-pop">
+              @for (r of comboRows(); track $index; let i = $index) {
+                @if (r.kind === 'tag') {
+                  <button
+                    type="button"
+                    class="combo-row"
+                    [class.active]="activeIndex() === i"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="pick(r.tag)"
+                  >
+                    <span class="dot" [style.color]="dotColor(r.tag.kind)" [style.background]="dotColor(r.tag.kind)"></span>
+                    <span class="cname">{{ r.tag.name }}</span>
+                    <span class="ccount">{{ r.tag.count }}</span>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="combo-row create"
+                    [class.active]="activeIndex() === i"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="createNew(r.name)"
+                  >＋ 建立新標籤「{{ r.name }}」</button>
+                }
+              }
+            </div>
+          }
+        </div>
+        <button class="addtag-btn" type="button" (click)="onEnter()">加入</button>
+      </div>
     </div>
 
     <!-- EXIF -->
