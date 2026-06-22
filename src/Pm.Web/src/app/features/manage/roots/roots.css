@@ -119,3 +119,32 @@
 .add-source {
   margin-top: 6px;
 }
+
+/* 新增來源 inline 表單(取代原生 prompt) */
+.add-form {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--color-hair);
+  border-radius: var(--radius-card);
+  background: var(--color-panel);
+}
+.af-in {
+  font-size: 13px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--color-hair);
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+.af-in:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+.af-acts {
+  display: flex;
+  gap: 8px;
+}
