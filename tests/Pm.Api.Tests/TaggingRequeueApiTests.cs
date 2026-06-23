@@ -214,6 +214,20 @@ public class TaggingRequeueApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Multiple_scopes_return_bad_request()
+    {
+        var (_, photo) = SeedPhoto();
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/tag/requeue", new
+        {
+            mode = "retry",
+            scope = new { photoIds = new[] { photo }, all = true }
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Retag_unknown_photo_returns_not_found()
     {
         var client = _factory.CreateClient();

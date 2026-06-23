@@ -71,7 +71,7 @@
      | `refresh` | ✓ | ✓ | 換 threshold/model 重標 |
      | `clear` | ✓ | ✗ | 放棄 WD14 自動標(只留 manual/path) |
 
-   - **scope(動態條件,請求當下解析成一組 photoId)**:`photoIds: long[]`(明示)/ `error`(只重排失敗的)/ `root: long`(整個 root)/ `all`(全部)。
+   - **scope(動態條件,請求當下解析成一組 photoId)**:四選一,不可同時指定多個 scope;`photoIds: long[]`(明示)/ `error`(只重排失敗的)/ `root: long`(整個 root)/ `all`(全部)。
      - `clear` + `scope: all` = 整庫全清自動標;`clear` + `scope: root` = 只清某資料夾的自動標。
 3. **機制、不動 schema**:
    - **job upsert(沿用 `tagging_job` PhotoId PK,已實作)**:有 job → `State=pending`、`Attempts=0`;**沒有 job → 新建 pending**(Slice 2「只索引不排」的圖靠這補建)。worker `ProcessNextAsync` 只撈 `pending`,天然重跑。`clear` 不 upsert job。
@@ -101,7 +101,7 @@
 4. `clear`:刪 `wd14`、**不**建 job。
 5. `scope=root` 只挑 present 的 photo。
 6. 大量 scope(>32k)分塊,不撞 SQLite 變數上限(沿用 1c 教訓)。
-7. 驗 `clear + error` 回 400。
+7. 驗 `clear + error` 回 400;多個 scope 同時指定回 400。
 
 ## C. 推論開關拆分(能力層,Q1)
 

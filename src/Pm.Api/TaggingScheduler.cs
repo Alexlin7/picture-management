@@ -21,6 +21,7 @@ public sealed class TaggingScheduler(PmDbContext db)
         var normalizedMode = (mode ?? string.Empty).Trim().ToLowerInvariant();
         if (normalizedMode is not ("retry" or "refresh" or "clear"))
             throw new ArgumentException("mode must be retry, refresh, or clear", nameof(mode));
+        ValidateSingleScope(scope);
         if (normalizedMode == "clear" && scope.Error == true)
             throw new ArgumentException("clear does not support error scope", nameof(scope));
 
@@ -51,7 +52,7 @@ public sealed class TaggingScheduler(PmDbContext db)
                     .Select(p => p.Id)
                     .ToListAsync(ct));
             }
-            return result.Distinct().ToList();
+            return result;
         }
 
         if (scope.Error == true)
@@ -82,6 +83,18 @@ public sealed class TaggingScheduler(PmDbContext db)
         }
 
         throw new ArgumentException("scope must include photoIds, error, root, or all", nameof(scope));
+    }
+
+    private static void ValidateSingleScope(RequeueScopeDto scope)
+    {
+        var count = 0;
+        if (scope.PhotoIds is { Length: > 0 }) count++;
+        if (scope.Error == true) count++;
+        if (scope.Root is not null) count++;
+        if (scope.All == true) count++;
+
+        if (count != 1)
+            throw new ArgumentException("scope must include exactly one of photoIds, error, root, or all", nameof(scope));
     }
 
     private async Task<int> ClearWd14TagsAsync(IReadOnlyCollection<long> photoIds, CancellationToken ct)
