@@ -265,6 +265,28 @@
   border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
   border-radius: 4px;
 }
+/* 兩行卡片(有造型/作品徽章的 character):主行 label+徽章,副行 canonical·來源。
+   width:100% 讓它在 flex-wrap 的 .tags 內自成一列、不與短 chip 並排。 */
+.tag-block {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  width: 100%;
+}
+.tag-block .trow1 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag-block .trow2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tag-block .trow2 .tx {
+  margin-left: auto; /* × 推到副行最右 */
+}
 
 /* ---------- 手動加/刪標籤 ---------- */
 .tag .tx {
