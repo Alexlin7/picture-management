@@ -6,8 +6,11 @@
 
 1. **掃描效能 + tagging 解耦**
    - 來源 spec:`2026-06-23-scanner-tagging-refactor-design.md`。
-   - 現況:`LibraryScanner.ScanRootAsync` 仍逐檔查 `photo_location` 並多次 `SaveChanges`;新 photo 也在掃描流程直接排 `tagging_job`。
-   - 下一步:先做切片 1「批次載入消 N+1 + 批次 commit」,再做掃描排 job 可選、requeue 端點、WD14/CLIP 能力開關拆分。
+   - 現況:Slice 1a 已完成並提交:
+     - `c5168bc Optimize scanner fast-path rescan`
+     - `450f7fd Tighten scanner fast-path tracking`
+   - 已修:重掃快路徑開掃先載入 `photo_location` + `photo.file_size` dict,未變檔只批次更新 `LastSeenAt`;不再 `Include(Photo)`,避免 `Photo.Exif` 與十萬級 `Photo` entity 進 change tracker。Scanner 48 / 全測試 95 綠。
+   - 下一步:進 Slice 1b「初次匯入/大量新檔 chunk pipeline」,再做 missing 對帳驗證、掃描排 job 可選、requeue 端點、WD14/CLIP 能力開關拆分。
 
 2. **WD14 tag 顯示層清理**
    - 來源 spec:`2026-06-22-tag-display-layer-design.md`。
