@@ -16,6 +16,8 @@ public sealed class LibraryScanner(
         ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".avif", ".jfif"
     };
 
+    private const int SlowPathBatchSize = 500;
+
     public async Task<ScanResult> ScanRootAsync(long rootId, CancellationToken ct = default)
     {
         var root = await db.LibraryRoots.FindAsync([rootId], ct)
@@ -31,6 +33,8 @@ public sealed class LibraryScanner(
             .Select(l => new { Location = l, PhotoFileSize = l.Photo.FileSize })
             .ToListAsync(ct))
             .ToDictionary(l => l.Location.RelPath, StringComparer.Ordinal);
+
+        var pending = new List<PendingScanFile>(SlowPathBatchSize);
 
         var opts = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
         foreach (var file in Directory.EnumerateFiles(root.AbsPath, "*", opts))
@@ -62,70 +66,15 @@ public sealed class LibraryScanner(
                 }
 
                 var hash = await hasher.HashFileAsync(file, ct);
-
-                var photo = await db.Photos.FirstOrDefaultAsync(p => p.FileHash == hash, ct);
-                if (photo is null)
-                {
-                    photo = new Photo { FileHash = hash, FileSize = size };
-
-                    var m = meta.Read(file);
-                    photo.Width = m.Width;
-                    photo.Height = m.Height;
-                    photo.Mime = m.Mime;
-                    photo.TakenAt = m.TakenAt;
-                    photo.CameraModel = m.CameraModel;
-                    photo.GpsLat = m.GpsLat;
-                    photo.GpsLon = m.GpsLon;
-                    photo.Exif = m.ExifJson;
-
-                    db.Photos.Add(photo);
-                    await db.SaveChangesAsync(ct);   // 取得 photo.Id
-                    newPhotos++;
-
-                    // 只有可解碼的圖才產縮圖 + 排 WD14(壞圖/非圖留身分但不做)
-                    if (m.Width is not null)
-                    {
-                        try
-                        {
-                            await thumbs.GenerateAsync(file, hash, ct);
-                            thumbsGen++;
-                        }
-                        catch { /* 縮圖失敗不影響索引 */ }
-
-                        db.TaggingJobs.Add(new TaggingJob { PhotoId = photo.Id });
-                        await db.SaveChangesAsync(ct);
-                        jobsQueued++;
-                    }
-                }
-
-                if (loc is null)
-                {
-                    db.PhotoLocations.Add(new PhotoLocation
-                    {
-                        PhotoId = photo.Id,
-                        LibraryRootId = rootId,
-                        RelPath = relPath,
-                        Status = "present",
-                        Mtime = mtime,
-                        FirstSeenAt = DateTimeOffset.UtcNow,
-                        LastSeenAt = DateTimeOffset.UtcNow,
-                    });
-                    newLocations++;
-                }
-                else
-                {
-                    // 既有位置但內容變了 → 指向(可能是新的)photo,更新中繼。
-                    loc.PhotoId = photo.Id;
-                    loc.Status = "present";
-                    loc.Mtime = mtime;
-                    loc.LastSeenAt = DateTimeOffset.UtcNow;
-                }
-
-                await db.SaveChangesAsync(ct);
+                pending.Add(new PendingScanFile(file, relPath, size, mtime, hash, loc));
+                if (pending.Count >= SlowPathBatchSize)
+                    await ProcessPendingAsync();
             }
             catch (IOException) { errors++; }
             catch (UnauthorizedAccessException) { errors++; }
         }
+
+        await ProcessPendingAsync();
 
         if (db.ChangeTracker.HasChanges())
             await db.SaveChangesAsync(ct);
@@ -140,5 +89,121 @@ public sealed class LibraryScanner(
 
         return new ScanResult(seen, newPhotos, newLocations, skipped, errors,
             thumbsGen, jobsQueued, markedMissing);
+
+        async Task ProcessPendingAsync()
+        {
+            if (pending.Count == 0) return;
+
+            var batch = pending;
+            pending = new List<PendingScanFile>(SlowPathBatchSize);
+
+            var hashes = batch.Select(p => p.Hash).Distinct().ToList();
+            var photosByHash = await db.Photos
+                .Where(p => hashes.Contains(p.FileHash))
+                .ToDictionaryAsync(p => p.FileHash, StringComparer.Ordinal, ct);
+
+            var newPhotosByHash = new Dictionary<string, NewPhotoWork>(StringComparer.Ordinal);
+            var failedItems = new HashSet<PendingScanFile>();
+            foreach (var item in batch)
+            {
+                if (photosByHash.ContainsKey(item.Hash) || newPhotosByHash.ContainsKey(item.Hash))
+                    continue;
+
+                var photo = new Photo { FileHash = item.Hash, FileSize = item.Size };
+                ImageMeta m;
+                try
+                {
+                    m = meta.Read(item.File);
+                }
+                catch (IOException)
+                {
+                    errors++;
+                    failedItems.Add(item);
+                    continue;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    errors++;
+                    failedItems.Add(item);
+                    continue;
+                }
+
+                photo.Width = m.Width;
+                photo.Height = m.Height;
+                photo.Mime = m.Mime;
+                photo.TakenAt = m.TakenAt;
+                photo.CameraModel = m.CameraModel;
+                photo.GpsLat = m.GpsLat;
+                photo.GpsLon = m.GpsLon;
+                photo.Exif = m.ExifJson;
+
+                db.Photos.Add(photo);
+                newPhotosByHash.Add(item.Hash, new NewPhotoWork(photo, item.File, m.Width is not null));
+                newPhotos++;
+            }
+
+            if (newPhotosByHash.Count > 0)
+                await db.SaveChangesAsync(ct);   // 取得 photo.Id
+
+            foreach (var (hash, work) in newPhotosByHash)
+            {
+                photosByHash[hash] = work.Photo;
+
+                // 只有可解碼的圖才產縮圖 + 排 WD14(壞圖/非圖留身分但不做)
+                if (!work.CanDecode) continue;
+
+                try
+                {
+                    await thumbs.GenerateAsync(work.File, hash, ct);
+                    thumbsGen++;
+                }
+                catch { /* 縮圖失敗不影響索引 */ }
+
+                db.TaggingJobs.Add(new TaggingJob { PhotoId = work.Photo.Id });
+                jobsQueued++;
+            }
+
+            foreach (var item in batch)
+            {
+                if (failedItems.Contains(item)) continue;
+
+                var photo = photosByHash[item.Hash];
+                if (item.Location is null)
+                {
+                    db.PhotoLocations.Add(new PhotoLocation
+                    {
+                        PhotoId = photo.Id,
+                        LibraryRootId = rootId,
+                        RelPath = item.RelPath,
+                        Status = "present",
+                        Mtime = item.Mtime,
+                        FirstSeenAt = DateTimeOffset.UtcNow,
+                        LastSeenAt = DateTimeOffset.UtcNow,
+                    });
+                    newLocations++;
+                }
+                else
+                {
+                    // 既有位置但內容變了 → 指向(可能是新的)photo,更新中繼。
+                    item.Location.PhotoId = photo.Id;
+                    item.Location.Status = "present";
+                    item.Location.Mtime = item.Mtime;
+                    item.Location.LastSeenAt = DateTimeOffset.UtcNow;
+                }
+            }
+
+            if (db.ChangeTracker.HasChanges())
+                await db.SaveChangesAsync(ct);
+        }
     }
+
+    private sealed record PendingScanFile(
+        string File,
+        string RelPath,
+        long Size,
+        DateTimeOffset Mtime,
+        string Hash,
+        PhotoLocation? Location);
+
+    private sealed record NewPhotoWork(Photo Photo, string File, bool CanDecode);
 }

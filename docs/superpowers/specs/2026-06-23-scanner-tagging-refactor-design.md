@@ -1,7 +1,7 @@
 # LibraryScanner 重構 + Tagging 解耦 — 設計文件
 
 - 日期:2026-06-23
-- 狀態:**Slice 1a 已實作;1b+ 待實作**(切片順序見 §7)
+- 狀態:**Slice 1a/1b 已實作;1c+ 待實作**(切片順序見 §7)
 - 關聯:`CLAUDE.md` 鐵則 #1/#2(就地索引、hash 是身分、不碰原檔)、#5(tag 來源要分)、#6(ONNX/DirectML 抽象)、#7(`tagging_job` 程序內佇列);
   吸收 `2026-06-22-scan-detection-design.md` 的**路線 A**(掃描效能);現有實作 `src/Pm.Scanner/LibraryScanner.cs`、`src/Pm.Api/Wd14Setup.cs`、`src/Pm.Api/TaggingWorker.cs`
 - 取代範圍:本文**吸收** scan-detection-design 的路線 A1(批次消 N+1)並擴充;該文的**路線 B**(FileSystemWatcher 即時偵測)仍留在原文,屬更後續。
@@ -41,14 +41,14 @@
    - 未變檔只更新 `LastSeenAt`,累積後批次 `SaveChanges` 一次;新檔/變更檔邏輯先維持現狀。
    - 目標是先解決「已索引十萬圖庫重掃」的最大痛點,低風險且既有測試能保行為。
 2. **Slice 1b:初次匯入/大量新檔 chunk pipeline**:
-   - 批次 hash 後用 `Where(p => hashes.Contains(p.FileHash))` 一次查既有 photo。
-   - 同批 `hash -> Photo` map 去重,避免同批 duplicate hash 重複建 photo。
-   - 新增 photo/location/job 採 navigation fixup 或兩階段保存,解決 `photo.Id` 取得時機與 `TaggingJob.PhotoId` PK 的限制。
-   - 優先收斂 transaction 次數;batch hash lookup 是次要但合理的加分。
+   - 已實作:slow path 先收集每批需 hash 的檔案(`SlowPathBatchSize=500`),批次 hash 後用 `Where(p => hashes.Contains(p.FileHash))` 一次查既有 photo。
+   - 已實作:同批 `hash -> Photo` map 去重,避免同批 duplicate hash 重複建 photo。
+   - 已實作:新增 photo 先批次 `SaveChanges` 取得 id,再批次新增 location/job;新檔 3 筆含 1 組 duplicate 的測試由 5 次 SaveChanges 降為 2 次。
+   - 保留:縮圖仍在批次內逐張生成,但 job/location 寫入已批次化。
 3. **Slice 1c:missing 對帳驗證**:
    - 先撈 EF Core 10 對 `!seenPaths.Contains(l.RelPath)` 的實際 SQL。若走 `json_each(@param)` 單 JSON 參數,正確性上不撞 SQLite 參數上限;僅評估效能。
    - 若實測有 SQL/效能問題,再導入 scan token 或 chunk 對帳;不預設這段一定壞,因為它是現存行為而非本重構新增。
-4. **記憶體 / change tracker**:Slice 1a 只 track location + scalar file size,避免 `Photo`/Exif 膨脹。Slice 1b 若引入批次新增,仍需持續注意 `SaveChanges` 前 tracked entity 數量與 `AutoDetectChanges` 成本。
+4. **記憶體 / change tracker**:Slice 1a 只 track location + scalar file size,避免 `Photo`/Exif 膨脹。Slice 1b 已把 slow path SaveChanges 收斂到每批 1-2 次;混合掃描仍會 track root 內既有 location,後續若實測慢再用更細的投影/attach 策略處理。
 
 預期:十萬檔全掃由分鐘級降到秒~十幾秒。**行為不變的重構**,既有 Scanner 測試是驗收主軸。
 
@@ -105,7 +105,7 @@
 ## 切片計畫(slice-and-commit,序列)
 
 1. **切片 1a**:快路徑大量重掃 — 批次載入 location + photo file size dict;未變檔只批次更新 `LastSeenAt`;新檔/變更檔邏輯先不動。**已完成**。
-2. **切片 1b**:初次匯入/大量新檔 — chunk hash → 批次查 photo by hash → 同批 hash 去重 → navigation/兩階段批次新增 photo+location+job。
+2. **切片 1b**:初次匯入/大量新檔 — chunk hash → 批次查 photo by hash → 同批 hash 去重 → 兩階段批次新增 photo+location+job。**已完成**。
 3. **切片 1c**:missing 對帳 — 驗 EF Core 10 實際 SQL;必要時 scan-token 或 chunk 對帳。
 4. **切片 2**:掃描排 job 改可選(B1)。
 5. **切片 3**:requeue / 指定 photoId 排程端點(B2/B3),含 `retry` / `refresh` 語意。

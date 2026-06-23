@@ -76,6 +76,53 @@ public class ScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task First_scan_batches_new_files_and_dedups_within_batch()
+    {
+        WriteImage("a.png", "alpha");
+        WriteImage("sub/b.png", "beta");
+        WriteImage("sub/b_copy.png", "beta");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewCountingContext();
+        var result = await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        Assert.Equal(3, result.FilesSeen);
+        Assert.Equal(2, result.NewPhotos);
+        Assert.Equal(3, result.NewLocations);
+        Assert.Equal(2, ctx.SaveChangesCalls);
+
+        await using var verify = NewContext();
+        Assert.Equal(2, await verify.Photos.CountAsync());
+        Assert.Equal(3, await verify.PhotoLocations.CountAsync());
+    }
+
+    [Fact]
+    public async Task Batched_scan_keeps_per_file_metadata_errors_isolated()
+    {
+        WriteImage("bad.png", "bad");
+        WriteImage("ok.png", "ok");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewContext();
+        var scanner = new LibraryScanner(
+            ctx,
+            new Sha256FileHasher(),
+            new ThrowingMetadataReader("bad.png"),
+            new NoopThumbnailService());
+        var result = await scanner.ScanRootAsync(rootId);
+
+        Assert.Equal(2, result.FilesSeen);
+        Assert.Equal(1, result.Errors);
+        Assert.Equal(1, result.NewPhotos);
+        Assert.Equal(1, result.NewLocations);
+
+        await using var verify = NewContext();
+        Assert.Equal(1, await verify.Photos.CountAsync());
+        Assert.Equal(1, await verify.PhotoLocations.CountAsync());
+        Assert.Equal("ok.png", await verify.PhotoLocations.Select(l => l.RelPath).SingleAsync());
+    }
+
+    [Fact]
     public async Task Missing_root_throws()
     {
         await using var ctx = NewContext();
@@ -186,4 +233,20 @@ file sealed class CountingHasher(IFileHasher inner) : IFileHasher
         Calls++;
         return inner.HashFileAsync(absPath, ct);
     }
+}
+
+file sealed class ThrowingMetadataReader(string relPath) : IImageMetadataReader
+{
+    public ImageMeta Read(string absPath)
+    {
+        if (Path.GetFileName(absPath) == relPath) throw new IOException("metadata unavailable");
+        return new ImageMeta(null, null, null, null, null, null, null, null);
+    }
+}
+
+file sealed class NoopThumbnailService : IThumbnailService
+{
+    public string PathFor(string hash) => hash;
+    public Task<string?> GenerateAsync(string absPath, string hash, CancellationToken ct = default) =>
+        Task.FromResult<string?>(hash);
 }
