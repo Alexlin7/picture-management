@@ -23,6 +23,9 @@
    - `/tags` 排序狀態持久化到 localStorage。
    - photo-grid 的「儲存搜尋」「掃描」按鈕補接線。
    - 搜尋總命中數與 WD14 pending/error 計數需要後端 count 端點。
+   - 搜尋狀態進 URL query,讓 facet/token 查詢可分享、重整後可復原。
+   - 響應式與手機版仍未設計;目前以桌面 workbench 為主。
+   - a11y 尚未完整檢視,包含鍵盤操作、ARIA 與焦點環。
 
 5. **交付與 Phase 2**
    - 單檔 self-contained publish 尚待驗證。
