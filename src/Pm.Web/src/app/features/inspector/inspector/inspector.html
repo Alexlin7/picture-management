@@ -57,23 +57,14 @@
           </div>
           <div class="tags">
             @for (t of lane.tags; track t.id) {
-              @if (t.work || t.costumes?.length) {
-                <!-- 兩行卡片:有造型/作品徽章(character)。主行 label+徽章;副行 canonical·來源 -->
-                <span
-                  class="tag tag-block"
-                  [style.color]="lane.color"
-                  [style.border-color]="rgba(lane.color, 0.4)"
-                  [style.background]="rgba(lane.color, 0.08)"
-                ><span class="trow1">@if (t.emoji) {<span class="emo">{{ t.emoji }}</span>}<span class="tlabel">{{ t.label }}</span>@for (c of t.costumes; track c) {<span class="cb cos">造型:{{ c }}</span>}@if (t.work) {<span class="cb work">作品:{{ t.work }}</span>}</span><span class="trow2">@if (t.label !== t.canonical) {<span class="canon">{{ t.canonical }}</span>}<span class="src">{{ sourceLabel(t) }}</span><button class="tx" type="button" title="從這張圖移除" (click)="remove(t.id)">×</button></span></span>
-              } @else {
-                <!-- 單行 chip:無徽章(general/expression/meta/manual/path) -->
-                <span
-                  class="tag"
-                  [style.color]="lane.color"
-                  [style.border-color]="rgba(lane.color, 0.4)"
-                  [style.background]="rgba(lane.color, 0.08)"
-                >@if (t.emoji) {<span class="emo">{{ t.emoji }}</span>}<span class="tlabel">{{ t.label }}</span>@if (t.label !== t.canonical) {<span class="canon">{{ t.canonical }}</span>}<span class="src">{{ sourceLabel(t) }}</span><button class="tx" type="button" title="從這張圖移除" (click)="remove(t.id)">×</button></span>
-              }
+              <!-- 統一 chip:tmain(emoji+label+造型/作品徽章)+ tmeta(canonical·來源)。
+                   RWD:tmeta 只在「同一行放不下」時才自動折到第二行(內容驅動,無 JS)。 -->
+              <span
+                class="tag"
+                [style.color]="lane.color"
+                [style.border-color]="rgba(lane.color, 0.4)"
+                [style.background]="rgba(lane.color, 0.08)"
+              ><span class="tmain">@if (t.emoji) {<span class="emo">{{ t.emoji }}</span>}<span class="tlabel">{{ t.label }}</span>@for (c of t.costumes; track c) {<span class="cb cos">造型:{{ c }}</span>}@if (t.work) {<span class="cb work">作品:{{ t.work }}</span>}</span><span class="tmeta">@if (t.label !== t.canonical) {<span class="canon">{{ t.canonical }}</span>}<span class="src">{{ sourceLabel(t) }}</span><button class="tx" type="button" title="從這張圖移除" (click)="remove(t.id)">×</button></span></span>
             }
           </div>
         </div>
