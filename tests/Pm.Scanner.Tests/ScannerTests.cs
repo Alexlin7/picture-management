@@ -30,6 +30,9 @@ public class ScannerTests : IDisposable
     private PmDbContext NewContext() =>
         new(new DbContextOptionsBuilder<PmDbContext>().UseSqlite(Cs).Options);
 
+    private CountingSaveContext NewCountingContext() =>
+        new(new DbContextOptionsBuilder<PmDbContext>().UseSqlite(Cs).Options);
+
     private async Task<long> SeedRootAsync()
     {
         await using var ctx = NewContext();
@@ -102,6 +105,24 @@ public class ScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task Rescan_unchanged_batches_fast_path_save()
+    {
+        WriteImage("a.png", "alpha");
+        WriteImage("b.png", "beta");
+        WriteImage("c.png", "gamma");
+        var rootId = await SeedRootAsync();
+
+        await using (var ctx = NewContext())
+            await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        await using var ctx2 = NewCountingContext();
+        var result = await new LibraryScanner(ctx2, new CountingHasher(new Sha256FileHasher())).ScanRootAsync(rootId);
+
+        Assert.Equal(3, result.SkippedUnchanged);
+        Assert.Equal(1, ctx2.SaveChangesCalls);
+    }
+
+    [Fact]
     public async Task Changed_content_rehashes_and_reassigns_identity()
     {
         WriteImage("a.png", "alpha");
@@ -142,6 +163,17 @@ public class ScannerTests : IDisposable
         await using var verify = NewContext();
         Assert.Equal(2, await verify.Photos.CountAsync());
         Assert.Equal(2, await verify.PhotoLocations.CountAsync());
+    }
+
+    private sealed class CountingSaveContext(DbContextOptions<PmDbContext> options) : PmDbContext(options)
+    {
+        public int SaveChangesCalls { get; private set; }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default)
+        {
+            SaveChangesCalls++;
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+        }
     }
 }
 

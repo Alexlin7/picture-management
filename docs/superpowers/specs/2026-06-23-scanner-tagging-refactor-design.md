@@ -13,6 +13,7 @@
 1. **掃描效能(read N+1 + write 逐檔 commit)** — `LibraryScanner.ScanRootAsync`:
    - 每檔一次 `PhotoLocations.Include(Photo).FirstOrDefaultAsync`(`LibraryScanner.cs:45`)→ N 次 DB read。
    - 每檔多次 `SaveChangesAsync`(`:55`/`:78`/`:92`/`:120`)→ N 次 commit;尤其**快路徑(沒變的檔)也逐檔 commit** 只為更新 `LastSeenAt`,十萬量級為最大瓶頸。
+   - 初次匯入/大量變更檔還有逐檔 `Photos.FirstOrDefault(FileHash==hash)`;初次匯入主成本仍是 hash I/O,但 indexed SELECT 與逐檔 transaction 仍要在第二切片收斂。
 2. **掃描與 tagging 耦合** — 掃描發現新 photo 且可解碼時,**同流程**直接 `TaggingJobs.Add`(`LibraryScanner.cs:91`)。沒有「只索引不標」或「對指定圖批次標」的路徑。
 3. **無法重標 + 無手動排程** — `TaggingJob.PhotoId` 是 PK(`TaggingJob.cs:5`),一張圖只能一筆 job,`done` 後無法再排;`Program.cs` 也沒有任何手動排 tagging / requeue 端點。
 
@@ -32,11 +33,21 @@
 
 ## A. 掃描效能重構(動作層基礎,吸收 scan-detection 路線 A1)
 
-**read 與 write 一起修**,否則消了 read N+1 仍被 EF change tracker 在每次 `SaveChanges` 掃全 tracked 集拖累。
+**read 與 write 一起修**,否則消了 read N+1 仍被 EF change tracker 在每次 `SaveChanges` 掃全 tracked 集拖累。分三個小切片做,避免一次重寫整個 scanner:
 
-1. **消 read N+1**:開掃前一次 `Where(LibraryRootId==rootId).Include(Photo).ToListAsync()` → `Dictionary<relPath, PhotoLocation>`,迴圈內查 dict O(1),取代 `:45-47` 的 per-file query。
-2. **批次 commit**:累積變更,迴圈結束或每 N 筆(如 500)`SaveChanges` 一次;快路徑的 `LastSeenAt` 改批次更新,不再逐檔 commit。
-3. **記憶體**:十萬 location dict + Include Photo ≈ 數十 MB,可接受;實作時量一次。
+1. **Slice 1a:快路徑大量重掃**:
+   - 開掃前一次 `Where(LibraryRootId==rootId).Include(Photo).ToListAsync()` → `Dictionary<relPath, PhotoLocation>`,迴圈內查 dict O(1),取代 `:45-47` 的 per-file location query。
+   - 未變檔只更新 `LastSeenAt`,累積後批次 `SaveChanges` 一次;新檔/變更檔邏輯先維持現狀。
+   - 目標是先解決「已索引十萬圖庫重掃」的最大痛點,低風險且既有測試能保行為。
+2. **Slice 1b:初次匯入/大量新檔 chunk pipeline**:
+   - 批次 hash 後用 `Where(p => hashes.Contains(p.FileHash))` 一次查既有 photo。
+   - 同批 `hash -> Photo` map 去重,避免同批 duplicate hash 重複建 photo。
+   - 新增 photo/location/job 採 navigation fixup 或兩階段保存,解決 `photo.Id` 取得時機與 `TaggingJob.PhotoId` PK 的限制。
+   - 優先收斂 transaction 次數;batch hash lookup 是次要但合理的加分。
+3. **Slice 1c:missing 對帳驗證**:
+   - 先撈 EF Core 10 對 `!seenPaths.Contains(l.RelPath)` 的實際 SQL。若走 `json_each(@param)` 單 JSON 參數,正確性上不撞 SQLite 參數上限;僅評估效能。
+   - 若實測有 SQL/效能問題,再導入 scan token 或 chunk 對帳;不預設這段一定壞,因為它是現存行為而非本重構新增。
+4. **記憶體**:十萬 location dict + Include Photo ≈ 數十 MB,可接受;實作時量一次。
 
 預期:十萬檔全掃由分鐘級降到秒~十幾秒。**行為不變的重構**,既有 Scanner 測試是驗收主軸。
 
@@ -46,7 +57,9 @@
 2. **新增排程端點**(滿足「單獨/指定幾個檔案進排程」):
    - `POST /api/photos/{id}/tag` — 單張(重)標。
    - `POST /api/tag/requeue` — body 指定 `photoIds[]` 或條件(`未標的` / `error 的` / `整個 root` / `全部重標`)。
-3. **支援重標、不動 schema**:`requeue` 把目標 photoId 的 job `state` 設回 `pending`(upsert,沿用 PhotoId PK)。worker `ProcessNextAsync` 只撈 `pending`,天然重跑。「重新上 tag」= requeue。
+3. **支援重標、不動 schema**:`requeue` 把目標 photoId 的 job `state` 設回 `pending`(upsert,沿用 PhotoId PK)。worker `ProcessNextAsync` 只撈 `pending`,天然重跑。
+   - `retry`:錯誤/中斷重試,不清舊 tag。
+   - `refresh`:重跑 WD14 前先刪該 photo 的 `source='wd14'` photo_tag,再寫入新結果;換 threshold/model 時用此模式,避免舊 tag 永遠殘留。
 4. **失敗 job 退避重試**(順帶,原 handoff C8):`error` job 可被 requeue 重排;是否自動重排列為可選。
 
 ## C. 推論開關拆分(能力層,Q1)
@@ -71,6 +84,7 @@
 ## DB schema 影響
 
 - **本重構不動 schema**:`tagging_job`(PhotoId PK)沿用;requeue = `state` 設回 pending。
+- 現階段 `tagging_job` 明確只代表 **WD14 tagging job**。未來 CLIP 排程落地時再評估 `(photo_id, kind)` composite key 或 WD14/CLIP 獨立 table,避免一張 photo 只能同時有一種 job。
 - 行為層 D 若實作才 +1 張 `app_setting` 表 + migration。
 
 ## 對齊鐵則
@@ -83,16 +97,18 @@
 ## 測試考量(本專案慣例)
 
 - 後端測試 DB 隔離 = **每測試獨立 SQLite 檔(`Data Source={tmp}`)或 `:memory:`**(見 `EnrichTests.cs`/`SchemaTests.cs`),非交易回滾。新測試沿用此慣例避免互相污染。
-- A(效能):**行為不變重構**,既有 Scanner 測試全綠為主軸;補一個「快路徑不逐檔 commit」的行為測試。
-- B(解耦):`enqueueTagging=false` 不排 job、requeue 把 done/error 設回 pending、指定 photoIds 只排這些。
+- A(效能):**行為不變重構**,既有 Scanner 測試全綠為主軸;補一個窄測「快路徑不逐檔 commit」,用可觀察的 `SaveChangesAsync` 次數或 DB command 計數,避免把一般行為測試寫成實作細節大網。
+- B(解耦):`enqueueTagging=false` 不排 job、requeue 把 done/error 設回 pending、指定 photoIds 只排這些;`refresh` 模式清掉舊 `wd14` photo_tag 後再重寫。
 - C(開關):`Wd14:Enabled=false` 不註冊 worker;`true` 才註冊(比照現有 `Wd14SetupTests`)。
 
 ## 切片計畫(slice-and-commit,序列)
 
-1. **切片 1**:掃描效能 — 批次載入消 N+1 + 批次 commit(A)。TDD,既有測試保護。
-2. **切片 2**:掃描排 job 改可選(B1)。
-3. **切片 3**:requeue / 指定 photoId 排程端點(B2/B3)。
-4. **切片 4**:Wd14/Clip 開關拆分(C)。
-5. (後續)行為層 app_setting + 前端設定頁(D)。
+1. **切片 1a**:快路徑大量重掃 — 批次載入 location+photo dict;未變檔只批次更新 `LastSeenAt`;新檔/變更檔邏輯先不動。
+2. **切片 1b**:初次匯入/大量新檔 — chunk hash → 批次查 photo by hash → 同批 hash 去重 → navigation/兩階段批次新增 photo+location+job。
+3. **切片 1c**:missing 對帳 — 驗 EF Core 10 實際 SQL;必要時 scan-token 或 chunk 對帳。
+4. **切片 2**:掃描排 job 改可選(B1)。
+5. **切片 3**:requeue / 指定 photoId 排程端點(B2/B3),含 `retry` / `refresh` 語意。
+6. **切片 4**:Wd14/Clip 開關拆分(C)。
+7. (後續)行為層 app_setting + 前端設定頁(D)。
 
 每切片:後端走 TDD、build + 全測試綠後 commit。動到設計決策時同步更新 `2026-06-21-picture-management-design.md` 與本檔。
