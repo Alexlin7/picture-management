@@ -115,6 +115,38 @@ public class ScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task Reconcile_marks_missing_above_sqlite_variable_limit_without_crashing()
+    {
+        // SQLite 變數上限 32766。對帳不可把整包集合塞進單一 IN(`NOT IN (@p1...@pN)` 或 `Id IN (...)`)。
+        // 直接 seed 超過上限的 present location,再掃「空 root」→ 全數該標 missing,且不可 'too many SQL variables'。
+        const int n = 33_000;
+        var rootId = await SeedRootAsync();
+        await using (var seed = NewContext())
+        {
+            var photo = new Photo { FileHash = "seedhash", FileSize = 1 };
+            seed.Photos.Add(photo);
+            await seed.SaveChangesAsync();
+            for (var i = 0; i < n; i++)
+                seed.PhotoLocations.Add(new PhotoLocation
+                {
+                    PhotoId = photo.Id, LibraryRootId = rootId, RelPath = $"gone/f{i}.png",
+                    Status = "present", FirstSeenAt = DateTimeOffset.UtcNow, LastSeenAt = DateTimeOffset.UtcNow,
+                });
+            await seed.SaveChangesAsync();
+        }
+
+        // _root 目錄是空的(沒寫任何檔)→ 這輪看不到任何 location,n 個全部該轉 missing。
+        await using var ctx = NewContext();
+        var result = await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        Assert.Equal(0, result.FilesSeen);
+        Assert.Equal(n, result.MarkedMissing);
+
+        await using var verify = NewContext();
+        Assert.Equal(n, await verify.PhotoLocations.CountAsync(l => l.Status == "missing"));
+    }
+
+    [Fact]
     public async Task Batched_scan_keeps_per_file_metadata_errors_isolated()
     {
         WriteImage("bad.png", "bad");

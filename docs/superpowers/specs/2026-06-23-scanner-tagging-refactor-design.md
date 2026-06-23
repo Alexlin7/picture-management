@@ -46,9 +46,10 @@
    - 已實作:新增 photo 先批次 `SaveChanges` 取得 id,再批次新增 location/job;新檔 3 筆含 1 組 duplicate 的測試由 5 次 SaveChanges 降為 2 次。
    - 保留:縮圖仍在批次內逐張生成,但 job/location 寫入已批次化。
    - 已實作:批次查既有 photo 使用 `AsNoTracking`;每批 slow path 儲存完成後 detach 該批新增/更新的 `Photo` / `PhotoLocation` / `TaggingJob`,避免初次匯入時 change tracker 隨檔案數無界成長。測試以 501 檔跨 batch 初次匯入驗證 scanner context 不殘留批次匯入實體。
-3. **Slice 1c:missing 對帳驗證**:
-   - 先撈 EF Core 10 對 `!seenPaths.Contains(l.RelPath)` 的實際 SQL。若走 `json_each(@param)` 單 JSON 參數,正確性上不撞 SQLite 參數上限;僅評估效能。
-   - 若實測有 SQL/效能問題,再導入 scan token 或 chunk 對帳;不預設這段一定壞,因為它是現存行為而非本重構新增。
+3. **Slice 1c:missing 對帳(已實作)**:
+   - **驗證結果(實機)**:EF Core 10 + SQLite 對 `!seenPaths.Contains(l.RelPath)` **不走** `json_each`,而是逐元素 `RelPath NOT IN (@p1...@pN)`;`ToQueryString` 在 5 與 2000 元素都同樣展開,且實機執行 100,000 元素直接丟 `SqliteException: 'too many SQL variables'`(SQLite 變數上限 32766)。故十萬量級圖庫掃描必在對帳步驟崩潰 —— 是現存潛在 bug,被本重構的規模目標觸發。
+   - **修法(無 schema 變更)**:重用開掃已載入的 `locationsByPath`(已含該 root 全部 location),在記憶體算出 `present 且未在 seenPaths` 的 missing 集合,再以 location id `Chunk(10_000)` 分塊 `ExecuteUpdateAsync`。seenPaths 比對全程在記憶體(`HashSet.Contains`),不再進 SQL;唯一進 SQL 的 IN 是 missing id 分塊(≤10k 參數/塊,穩在上限內)。
+   - **測試**:`Reconcile_marks_missing_above_sqlite_variable_limit_without_crashing` —— seed 33,000 present location、掃空 root,全數轉 missing 不崩(守住分塊 Id 更新路徑;快版 8s)。大量 seenPaths 的 faithful 情境(33k 實體檔)開發時已實機跑過一次綠燈,因 ~6m 過慢不留進常態套件。
 4. **記憶體 / change tracker**:Slice 1a 只 track location + scalar file size,避免 `Photo`/Exif 膨脹。Slice 1b 已把 slow path SaveChanges 收斂到每批 1-2 次,且批次後釋放 slow-path 產生/改動的 entity tracking。混合掃描仍會 track root 內既有 location,後續若實測慢再用更細的投影/attach 策略處理。
 
 預期:十萬檔全掃由分鐘級降到秒~十幾秒。**行為不變的重構**,既有 Scanner 測試是驗收主軸。
@@ -107,7 +108,7 @@
 
 1. **切片 1a**:快路徑大量重掃 — 批次載入 location + photo file size dict;未變檔只批次更新 `LastSeenAt`;新檔/變更檔邏輯先不動。**已完成**。
 2. **切片 1b**:初次匯入/大量新檔 — chunk hash → 批次查 photo by hash → 同批 hash 去重 → 兩階段批次新增 photo+location+job。**已完成**。
-3. **切片 1c**:missing 對帳 — 驗 EF Core 10 實際 SQL;必要時 scan-token 或 chunk 對帳。
+3. **切片 1c**:missing 對帳 — 實機證實 `NOT IN (seenPaths)` 在 >32766 撞 SQLite 變數上限;改記憶體 set-diff + 分塊 Id 更新(無 schema 變更)。**已完成**。
 4. **切片 2**:掃描排 job 改可選(B1)。
 5. **切片 3**:requeue / 指定 photoId 排程端點(B2/B3),含 `retry` / `refresh` 語意。
 6. **切片 4**:Wd14/Clip 開關拆分(C)。

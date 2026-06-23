@@ -11,7 +11,8 @@
      - `450f7fd Tighten scanner fast-path tracking`
    - 已修:重掃快路徑開掃先載入 `photo_location` + `photo.file_size` dict,未變檔只批次更新 `LastSeenAt`;不再 `Include(Photo)`,避免 `Photo.Exif` 與十萬級 `Photo` entity 進 change tracker。Scanner 48 / 全測試 95 綠。
    - Slice 1b 已完成:初次匯入/大量新檔改 chunk slow path,批次查 photo by hash、同批 hash 去重、兩階段批次新增 photo/location/job;並已補上批次後 detach slow-path entities,避免初次匯入 change tracker 無界成長。Scanner 51 綠。
-   - 下一步:進 Slice 1c「missing 對帳 SQL 驗證」,再做掃描排 job 可選、requeue 端點、WD14/CLIP 能力開關拆分。
+   - Slice 1c 已完成:**實機證實** EF Core 10 + SQLite 對 `!seenPaths.Contains` 是逐元素 `NOT IN (@p1...@pN)`,>32766 撞 `'too many SQL variables'`(十萬圖庫對帳必崩)。改用記憶體 set-diff(重用 `locationsByPath`)+ 以 location id `Chunk(10_000)` 分塊 `ExecuteUpdate`,無 schema 變更。Scanner 52 / 全測試 99 綠。(尚未 commit,待 codex re-review。)
+   - 下一步:Slice 2「掃描排 job 改可選(`enqueueTagging`)」,再做 requeue 端點(retry/refresh)、WD14/CLIP 能力開關拆分。
 
 2. **WD14 tag 顯示層清理**
    - 來源 spec:`2026-06-22-tag-display-layer-design.md`。

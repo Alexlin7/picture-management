@@ -80,12 +80,18 @@ public sealed class LibraryScanner(
             await db.SaveChangesAsync(ct);
 
         // 對帳:這輪沒看到、且仍標 present 的位置 → missing(軟刪,保留 photo+tags)。
-        // 以走訪集合(seenPaths)判斷,避免 SQLite 對 DateTimeOffset 比較無法翻譯的問題。
-        markedMissing = await db.PhotoLocations
-            .Where(l => l.LibraryRootId == rootId
-                        && l.Status == "present"
-                        && !seenPaths.Contains(l.RelPath))
-            .ExecuteUpdateAsync(s => s.SetProperty(l => l.Status, "missing"), ct);
+        // 用開掃時已載入的 locationsByPath 在記憶體算出 missing 集合(已含該 root 全部 location),
+        // 再以 location id 分塊更新。不可把 seenPaths 整包塞進單一 `RelPath NOT IN (@p1...@pN)`:
+        // EF Core 對 SQLite 是逐元素參數,seenPaths 超過 SQLite 變數上限(32766)即 'too many SQL variables'。
+        var missingIds = locationsByPath.Values
+            .Where(x => x.Location.Status == "present" && !seenPaths.Contains(x.Location.RelPath))
+            .Select(x => x.Location.Id)
+            .ToList();
+
+        foreach (var chunk in missingIds.Chunk(10_000))
+            markedMissing += await db.PhotoLocations
+                .Where(l => chunk.Contains(l.Id))
+                .ExecuteUpdateAsync(s => s.SetProperty(l => l.Status, "missing"), ct);
 
         return new ScanResult(seen, newPhotos, newLocations, skipped, errors,
             thumbsGen, jobsQueued, markedMissing);
