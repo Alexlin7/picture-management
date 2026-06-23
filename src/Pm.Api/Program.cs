@@ -21,6 +21,7 @@ builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
 builder.Services.AddScoped<TagService>();
+builder.Services.AddScoped<TaggingScheduler>();
 
 // WD14 自動標籤(opt-in:Inference:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
 builder.Services.AddWd14Tagging(builder.Configuration);
@@ -224,6 +225,31 @@ app.MapDelete("/api/photos/{id:long}/tags/{tagId:long}", async (long id, long ta
     db.PhotoTags.Remove(pt);
     await db.SaveChangesAsync();
     return Results.NoContent();
+});
+
+app.MapPost("/api/photos/{id:long}/retag", async (long id, string? mode, TaggingScheduler scheduler) =>
+{
+    try
+    {
+        var result = await scheduler.ScheduleAsync(mode ?? "retry", new RequeueScopeDto(PhotoIds: [id]));
+        return result.Matched == 0 ? Results.NotFound() : Results.Ok(result);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/tag/requeue", async (RequeueRequestDto dto, TaggingScheduler scheduler) =>
+{
+    try
+    {
+        return Results.Ok(await scheduler.ScheduleAsync(dto.Mode, dto.Scope));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
 });
 
 // 標籤庫:列出 + 使用數(autocomplete 與管理頁共用);q 不分大小寫過濾

@@ -1,7 +1,7 @@
 # LibraryScanner 重構 + Tagging 解耦 — 設計文件
 
 - 日期:2026-06-23
-- 狀態:**Slice 1a/1b/1c/2 已實作;Slice 3+ 待實作**(切片順序見 §7)
+- 狀態:**Slice 1a/1b/1c/2/3 已實作;Slice 4+ 待實作**(切片順序見 §7)
 - 關聯:`CLAUDE.md` 鐵則 #1/#2(就地索引、hash 是身分、不碰原檔)、#5(tag 來源要分)、#6(ONNX/DirectML 抽象)、#7(`tagging_job` 程序內佇列);
   吸收 `2026-06-22-scan-detection-design.md` 的**路線 A**(掃描效能);現有實作 `src/Pm.Scanner/LibraryScanner.cs`、`src/Pm.Api/Wd14Setup.cs`、`src/Pm.Api/TaggingWorker.cs`
 - 取代範圍:本文**吸收** scan-detection-design 的路線 A1(批次消 N+1)並擴充;該文的**路線 B**(FileSystemWatcher 即時偵測)仍留在原文,屬更後續。
@@ -60,13 +60,48 @@
    - `ScanRootAsync(long rootId, bool enqueueTagging = true, CancellationToken ct = default)`。預設 `true`(行為不變);`false` → 掃描專注「身分/位置/**縮圖照產**」,只跳過 `tagging_job`。
    - 端點 `POST /api/roots/{id}/scan?enqueueTagging=`:未帶 query → 跟隨能力旗標 `Inference:Enabled`(Slice 4 改名)。推論關時預設**純索引、不堆死 job**;`?enqueueTagging=true` 可在推論關時 **pre-queue**(待之後啟用 worker 一次消化),`?=false` 強制只索引。
    - **三層 UI 約定(給 Slice D 前端設定頁)**:能力層關閉(模型未載)時,行為層的「**自動標排程** on/off」toggle 應**反灰不可選** + 提示需到啟動設定開 `Inference` 並重啟 —— 因為沒有 worker,開了也無引擎。動作層的 pre-queue(`?enqueueTagging=true`)是**獨立的明示動作**(API 或日後獨立按鈕「掃描並預先排入佇列」),**不可**與那顆自動排程 toggle 共用。
-2. **新增排程端點**(滿足「單獨/指定幾個檔案進排程」):
-   - `POST /api/photos/{id}/tag` — 單張(重)標。
-   - `POST /api/tag/requeue` — body 指定 `photoIds[]` 或條件(`未標的` / `error 的` / `整個 root` / `全部重標`)。
-3. **支援重標、不動 schema**:`requeue` 把目標 photoId 的 job `state` 設回 `pending`(upsert,沿用 PhotoId PK)。worker `ProcessNextAsync` 只撈 `pending`,天然重跑。
-   - `retry`:錯誤/中斷重試,不清舊 tag。
-   - `refresh`:重跑 WD14 前先刪該 photo 的 `source='wd14'` photo_tag,再寫入新結果;換 threshold/model 時用此模式,避免舊 tag 永遠殘留。
-4. **失敗 job 退避重試**(順帶,原 handoff C8):`error` job 可被 requeue 重排;是否自動重排列為可選。
+2. **requeue / 重標端點(B2,Slice 3 — 已實作;操作「已索引的圖」,不碰檔案系統)**:
+   - `POST /api/tag/requeue` — 批次,body `{ mode, scope }`。
+   - `POST /api/photos/{id}/retag?mode=` — 單張(等同 requeue 的 `scope = 該 id`)。**命名刻意避開既有 `POST /api/photos/{id}/tags`(手動加標籤),別只差一個 `s`。**
+   - **mode(2 軸組合 = 清舊 `wd14` tag? × 重排 job?)**:
+
+     | mode | 清舊 `wd14` tag | 重排 job | 用途 |
+     |---|---|---|---|
+     | `retry` | ✗ | ✓ | 失敗/中斷重跑 |
+     | `refresh` | ✓ | ✓ | 換 threshold/model 重標 |
+     | `clear` | ✓ | ✗ | 放棄 WD14 自動標(只留 manual/path) |
+
+   - **scope(動態條件,請求當下解析成一組 photoId)**:`photoIds: long[]`(明示)/ `error`(只重排失敗的)/ `root: long`(整個 root)/ `all`(全部)。
+     - `clear` + `scope: all` = 整庫全清自動標;`clear` + `scope: root` = 只清某資料夾的自動標。
+3. **機制、不動 schema**:
+   - **job upsert(沿用 `tagging_job` PhotoId PK,已實作)**:有 job → `State=pending`、`Attempts=0`;**沒有 job → 新建 pending**(Slice 2「只索引不排」的圖靠這補建)。worker `ProcessNextAsync` 只撈 `pending`,天然重跑。`clear` 不 upsert job。
+   - **refresh / clear 清舊 tag(已實作)**:`DELETE photo_tag WHERE photo_id ∈ 目標 AND source='wd14'` —— **只清被 requeue 的那批,不無差別全庫**;`manual` / `path` tag 不動。
+   - **大量範圍分塊(1c 教訓,已實作)**:`scope = root / all` 可能十萬量級,job upsert 與 tag delete 都要**分塊**(≤10k/塊),不可單一巨大 `IN`。
+   - **能力層互動**:requeue 屬動作層,worker 沒開也照排(pre-queue,等之後啟用再消化),與 Slice 2 一致。
+4. **失敗 job 退避重試**(順帶,原 handoff C8):`error` job 可被 requeue(`mode=retry, scope=error`)重排;是否**自動**退避重排列為可選、暫不做。
+
+> **責任邊界(B.1 掃描 vs B.2 requeue —— 別搞混)**
+> - **掃描按鈕(B.1,Slice 2)**:`POST /api/roots/{id}/scan`。職責 = **檔案系統 → DB 同步**(走訪磁碟、算 hash、建/更新 photo+location+縮圖、對帳 missing)。其中「排 tagging job」只是針對**這次新發現/變更的圖**的副作用,由 `enqueueTagging` 控制。**它不重標已索引的圖。**
+> - **requeue / retag(B.2,Slice 3)**:`/api/tag/requeue`、`/api/photos/{id}/retag`。職責 = 對**已經在庫裡的圖**,**按需**(重)排 WD14 標籤 / 清舊 tag。**完全不碰檔案系統、不掃磁碟。**
+> - 兩者都會「產生 tagging job」,但觸發點不同:掃描是「發現新檔順手排」,requeue 是「對既有圖手動重排」。UI 上應是兩個不同入口,不要共用:**掃描**在資料夾上方那顆;**單張 retag/clear** 落在「點開圖、檢視器的 tag 視窗」內(per-photo);批次 requeue 屬維護動作另設入口。
+
+### 邊界與已知限制(Slice 3 定案,review 後補)
+
+1. **`photo_tag` 不支援多 source(現有 schema 限制,本 slice 不解但承認)**:PK = `(photo_id, tag_id)`(`PmDbContext.cs:96`),一個 (圖, tag) 只有一筆、一種 source。`refresh`/`clear` 刪 `source='wd14'` 只動 wd14 那筆;若某 tag 已是 `manual`/`path`,**不會被刪**,且 worker 重標到同一 tag 時 `AttachTagAsync` 因 `(photoId, tagId)` 已存在而**略過 → 不改回 wd14、不記 confidence**(manual 策展優先,合鐵則 #5 精神)。→ 測試要涵蓋「manual tag 經 refresh 後仍在、不被清、不重複」。
+2. **`scope = root / all` 只取 present**:解析 scope 時只選**至少有一個 `present` location** 的 photo;`missing`/`archived` 不重排 —— 否則 worker `ResolvePathAsync`(只找 present path)會回 null,job 直接變 `error`。
+3. **`scope = error` 僅配重排 mode**:`error` 的語意是「重跑失敗的」,只對 `retry`/`refresh` 有意義;`clear + error`(清完不排)語意怪 → **400 拒絕**。`clear` 只配 `photoIds` / `root` / `all`。
+4. **running job**:upsert 不論現狀一律設 `pending`(= 重新排入佇列),**不取消正在跑的推論**。若剛好在跑,該輪可能仍寫回一次,之後 pending 會再被撈一次重跑;單 worker 下可接受(啟動本就有 `running→pending` 回收)。文件用語固定為「重新排入」,非「取消推論」。
+5. **回傳形狀**:`{ matched, clearedTags, jobsCreated, jobsUpdated }` —— UI 才知道按下去實際影響幾張 / 清幾筆 / 新建與更新各幾筆 job。
+
+### 實作順序(service-first,TDD)
+
+1. 先做薄 service(`TaggingScheduler` 或擴 `TagService`),**不直接塞 `Program.cs`**;端點只解析 scope→photoId 集合再委派。
+2. TDD `retry`:done/error/running job → pending、`Attempts=0`;**無 job 補建** pending。
+3. `refresh`:只刪目標 photo 的 `wd14` tag、`manual`/`path` 不動 → job pending;**manual tag 倖存**(限制 1)。
+4. `clear`:刪 `wd14`、**不**建 job。
+5. `scope=root` 只挑 present 的 photo。
+6. 大量 scope(>32k)分塊,不撞 SQLite 變數上限(沿用 1c 教訓)。
+7. 驗 `clear + error` 回 400。
 
 ## C. 推論開關拆分(能力層,Q1)
 
@@ -105,7 +140,7 @@
 
 - 後端測試 DB 隔離 = **每測試獨立 SQLite 檔(`Data Source={tmp}`)或 `:memory:`**(見 `EnrichTests.cs`/`SchemaTests.cs`),非交易回滾。新測試沿用此慣例避免互相污染。
 - A(效能):**行為不變重構**,既有 Scanner 測試全綠為主軸;補窄測「快路徑不逐檔 commit」與「初次匯入批次後不殘留 slow-path tracking」,用可觀察的 `SaveChangesAsync` 次數 / change tracker entries 守住性能邊界,避免把一般行為測試寫成實作細節大網。
-- B(解耦):`enqueueTagging=false` 不排 job、requeue 把 done/error 設回 pending、指定 photoIds 只排這些;`refresh` 模式清掉舊 `wd14` photo_tag 後再重寫。
+- B(解耦):`enqueueTagging=false` 不排 job、requeue 把 done/error 設回 pending、指定 photoIds 只排這些、**無 job 的圖(Slice 2 index-only)requeue 補建 pending**;`refresh`/`clear` 清掉該批 `wd14` photo_tag(不碰 manual/path),`clear` 清完不重排;大量 scope(>32k)不撞 SQLite 變數上限(分塊)。
 - C(開關):`Wd14:Enabled=false` 不註冊 worker;`true` 才註冊(比照現有 `Wd14SetupTests`)。
 
 ## 切片計畫(slice-and-commit,序列)
@@ -114,7 +149,7 @@
 2. **切片 1b**:初次匯入/大量新檔 — chunk hash → 批次查 photo by hash → 同批 hash 去重 → 兩階段批次新增 photo+location+job。**已完成**。
 3. **切片 1c**:missing 對帳 — 實機證實 `NOT IN (seenPaths)` 在 >32766 撞 SQLite 變數上限;改記憶體 set-diff + 分塊 Id 更新(無 schema 變更)。**已完成**。
 4. **切片 2**:掃描排 job 改可選(B1)— `enqueueTagging` 參數 + 端點綁能力旗標、`?enqueueTagging=` 可覆寫。**已完成**。
-5. **切片 3**:requeue / 指定 photoId 排程端點(B2/B3),含 `retry` / `refresh` 語意。
+5. **切片 3**:requeue / retag 端點(B2/B3)。3 mode(`retry` / `refresh` / `clear`)× 4 scope(`photoIds` / `error` / `root` / `all`);job upsert(無則補建)、refresh/clear 清該批 `wd14` tag、大量分塊。**已完成**。
 6. **切片 4**:Wd14/Clip 開關拆分(C)。
 7. (後續)行為層 app_setting + 前端設定頁(D)。
 
