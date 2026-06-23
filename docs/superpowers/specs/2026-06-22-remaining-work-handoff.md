@@ -10,7 +10,7 @@
      - `c5168bc Optimize scanner fast-path rescan`
      - `450f7fd Tighten scanner fast-path tracking`
    - 已修:重掃快路徑開掃先載入 `photo_location` + `photo.file_size` dict,未變檔只批次更新 `LastSeenAt`;不再 `Include(Photo)`,避免 `Photo.Exif` 與十萬級 `Photo` entity 進 change tracker。Scanner 48 / 全測試 95 綠。
-   - Slice 1b 已完成:初次匯入/大量新檔改 chunk slow path,批次查 photo by hash、同批 hash 去重、兩階段批次新增 photo/location/job;Scanner 50 綠。
+   - Slice 1b 已完成:初次匯入/大量新檔改 chunk slow path,批次查 photo by hash、同批 hash 去重、兩階段批次新增 photo/location/job;並已補上批次後 detach slow-path entities,避免初次匯入 change tracker 無界成長。Scanner 51 綠。
    - 下一步:進 Slice 1c「missing 對帳 SQL 驗證」,再做掃描排 job 可選、requeue 端點、WD14/CLIP 能力開關拆分。
 
 2. **WD14 tag 顯示層清理**

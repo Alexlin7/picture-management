@@ -99,11 +99,13 @@ public sealed class LibraryScanner(
 
             var hashes = batch.Select(p => p.Hash).Distinct().ToList();
             var photosByHash = await db.Photos
+                .AsNoTracking()
                 .Where(p => hashes.Contains(p.FileHash))
                 .ToDictionaryAsync(p => p.FileHash, StringComparer.Ordinal, ct);
 
             var newPhotosByHash = new Dictionary<string, NewPhotoWork>(StringComparer.Ordinal);
             var failedItems = new HashSet<PendingScanFile>();
+            var batchTrackedEntities = new List<object>();
             foreach (var item in batch)
             {
                 if (photosByHash.ContainsKey(item.Hash) || newPhotosByHash.ContainsKey(item.Hash))
@@ -138,6 +140,7 @@ public sealed class LibraryScanner(
                 photo.Exif = m.ExifJson;
 
                 db.Photos.Add(photo);
+                batchTrackedEntities.Add(photo);
                 newPhotosByHash.Add(item.Hash, new NewPhotoWork(photo, item.File, m.Width is not null));
                 newPhotos++;
             }
@@ -159,7 +162,9 @@ public sealed class LibraryScanner(
                 }
                 catch { /* 縮圖失敗不影響索引 */ }
 
-                db.TaggingJobs.Add(new TaggingJob { PhotoId = work.Photo.Id });
+                var job = new TaggingJob { PhotoId = work.Photo.Id };
+                db.TaggingJobs.Add(job);
+                batchTrackedEntities.Add(job);
                 jobsQueued++;
             }
 
@@ -170,7 +175,7 @@ public sealed class LibraryScanner(
                 var photo = photosByHash[item.Hash];
                 if (item.Location is null)
                 {
-                    db.PhotoLocations.Add(new PhotoLocation
+                    var location = new PhotoLocation
                     {
                         PhotoId = photo.Id,
                         LibraryRootId = rootId,
@@ -179,7 +184,9 @@ public sealed class LibraryScanner(
                         Mtime = item.Mtime,
                         FirstSeenAt = DateTimeOffset.UtcNow,
                         LastSeenAt = DateTimeOffset.UtcNow,
-                    });
+                    };
+                    db.PhotoLocations.Add(location);
+                    batchTrackedEntities.Add(location);
                     newLocations++;
                 }
                 else
@@ -189,11 +196,15 @@ public sealed class LibraryScanner(
                     item.Location.Status = "present";
                     item.Location.Mtime = item.Mtime;
                     item.Location.LastSeenAt = DateTimeOffset.UtcNow;
+                    batchTrackedEntities.Add(item.Location);
                 }
             }
 
             if (db.ChangeTracker.HasChanges())
                 await db.SaveChangesAsync(ct);
+
+            foreach (var entity in batchTrackedEntities)
+                db.Entry(entity).State = EntityState.Detached;
         }
     }
 

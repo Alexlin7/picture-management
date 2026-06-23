@@ -45,10 +45,11 @@
    - 已實作:同批 `hash -> Photo` map 去重,避免同批 duplicate hash 重複建 photo。
    - 已實作:新增 photo 先批次 `SaveChanges` 取得 id,再批次新增 location/job;新檔 3 筆含 1 組 duplicate 的測試由 5 次 SaveChanges 降為 2 次。
    - 保留:縮圖仍在批次內逐張生成,但 job/location 寫入已批次化。
+   - 已實作:批次查既有 photo 使用 `AsNoTracking`;每批 slow path 儲存完成後 detach 該批新增/更新的 `Photo` / `PhotoLocation` / `TaggingJob`,避免初次匯入時 change tracker 隨檔案數無界成長。測試以 501 檔跨 batch 初次匯入驗證 scanner context 不殘留批次匯入實體。
 3. **Slice 1c:missing 對帳驗證**:
    - 先撈 EF Core 10 對 `!seenPaths.Contains(l.RelPath)` 的實際 SQL。若走 `json_each(@param)` 單 JSON 參數,正確性上不撞 SQLite 參數上限;僅評估效能。
    - 若實測有 SQL/效能問題,再導入 scan token 或 chunk 對帳;不預設這段一定壞,因為它是現存行為而非本重構新增。
-4. **記憶體 / change tracker**:Slice 1a 只 track location + scalar file size,避免 `Photo`/Exif 膨脹。Slice 1b 已把 slow path SaveChanges 收斂到每批 1-2 次;混合掃描仍會 track root 內既有 location,後續若實測慢再用更細的投影/attach 策略處理。
+4. **記憶體 / change tracker**:Slice 1a 只 track location + scalar file size,避免 `Photo`/Exif 膨脹。Slice 1b 已把 slow path SaveChanges 收斂到每批 1-2 次,且批次後釋放 slow-path 產生/改動的 entity tracking。混合掃描仍會 track root 內既有 location,後續若實測慢再用更細的投影/attach 策略處理。
 
 預期:十萬檔全掃由分鐘級降到秒~十幾秒。**行為不變的重構**,既有 Scanner 測試是驗收主軸。
 
@@ -98,7 +99,7 @@
 ## 測試考量(本專案慣例)
 
 - 後端測試 DB 隔離 = **每測試獨立 SQLite 檔(`Data Source={tmp}`)或 `:memory:`**(見 `EnrichTests.cs`/`SchemaTests.cs`),非交易回滾。新測試沿用此慣例避免互相污染。
-- A(效能):**行為不變重構**,既有 Scanner 測試全綠為主軸;補一個窄測「快路徑不逐檔 commit」,用可觀察的 `SaveChangesAsync` 次數或 DB command 計數,避免把一般行為測試寫成實作細節大網。
+- A(效能):**行為不變重構**,既有 Scanner 測試全綠為主軸;補窄測「快路徑不逐檔 commit」與「初次匯入批次後不殘留 slow-path tracking」,用可觀察的 `SaveChangesAsync` 次數 / change tracker entries 守住性能邊界,避免把一般行為測試寫成實作細節大網。
 - B(解耦):`enqueueTagging=false` 不排 job、requeue 把 done/error 設回 pending、指定 photoIds 只排這些;`refresh` 模式清掉舊 `wd14` photo_tag 後再重寫。
 - C(開關):`Wd14:Enabled=false` 不註冊 worker;`true` 才註冊(比照現有 `Wd14SetupTests`)。
 

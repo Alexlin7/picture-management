@@ -97,6 +97,24 @@ public class ScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task First_scan_releases_batched_import_entities_from_change_tracker()
+    {
+        for (var i = 0; i < 501; i++)
+            WriteImage($"img-{i:000}.png", $"unique-{i}");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewContext();
+        var result = await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        Assert.Equal(501, result.FilesSeen);
+        Assert.Equal(501, result.NewPhotos);
+        Assert.Equal(501, result.NewLocations);
+        Assert.Empty(ctx.ChangeTracker.Entries<Photo>());
+        Assert.Empty(ctx.ChangeTracker.Entries<PhotoLocation>());
+        Assert.Empty(ctx.ChangeTracker.Entries<TaggingJob>());
+    }
+
+    [Fact]
     public async Task Batched_scan_keeps_per_file_metadata_errors_isolated()
     {
         WriteImage("bad.png", "bad");
