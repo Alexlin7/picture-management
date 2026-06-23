@@ -3,6 +3,7 @@ using Pm.Api;
 using Pm.Data;
 using Pm.Data.Entities;
 using Pm.Scanner;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,9 @@ builder.Services.AddScoped<TaggingScheduler>();
 // WD14 自動標籤(opt-in:Inference:Wd14:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
 builder.Services.AddWd14Tagging(builder.Configuration);
 
+// OpenAPI 文件產生(Minimal API 自動掃端點)。供 Scalar UI 與外部工具讀取。
+builder.Services.AddOpenApi();
+
 var app = builder.Build();
 
 // 啟動時確保 schema 存在(本機單檔,直接 Migrate)
@@ -42,6 +46,12 @@ using (var scope = app.Services.CreateScope())
 // 由 .NET serve Angular 靜態檔(ng build 輸出至 wwwroot),同源、免 CORS
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+// API 文件:/openapi/v1.json(機器可讀)+ Scalar 互動式 UI 於 /scalar/v1。
+// 鐵則 #8(localhost 單人、無認證)下曝露 API explorer 無安全顧慮;日後要收進
+// Development-only 只需包一層 if (app.Environment.IsDevelopment())。
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 // liveness:程序活著就好,不碰 DB
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
