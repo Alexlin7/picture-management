@@ -65,9 +65,12 @@ app.MapPost("/api/roots", async (CreateRootDto dto, PmDbContext db) =>
     return Results.Created($"/api/roots/{root.Id}", new { root.Id, root.Name, root.AbsPath });
 });
 
-app.MapPost("/api/roots/{id:long}/scan", async (long id, LibraryScanner scanner) =>
+// enqueueTagging:是否為新可解碼圖排 WD14 job。未帶 query → 跟隨能力層(Inference:Enabled,Slice 4 會改名),
+// 推論關時預設純索引、不堆死 job;明示 ?enqueueTagging=true 可在推論關時 pre-queue,?=false 強制只索引。
+app.MapPost("/api/roots/{id:long}/scan", async (long id, bool? enqueueTagging, LibraryScanner scanner, IConfiguration config) =>
 {
-    var result = await scanner.ScanRootAsync(id);
+    var enqueue = enqueueTagging ?? config.GetValue<bool>("Inference:Enabled");
+    var result = await scanner.ScanRootAsync(id, enqueue);
     return Results.Ok(result);
 });
 

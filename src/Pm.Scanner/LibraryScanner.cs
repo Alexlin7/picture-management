@@ -18,7 +18,9 @@ public sealed class LibraryScanner(
 
     private const int SlowPathBatchSize = 500;
 
-    public async Task<ScanResult> ScanRootAsync(long rootId, CancellationToken ct = default)
+    // enqueueTagging:是否為新可解碼圖排 WD14 tagging job。預設 true(行為不變);
+    // 端點可傳 false 做「純索引」,或在推論關閉時明示 true 先 pre-queue(待之後啟用 worker 再消化)。
+    public async Task<ScanResult> ScanRootAsync(long rootId, bool enqueueTagging = true, CancellationToken ct = default)
     {
         var root = await db.LibraryRoots.FindAsync([rootId], ct)
                    ?? throw new InvalidOperationException($"library_root {rootId} 不存在");
@@ -167,6 +169,9 @@ public sealed class LibraryScanner(
                     thumbsGen++;
                 }
                 catch { /* 縮圖失敗不影響索引 */ }
+
+                // 縮圖屬索引一部分,照產;tagging job 才受 enqueueTagging 控制。
+                if (!enqueueTagging) continue;
 
                 var job = new TaggingJob { PhotoId = work.Photo.Id };
                 db.TaggingJobs.Add(job);

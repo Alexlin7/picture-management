@@ -11,8 +11,9 @@
      - `450f7fd Tighten scanner fast-path tracking`
    - 已修:重掃快路徑開掃先載入 `photo_location` + `photo.file_size` dict,未變檔只批次更新 `LastSeenAt`;不再 `Include(Photo)`,避免 `Photo.Exif` 與十萬級 `Photo` entity 進 change tracker。Scanner 48 / 全測試 95 綠。
    - Slice 1b 已完成:初次匯入/大量新檔改 chunk slow path,批次查 photo by hash、同批 hash 去重、兩階段批次新增 photo/location/job;並已補上批次後 detach slow-path entities,避免初次匯入 change tracker 無界成長。Scanner 51 綠。
-   - Slice 1c 已完成:**實機證實** EF Core 10 + SQLite 對 `!seenPaths.Contains` 是逐元素 `NOT IN (@p1...@pN)`,>32766 撞 `'too many SQL variables'`(十萬圖庫對帳必崩)。改用記憶體 set-diff(重用 `locationsByPath`)+ 以 location id `Chunk(10_000)` 分塊 `ExecuteUpdate`,無 schema 變更。Scanner 52 / 全測試 99 綠。(尚未 commit,待 codex re-review。)
-   - 下一步:Slice 2「掃描排 job 改可選(`enqueueTagging`)」,再做 requeue 端點(retry/refresh)、WD14/CLIP 能力開關拆分。
+   - Slice 1c 已完成:**實機證實** EF Core 10 + SQLite 對 `!seenPaths.Contains` 是逐元素 `NOT IN (@p1...@pN)`,>32766 撞 `'too many SQL variables'`(十萬圖庫對帳必崩)。改用記憶體 set-diff(重用 `locationsByPath`)+ 以 location id `Chunk(10_000)` 分塊 `ExecuteUpdate`,無 schema 變更。
+   - Slice 2 已完成:`ScanRootAsync(rootId, enqueueTagging=true, ...)` + job 排入包 `if(enqueueTagging)`(縮圖照產);端點 `?enqueueTagging=` 未帶則跟隨 `Inference:Enabled`(關→純索引不堆死 job),明示可覆寫(`true`=pre-queue)。能力關時前端自動排程 toggle 反灰之 UI 約定已寫進 spec §B.1/§D。Scanner 54 / Api 23 / 全測試 103 綠。
+   - 下一步:Slice 3「requeue 端點(`retry` / `refresh`,refresh 先清 `source='wd14'` 舊 tag)」,再做 WD14/CLIP 能力開關拆分(Slice 4)。
 
 2. **WD14 tag 顯示層清理**
    - 來源 spec:`2026-06-22-tag-display-layer-design.md`。

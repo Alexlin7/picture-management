@@ -1,7 +1,7 @@
 # LibraryScanner 重構 + Tagging 解耦 — 設計文件
 
 - 日期:2026-06-23
-- 狀態:**Slice 1a/1b 已實作;1c+ 待實作**(切片順序見 §7)
+- 狀態:**Slice 1a/1b/1c/2 已實作;Slice 3+ 待實作**(切片順序見 §7)
 - 關聯:`CLAUDE.md` 鐵則 #1/#2(就地索引、hash 是身分、不碰原檔)、#5(tag 來源要分)、#6(ONNX/DirectML 抽象)、#7(`tagging_job` 程序內佇列);
   吸收 `2026-06-22-scan-detection-design.md` 的**路線 A**(掃描效能);現有實作 `src/Pm.Scanner/LibraryScanner.cs`、`src/Pm.Api/Wd14Setup.cs`、`src/Pm.Api/TaggingWorker.cs`
 - 取代範圍:本文**吸收** scan-detection-design 的路線 A1(批次消 N+1)並擴充;該文的**路線 B**(FileSystemWatcher 即時偵測)仍留在原文,屬更後續。
@@ -56,7 +56,10 @@
 
 ## B. 掃描 / Tagging 解耦(動作層)
 
-1. **掃描排 job 改可選**:`ScanRootAsync(..., bool enqueueTagging = …)`,掃描專注「身分/位置/縮圖」索引;是否排 tag 可關。
+1. **掃描排 job 改可選(已實作)**:
+   - `ScanRootAsync(long rootId, bool enqueueTagging = true, CancellationToken ct = default)`。預設 `true`(行為不變);`false` → 掃描專注「身分/位置/**縮圖照產**」,只跳過 `tagging_job`。
+   - 端點 `POST /api/roots/{id}/scan?enqueueTagging=`:未帶 query → 跟隨能力旗標 `Inference:Enabled`(Slice 4 改名)。推論關時預設**純索引、不堆死 job**;`?enqueueTagging=true` 可在推論關時 **pre-queue**(待之後啟用 worker 一次消化),`?=false` 強制只索引。
+   - **三層 UI 約定(給 Slice D 前端設定頁)**:能力層關閉(模型未載)時,行為層的「**自動標排程** on/off」toggle 應**反灰不可選** + 提示需到啟動設定開 `Inference` 並重啟 —— 因為沒有 worker,開了也無引擎。動作層的 pre-queue(`?enqueueTagging=true`)是**獨立的明示動作**(API 或日後獨立按鈕「掃描並預先排入佇列」),**不可**與那顆自動排程 toggle 共用。
 2. **新增排程端點**(滿足「單獨/指定幾個檔案進排程」):
    - `POST /api/photos/{id}/tag` — 單張(重)標。
    - `POST /api/tag/requeue` — body 指定 `photoIds[]` 或條件(`未標的` / `error 的` / `整個 root` / `全部重標`)。
@@ -82,6 +85,7 @@
 ## D. 行為層持久化(Q2)— **後續,待前端設定頁需求出現**
 
 - 需要「免重啟」的執行期開關(自動標 on/off、worker 暫停/恢復、手動觸發重標)時,新增一張輕量 `app_setting`(key-value)表 + 設定端點 + 前端設定頁。
+- **UI 約定見 §B.1**:能力層(`Inference:Enabled`)關閉時,前端「自動標排程」toggle 反灰不可選;pre-queue 屬動作層,獨立明示,不共用此 toggle。
 - **現階段不急**:單人開發 + 測試,能力層用 launchSettings、動作層用 requeue 端點即足。app_setting 等真要做前端二次開關時再加。
 
 ## DB schema 影響
@@ -109,7 +113,7 @@
 1. **切片 1a**:快路徑大量重掃 — 批次載入 location + photo file size dict;未變檔只批次更新 `LastSeenAt`;新檔/變更檔邏輯先不動。**已完成**。
 2. **切片 1b**:初次匯入/大量新檔 — chunk hash → 批次查 photo by hash → 同批 hash 去重 → 兩階段批次新增 photo+location+job。**已完成**。
 3. **切片 1c**:missing 對帳 — 實機證實 `NOT IN (seenPaths)` 在 >32766 撞 SQLite 變數上限;改記憶體 set-diff + 分塊 Id 更新(無 schema 變更)。**已完成**。
-4. **切片 2**:掃描排 job 改可選(B1)。
+4. **切片 2**:掃描排 job 改可選(B1)— `enqueueTagging` 參數 + 端點綁能力旗標、`?enqueueTagging=` 可覆寫。**已完成**。
 5. **切片 3**:requeue / 指定 photoId 排程端點(B2/B3),含 `retry` / `refresh` 語意。
 6. **切片 4**:Wd14/Clip 開關拆分(C)。
 7. (後續)行為層 app_setting + 前端設定頁(D)。

@@ -115,6 +115,42 @@ public class ScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task Scan_default_queues_tag_jobs_for_decodable_images()
+    {
+        WriteImage("a.png", "alpha");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewContext();
+        var scanner = new LibraryScanner(
+            ctx, new Sha256FileHasher(), new DecodableMetadataReader(), new NoopThumbnailService());
+        var result = await scanner.ScanRootAsync(rootId);   // 預設 enqueueTagging:true
+
+        Assert.Equal(1, result.JobsQueued);
+        await using var verify = NewContext();
+        Assert.Equal(1, await verify.TaggingJobs.CountAsync());
+    }
+
+    [Fact]
+    public async Task Scan_with_enqueueTagging_false_indexes_without_queuing_jobs()
+    {
+        WriteImage("a.png", "alpha");
+        WriteImage("b.png", "beta");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewContext();
+        var scanner = new LibraryScanner(
+            ctx, new Sha256FileHasher(), new DecodableMetadataReader(), new NoopThumbnailService());
+        var result = await scanner.ScanRootAsync(rootId, enqueueTagging: false);
+
+        Assert.Equal(2, result.NewPhotos);       // 身分/位置照索引
+        Assert.Equal(2, result.NewLocations);
+        Assert.Equal(0, result.JobsQueued);       // 但不排 tagging job
+        await using var verify = NewContext();
+        Assert.Equal(2, await verify.Photos.CountAsync());
+        Assert.Equal(0, await verify.TaggingJobs.CountAsync());
+    }
+
+    [Fact]
     public async Task Reconcile_marks_missing_above_sqlite_variable_limit_without_crashing()
     {
         // SQLite 變數上限 32766。對帳不可把整包集合塞進單一 IN(`NOT IN (@p1...@pN)` 或 `Id IN (...)`)。
@@ -299,4 +335,10 @@ file sealed class NoopThumbnailService : IThumbnailService
     public string PathFor(string hash) => hash;
     public Task<string?> GenerateAsync(string absPath, string hash, CancellationToken ct = default) =>
         Task.FromResult<string?>(hash);
+}
+
+// 回傳可解碼 meta(Width 非 null)→ scanner 視為可標,才會排 tagging job。
+file sealed class DecodableMetadataReader : IImageMetadataReader
+{
+    public ImageMeta Read(string absPath) => new(1, 1, "image/png", null, null, null, null, null);
 }
