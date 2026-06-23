@@ -75,7 +75,7 @@ curl -X POST http://localhost:5180/api/roots/1/scan -H "Content-Type: applicatio
 之後在 UI 的「匯入確認」頁確認路徑→tag 規則。
 
 ### 啟用 WD14 自動標籤（opt-in，預設關）
-在 `src/Pm.Api/appsettings.json`（或環境變數）把 `Inference:Enabled` 設為 `true`，並視硬體設 `Inference:Backend`（`directml` 預設 / `cpu` / 日後 `cuda`）。開啟後啟動程序即註冊 `TaggingWorker` 背景服務，會消化掃描排入的 `tagging_job`；**首次標註會自動 HF 下載 WD14 模型（~300MB）＋ `selected_tags.csv` 到 `Inference:Wd14:ModelDir`（預設 `models/wd14`）**。關閉時零開銷、不下載。
+在 `src/Pm.Api/appsettings.json`（或環境變數）把 `Inference:Wd14:Enabled` 設為 `true`，並視硬體設 `Inference:Wd14:Backend`（`directml` 預設 / `cpu` / 日後 `cuda`）。開啟後啟動程序即註冊 `TaggingWorker` 背景服務，會消化掃描排入的 `tagging_job`；**首次標註會自動 HF 下載 WD14 模型（~300MB）＋ `selected_tags.csv` 到 `Inference:Wd14:ModelDir`（預設 `models/wd14`）**。關閉時零開銷、不下載。能力開關按模型獨立（`Inference:Wd14:*`，未來 CLIP 走 `Inference:Clip:*`）。
 
 ```powershell
 # 例:以環境變數臨時開啟(走 CPU)
@@ -113,7 +113,7 @@ cd src/Pm.Web ; npm test          # 前端
 - 前端各頁接真實 API + 真實縮圖 + 點圖→檢視器真實 detail；標籤庫管理頁 `/tags`（列表/過濾/改名→撞名自動合併/刪除）；檢視器 combobox 加/刪標籤（查既有、↑↓/Enter/Esc、僅無 CI 完全相符才顯示「建立新標籤」）；單程序 serve SPA
 - 推論後端抽象 `IInferenceSessionFactory`（CPU / DirectML 可用）
 - WD14 ML pipeline（`Pm.Ml`）：`Wd14Preprocess`（方形白底 padding→448²→BGR NHWC）、`Wd14Tagger`（lazy load + session 重用 ONNX in-proc）、`Wd14Postprocess`（general/character 門檻、category→kind）、`Wd14ModelProvider`（HF 下載模型 + selected_tags.csv）
-- `TaggingWorker`（抽 `tagging_job`→推論→經 `TagService` CI 去重 + `AttachTag` 寫 `photo_tag(source=wd14)`→done/error；預載既有 tagId 消 N+1；啟動回收孤兒 `running`）＋ `AddWd14Tagging` host wiring（`Inference:Enabled` opt-in gate，預設關；backend→factory 自 `.Backend` 查找）—— 皆有測試
+- `TaggingWorker`（抽 `tagging_job`→推論→經 `TagService` CI 去重 + `AttachTag` 寫 `photo_tag(source=wd14)`→done/error；預載既有 tagId 消 N+1；啟動回收孤兒 `running`）＋ `AddWd14Tagging` host wiring（`Inference:Wd14:Enabled` opt-in gate，預設關；backend→factory 自 `.Backend` 查找）—— 皆有測試
 - 模型供應 `Wd14ModelProvider`：HF 下載走 `.part` 暫存檔 + atomic rename，中斷不留壞檔
 
 ### ⚠️ 已接 API 但功能簡化（API 無來源，刻意 deferred，非 bug）

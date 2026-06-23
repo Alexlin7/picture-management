@@ -23,7 +23,7 @@ builder.Services.AddScoped<TagFacetService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<TaggingScheduler>();
 
-// WD14 自動標籤(opt-in:Inference:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
+// WD14 自動標籤(opt-in:Inference:Wd14:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
 builder.Services.AddWd14Tagging(builder.Configuration);
 
 var app = builder.Build();
@@ -66,11 +66,11 @@ app.MapPost("/api/roots", async (CreateRootDto dto, PmDbContext db) =>
     return Results.Created($"/api/roots/{root.Id}", new { root.Id, root.Name, root.AbsPath });
 });
 
-// enqueueTagging:是否為新可解碼圖排 WD14 job。未帶 query → 跟隨能力層(Inference:Enabled,Slice 4 會改名),
+// enqueueTagging:是否為新可解碼圖排 WD14 job。未帶 query → 跟隨 WD14 能力旗標(Inference:Wd14:Enabled),
 // 推論關時預設純索引、不堆死 job;明示 ?enqueueTagging=true 可在推論關時 pre-queue,?=false 強制只索引。
 app.MapPost("/api/roots/{id:long}/scan", async (long id, bool? enqueueTagging, LibraryScanner scanner, IConfiguration config) =>
 {
-    var enqueue = enqueueTagging ?? config.GetValue<bool>("Inference:Enabled");
+    var enqueue = enqueueTagging ?? config.GetValue<bool>("Inference:Wd14:Enabled");
     var result = await scanner.ScanRootAsync(id, enqueue);
     return Results.Ok(result);
 });

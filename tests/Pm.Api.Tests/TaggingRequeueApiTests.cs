@@ -24,7 +24,7 @@ public class TaggingRequeueApiTests : IDisposable
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:Pm"] = $"Data Source={db};Foreign Keys=True",
-                    ["Inference:Enabled"] = "false"
+                    ["Inference:Wd14:Enabled"] = "false"
                 })));
     }
 

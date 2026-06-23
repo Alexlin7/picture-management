@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Pm.Api.Tests;
 
-// Slice 2:掃描排 tagging job 改可選。端點預設綁能力旗標(Inference:Enabled,測試環境關),
+// Slice 2:掃描排 tagging job 改可選。端點預設綁能力旗標(Inference:Wd14:Enabled,測試環境關),
 // 可由 ?enqueueTagging= 覆寫。用真正可解碼 PNG 才會觸發排 job 路徑;全程 Inference 關閉,不載模型。
 public class ScanEnqueueApiTests : IDisposable
 {
@@ -28,7 +28,7 @@ public class ScanEnqueueApiTests : IDisposable
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["ConnectionStrings:Pm"] = $"Data Source={dbPath};Foreign Keys=True",
-                    ["Inference:Enabled"] = "false"
+                    ["Inference:Wd14:Enabled"] = "false"
                 })));
     }
 

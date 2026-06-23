@@ -58,7 +58,7 @@
 
 1. **掃描排 job 改可選(已實作)**:
    - `ScanRootAsync(long rootId, bool enqueueTagging = true, CancellationToken ct = default)`。預設 `true`(行為不變);`false` → 掃描專注「身分/位置/**縮圖照產**」,只跳過 `tagging_job`。
-   - 端點 `POST /api/roots/{id}/scan?enqueueTagging=`:未帶 query → 跟隨能力旗標 `Inference:Enabled`(Slice 4 改名)。推論關時預設**純索引、不堆死 job**;`?enqueueTagging=true` 可在推論關時 **pre-queue**(待之後啟用 worker 一次消化),`?=false` 強制只索引。
+   - 端點 `POST /api/roots/{id}/scan?enqueueTagging=`:未帶 query → 跟隨能力旗標 `Inference:Wd14:Enabled`。推論關時預設**純索引、不堆死 job**;`?enqueueTagging=true` 可在推論關時 **pre-queue**(待之後啟用 worker 一次消化),`?=false` 強制只索引。
    - **三層 UI 約定(給 Slice D 前端設定頁)**:能力層關閉(模型未載)時,行為層的「**自動標排程** on/off」toggle 應**反灰不可選** + 提示需到啟動設定開 `Inference` 並重啟 —— 因為沒有 worker,開了也無引擎。動作層的 pre-queue(`?enqueueTagging=true`)是**獨立的明示動作**(API 或日後獨立按鈕「掃描並預先排入佇列」),**不可**與那顆自動排程 toggle 共用。
 2. **requeue / 重標端點(B2,Slice 3 — 已實作;操作「已索引的圖」,不碰檔案系統)**:
    - `POST /api/tag/requeue` — 批次,body `{ mode, scope }`。
@@ -103,9 +103,9 @@
 6. 大量 scope(>32k)分塊,不撞 SQLite 變數上限(沿用 1c 教訓)。
 7. 驗 `clear + error` 回 400;多個 scope 同時指定回 400。
 
-## C. 推論開關拆分(能力層,Q1)
+## C. 推論開關拆分(能力層,Q1)— **已實作(Slice 4)**
 
-- 由單一 `Inference:Enabled` 改為**各模型獨立子開關**,沿用「預設關、免下載、零開銷」精神:
+- 由單一 `Inference:Enabled` 改為**各模型獨立子開關**,沿用「預設關、免下載、零開銷」精神。**乾淨重命名,不留舊鍵 fallback**;`Enabled` 與 `Backend` 都移進各模型節點下:
 
 ```jsonc
 "Inference": {
@@ -114,13 +114,13 @@
 }
 ```
 
-- `AddWd14Tagging` 改讀 `Inference:Wd14:Enabled`;未來 `AddClipEmbedding` 讀 `Inference:Clip:Enabled`。`IInferenceSessionFactory` 已抽象可共用,tagger/worker 各自獨立。
-- 能力層由 `appsettings` / Rider launchSettings 啟動參數控制(改了要重啟,合理)。
+- `AddWd14Tagging` 已改讀 `Inference:Wd14:Enabled` + `Inference:Wd14:Backend`;未來 `AddClipEmbedding` 讀 `Inference:Clip:*`。`IInferenceSessionFactory` 已抽象可共用,tagger/worker 各自獨立。
+- 能力層由 `appsettings` / Rider launchSettings 啟動參數控制(改了要重啟,合理)。Slice 2 的 scan enqueue 預設也已一併改讀 `Inference:Wd14:Enabled`;`appsettings.json` 與 launchSettings 同步遷移。
 
 ## D. 行為層持久化(Q2)— **後續,待前端設定頁需求出現**
 
 - 需要「免重啟」的執行期開關(自動標 on/off、worker 暫停/恢復、手動觸發重標)時,新增一張輕量 `app_setting`(key-value)表 + 設定端點 + 前端設定頁。
-- **UI 約定見 §B.1**:能力層(`Inference:Enabled`)關閉時,前端「自動標排程」toggle 反灰不可選;pre-queue 屬動作層,獨立明示,不共用此 toggle。
+- **UI 約定見 §B.1**:能力層(`Inference:Wd14:Enabled`)關閉時,前端「自動標排程」toggle 反灰不可選;pre-queue 屬動作層,獨立明示,不共用此 toggle。
 - **現階段不急**:單人開發 + 測試,能力層用 launchSettings、動作層用 requeue 端點即足。app_setting 等真要做前端二次開關時再加。
 
 ## DB schema 影響
@@ -150,7 +150,7 @@
 3. **切片 1c**:missing 對帳 — 實機證實 `NOT IN (seenPaths)` 在 >32766 撞 SQLite 變數上限;改記憶體 set-diff + 分塊 Id 更新(無 schema 變更)。**已完成**。
 4. **切片 2**:掃描排 job 改可選(B1)— `enqueueTagging` 參數 + 端點綁能力旗標、`?enqueueTagging=` 可覆寫。**已完成**。
 5. **切片 3**:requeue / retag 端點(B2/B3)。3 mode(`retry` / `refresh` / `clear`)× 4 scope(`photoIds` / `error` / `root` / `all`);job upsert(無則補建)、refresh/clear 清該批 `wd14` tag、大量分塊。**已完成**。
-6. **切片 4**:Wd14/Clip 開關拆分(C)。
+6. **切片 4**:Wd14/Clip 開關拆分(C)— `Inference:Enabled`/`Backend` 乾淨重命名為 `Inference:Wd14:Enabled`/`Backend`;3 prod 讀取點 + appsettings + launchSettings + 測試同步。**已完成**。
 7. (後續)行為層 app_setting + 前端設定頁(D)。
 
 每切片:後端走 TDD、build + 全測試綠後 commit。動到設計決策時同步更新 `2026-06-21-picture-management-design.md` 與本檔。
