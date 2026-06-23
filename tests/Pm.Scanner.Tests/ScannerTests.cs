@@ -120,6 +120,7 @@ public class ScannerTests : IDisposable
 
         Assert.Equal(3, result.SkippedUnchanged);
         Assert.Equal(1, ctx2.SaveChangesCalls);
+        Assert.Empty(ctx2.ChangeTracker.Entries<Photo>());
     }
 
     [Fact]

@@ -26,12 +26,11 @@ public sealed class LibraryScanner(
 
         // 這輪走訪實際看到的位置(rel_path);對帳時 present 但不在此集合者 → missing。
         var seenPaths = new HashSet<string>();
-        var locations = await db.PhotoLocations
+        var locationsByPath = (await db.PhotoLocations
             .Where(l => l.LibraryRootId == rootId)
-            .Include(l => l.Photo)
-            .ToListAsync(ct);
-        var locationsByPath = locations.ToDictionary(l => l.RelPath, StringComparer.Ordinal);
-        var hasPendingFastPathUpdates = false;
+            .Select(l => new { Location = l, PhotoFileSize = l.Photo.FileSize })
+            .ToListAsync(ct))
+            .ToDictionary(l => l.Location.RelPath, StringComparer.Ordinal);
 
         var opts = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
         foreach (var file in Directory.EnumerateFiles(root.AbsPath, "*", opts))
@@ -48,15 +47,16 @@ public sealed class LibraryScanner(
                 var size = info.Length;
                 var mtime = (DateTimeOffset)info.LastWriteTimeUtc;
 
-                locationsByPath.TryGetValue(relPath, out var loc);
+                locationsByPath.TryGetValue(relPath, out var locInfo);
+                var loc = locInfo?.Location;
 
                 // 快路徑:同位置、present、size 與 mtime 都沒變(容 1 秒誤差,跨檔系統 mtime 精度不一)→ 不重算 hash。
-                if (loc is { Status: "present", Mtime: { } prevMtime }
-                    && loc.Photo.FileSize == size
+                if (locInfo is not null
+                    && loc is { Status: "present", Mtime: { } prevMtime }
+                    && locInfo.PhotoFileSize == size
                     && (prevMtime - mtime).Duration() < TimeSpan.FromSeconds(1))
                 {
                     loc.LastSeenAt = DateTimeOffset.UtcNow;
-                    hasPendingFastPathUpdates = true;
                     skipped++;
                     continue;
                 }
@@ -80,7 +80,6 @@ public sealed class LibraryScanner(
 
                     db.Photos.Add(photo);
                     await db.SaveChangesAsync(ct);   // 取得 photo.Id
-                    hasPendingFastPathUpdates = false;
                     newPhotos++;
 
                     // 只有可解碼的圖才產縮圖 + 排 WD14(壞圖/非圖留身分但不做)
@@ -95,7 +94,6 @@ public sealed class LibraryScanner(
 
                         db.TaggingJobs.Add(new TaggingJob { PhotoId = photo.Id });
                         await db.SaveChangesAsync(ct);
-                        hasPendingFastPathUpdates = false;
                         jobsQueued++;
                     }
                 }
@@ -124,13 +122,12 @@ public sealed class LibraryScanner(
                 }
 
                 await db.SaveChangesAsync(ct);
-                hasPendingFastPathUpdates = false;
             }
             catch (IOException) { errors++; }
             catch (UnauthorizedAccessException) { errors++; }
         }
 
-        if (hasPendingFastPathUpdates)
+        if (db.ChangeTracker.HasChanges())
             await db.SaveChangesAsync(ct);
 
         // 對帳:這輪沒看到、且仍標 present 的位置 → missing(軟刪,保留 photo+tags)。

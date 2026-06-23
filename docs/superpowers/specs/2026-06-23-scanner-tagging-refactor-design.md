@@ -1,7 +1,7 @@
 # LibraryScanner 重構 + Tagging 解耦 — 設計文件
 
 - 日期:2026-06-23
-- 狀態:**設計定稿,待實作**(切片順序見 §7)
+- 狀態:**Slice 1a 已實作;1b+ 待實作**(切片順序見 §7)
 - 關聯:`CLAUDE.md` 鐵則 #1/#2(就地索引、hash 是身分、不碰原檔)、#5(tag 來源要分)、#6(ONNX/DirectML 抽象)、#7(`tagging_job` 程序內佇列);
   吸收 `2026-06-22-scan-detection-design.md` 的**路線 A**(掃描效能);現有實作 `src/Pm.Scanner/LibraryScanner.cs`、`src/Pm.Api/Wd14Setup.cs`、`src/Pm.Api/TaggingWorker.cs`
 - 取代範圍:本文**吸收** scan-detection-design 的路線 A1(批次消 N+1)並擴充;該文的**路線 B**(FileSystemWatcher 即時偵測)仍留在原文,屬更後續。
@@ -36,7 +36,8 @@
 **read 與 write 一起修**,否則消了 read N+1 仍被 EF change tracker 在每次 `SaveChanges` 掃全 tracked 集拖累。分三個小切片做,避免一次重寫整個 scanner:
 
 1. **Slice 1a:快路徑大量重掃**:
-   - 開掃前一次 `Where(LibraryRootId==rootId).Include(Photo).ToListAsync()` → `Dictionary<relPath, PhotoLocation>`,迴圈內查 dict O(1),取代 `:45-47` 的 per-file location query。
+   - 開掃前一次載入 root 內所有 location,但只 track `PhotoLocation`,並投影 `Photo.FileSize` scalar → `Dictionary<relPath, { Location, PhotoFileSize }>`,迴圈內查 dict O(1),取代 `:45-47` 的 per-file location query。
+   - 不用 `Include(Photo)`:快路徑只需要 file size,避免把 `Photo.Exif` 等大欄位與十萬級 `Photo` entity 放進 change tracker。
    - 未變檔只更新 `LastSeenAt`,累積後批次 `SaveChanges` 一次;新檔/變更檔邏輯先維持現狀。
    - 目標是先解決「已索引十萬圖庫重掃」的最大痛點,低風險且既有測試能保行為。
 2. **Slice 1b:初次匯入/大量新檔 chunk pipeline**:
@@ -47,7 +48,7 @@
 3. **Slice 1c:missing 對帳驗證**:
    - 先撈 EF Core 10 對 `!seenPaths.Contains(l.RelPath)` 的實際 SQL。若走 `json_each(@param)` 單 JSON 參數,正確性上不撞 SQLite 參數上限;僅評估效能。
    - 若實測有 SQL/效能問題,再導入 scan token 或 chunk 對帳;不預設這段一定壞,因為它是現存行為而非本重構新增。
-4. **記憶體**:十萬 location dict + Include Photo ≈ 數十 MB,可接受;實作時量一次。
+4. **記憶體 / change tracker**:Slice 1a 只 track location + scalar file size,避免 `Photo`/Exif 膨脹。Slice 1b 若引入批次新增,仍需持續注意 `SaveChanges` 前 tracked entity 數量與 `AutoDetectChanges` 成本。
 
 預期:十萬檔全掃由分鐘級降到秒~十幾秒。**行為不變的重構**,既有 Scanner 測試是驗收主軸。
 
@@ -103,7 +104,7 @@
 
 ## 切片計畫(slice-and-commit,序列)
 
-1. **切片 1a**:快路徑大量重掃 — 批次載入 location+photo dict;未變檔只批次更新 `LastSeenAt`;新檔/變更檔邏輯先不動。
+1. **切片 1a**:快路徑大量重掃 — 批次載入 location + photo file size dict;未變檔只批次更新 `LastSeenAt`;新檔/變更檔邏輯先不動。**已完成**。
 2. **切片 1b**:初次匯入/大量新檔 — chunk hash → 批次查 photo by hash → 同批 hash 去重 → navigation/兩階段批次新增 photo+location+job。
 3. **切片 1c**:missing 對帳 — 驗 EF Core 10 實際 SQL;必要時 scan-token 或 chunk 對帳。
 4. **切片 2**:掃描排 job 改可選(B1)。
