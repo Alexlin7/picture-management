@@ -81,6 +81,14 @@ export class PmApi {
     return firstValueFrom(this.http.delete(`/api/photos/${photoId}/tags/${tagId}`));
   }
 
+  // 單張重標 / 清除 WD14 自動標。mode:refresh(清舊 wd14 + 重排)/ clear(清舊 wd14 不排)
+  // / retry(重排失敗)。後端動作層,不碰檔案系統。
+  retag(photoId: number, mode: 'retry' | 'refresh' | 'clear'): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post(`/api/photos/${photoId}/retag`, null, { params: new HttpParams().set('mode', mode) }),
+    );
+  }
+
   // ---- 標籤庫(管理頁 + autocomplete 共用)----
   tags(q?: string, limit?: number): Promise<TagListRow[]> {
     let params = new HttpParams();

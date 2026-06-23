@@ -2,6 +2,7 @@ import {
   spaces,
   parseCharacter,
   displayOf,
+  groupTags,
   EXPRESSION_DISPLAY_MAP,
   NON_WORK_SUFFIX,
 } from './tag-display';
@@ -229,6 +230,45 @@ describe('displayOf', () => {
     const d = displayOf({ name: '1girl', kind: 'general', source: 'wd14', confidence: 0.92 });
     expect(d.source).toBe('wd14');
     expect(d.confidence).toBe(0.92);
+  });
+});
+
+describe('groupTags', () => {
+  it('依固定序分組 character/copyright/expression/general/meta', () => {
+    const lanes = groupTags([
+      { id: 1, name: 'long_hair', kind: 'general' },
+      { id: 2, name: 'aris_(blue_archive)', kind: 'character' },
+      { id: 3, name: ':3', kind: 'general' },
+    ]);
+    expect(lanes.map((l) => l.group)).toEqual(['character', 'expression', 'general']);
+  });
+
+  it('expression 從 general 拉出自成一區', () => {
+    const lanes = groupTags([
+      { id: 1, name: 'blush', kind: 'general' },
+      { id: 2, name: '1girl', kind: 'general' },
+    ]);
+    expect(lanes.find((l) => l.group === 'expression')?.tags.map((t) => t.canonical)).toEqual(['blush']);
+    expect(lanes.find((l) => l.group === 'general')?.tags.map((t) => t.canonical)).toEqual(['1girl']);
+  });
+
+  it('非顯示 group(manual/path）不丟,附在已知 group 之後', () => {
+    const lanes = groupTags([
+      { id: 1, name: 'my_fav', kind: 'manual', source: 'manual' },
+      { id: 2, name: 'long_hair', kind: 'general', source: 'wd14' },
+    ]);
+    const groups = lanes.map((l) => l.group);
+    expect(groups).toContain('general');
+    expect(groups).toContain('manual');
+    expect(groups.indexOf('general')).toBeLessThan(groups.indexOf('manual'));
+  });
+
+  it('帶 id 與 character 造型/作品徽章', () => {
+    const lanes = groupTags([{ id: 7, name: 'asuna_(bunny)_(blue_archive)', kind: 'character' }]);
+    const t = lanes[0].tags[0];
+    expect(t.id).toBe(7);
+    expect(t.work).toBe('blue archive');
+    expect(t.costumes).toEqual(['bunny']);
   });
 });
 

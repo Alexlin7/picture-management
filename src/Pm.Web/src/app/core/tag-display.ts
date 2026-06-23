@@ -186,3 +186,28 @@ export function displayOf(tag: TagInput): TagDisplay {
   // ① 退回:底線轉空白
   return { ...base, label: spaces(tag.name), emoji: null, group: tag.kind };
 }
+
+// 檢視器分區的固定顯示順序。其餘 group(source-as-kind 的 manual/path,或未知)
+// 附在這些之後,確保任何 tag 都不會被分組邏輯丟掉。
+export const DISPLAY_GROUP_ORDER = ['character', 'copyright', 'expression', 'general', 'meta'] as const;
+
+export type DisplayTag = TagDisplay & { id: number };
+export interface TagLane {
+  group: string;
+  tags: DisplayTag[];
+}
+
+// 把 photo 的 tags 經 displayOf 分組成 lanes:已知 display group 依 DISPLAY_GROUP_ORDER,
+// 其餘 group 依首次出現序附在後(不丟 manual/path)。各 tag 帶回 id 供移除 / track。
+export function groupTags(tags: Array<TagInput & { id: number }>): TagLane[] {
+  const byGroup = new Map<string, DisplayTag[]>();
+  for (const t of tags) {
+    const d: DisplayTag = { ...displayOf(t), id: t.id };
+    const bucket = byGroup.get(d.group);
+    if (bucket) bucket.push(d);
+    else byGroup.set(d.group, [d]);
+  }
+  const ordered: string[] = DISPLAY_GROUP_ORDER.filter((g) => byGroup.has(g));
+  for (const g of byGroup.keys()) if (!ordered.includes(g)) ordered.push(g);
+  return ordered.map((group) => ({ group, tags: byGroup.get(group)! }));
+}
