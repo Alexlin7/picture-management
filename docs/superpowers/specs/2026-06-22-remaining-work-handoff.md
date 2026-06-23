@@ -5,6 +5,17 @@
 
 ---
 
+## 0. 2026-06-23 更新(main 後續進展,本檔已對照修訂)
+
+本 handoff 原寫於 6/22;之後 `main` 又推進 4 個 commit,以下據此修訂:
+
+- **C7「WD14 opt-in 實機驗證」已完成**(`65e663e`):AMD RX 9060 XT / DirectML、200 張 0 失敗;模型自動下載、`source=wd14`+confidence 正確;category↔kind 對應確認無誤(WD14 v3 csv 僅 category 0/4/9,無 copyright,`KindOf` 的 `3→copyright` 為不觸發死碼、無害)。
+- **新增兩份設計定稿**(見 §2 新工作 X / Y):`2026-06-22-tag-display-layer-design.md`(WD14 顯示層清理 v1)、`2026-06-22-scan-detection-design.md`(檔案偵測/掃描策略)。
+- **§4 WD14 立場已調整**:不再是「整片擱置」——「資料層/佇列/採用拒絕 UI」仍 deferred,但**顯示層清理已立案待實作**。
+- **當前進行中**:掃描路線 A1(批次載入消 N+1),見 §2 新工作 Y。
+
+---
+
 ## 1. 近期已完成(feat/wd14-worker 分支,2026-06-22)
 
 - **Code review 修正一輪**:TaggingWorker 啟動回收孤兒 `running`、tag CI 去重改 `name_ci`(全 Unicode)、kind 語意升級不降級、模型下載 atomic rename、SQLite WAL、combobox 競態防護、空白名 400、ListAsync limit 推 SQL、tagColor 統一、worker/manual 共用 `AttachTag` 消 N+1、Wd14Setup backend 收斂。
@@ -40,10 +51,18 @@
 
 ### C. WD14 / 推論(Phase 2,使用者明示先擱置)
 
-7. **WD14 opt-in 實機驗證** — `Inference:Enabled=true` 首次標註會 HF 下載 ~300MB 模型 + `selected_tags.csv`;需在真實圖庫跑一遍,校正 category↔kind 對應與門檻(`Wd14Postprocess` 註明待校正)。
+7. ~~**WD14 opt-in 實機驗證**~~ — ✅ **已完成(2026-06-22,`65e663e`)**:AMD/DirectML 200 張 0 失敗,category↔kind 對應確認無誤。門檻校正若日後有需要再另案。
 8. **WD14 失敗 job 退避重試** — 目前失敗只標 `error` + `Attempts++`,不自動重排(崩潰卡 `running` 的會啟動回收,但 `error` 的不會)。
 9. **檢視器 WD14 建議 UI** — 推論結果的 ✓採用/✕拒絕 chip(設計 spec §6 有,目前移除)。
 10. **CUDA / Windows ML backend** — `Pm.Ml` 僅骨架;本 build 僅 cpu/directml。CUDA 需專屬 publish profile;WinML 待 Win11 24H2 + App SDK。
+
+### E. main 新增設計定稿(2026-06-22,原 handoff 沒有 — 各有獨立 spec)
+
+13. **掃描策略 路線 A**(`2026-06-22-scan-detection-design.md`)— **🔨 當前進行中:A1**。
+    - **A1 批次載入消 N+1(進行中)**:開掃前一次把該 root 的 `photo_location`(含 `Photo`)載成 `dict<relPath, loc>`,迴圈內查 dict O(1),取代 `LibraryScanner.cs:45` 每檔一次 DB query。預期十萬檔全掃從分鐘級降到秒~十幾秒。
+    - A2 開機自動掃(設定鍵 `Scan:OnStartup`,預設關)、A3 手動掃子資料夾、A4 digiKam 式 fast-scan、(路線 B)`FileSystemWatcher` 即時偵測(加分糖,非主力)。
+    - 鐵則對齊:純讀取 + 就地索引,不搬/不改原檔,hash 仍是身分。
+14. **WD14 tag 顯示層清理 v1**(`2026-06-22-tag-display-layer-design.md`)— 設計定稿,**前置:使用者整理圖庫資料中,資料就緒後再動工**。全純前端、後端不動:① 底線轉空白 ② 表情顏文字對照表(`:3`→😺,約 30–50 條)③ 檢視器依 kind 分組 + 來源徽章(`wd14 87%`/`manual`/`path`)④ character 括號 kind-aware 解析(`aris_(maid)_(blue_archive)`→ 角色/造型/作品徽章)。落點 `core/tags/tag-display.ts`(`displayOf` 純函式,可單元測試)。⚠️ 與 A2(combobox 抽共用)都動 inspector,同時做時**先抽 combobox 再疊顯示層**。
 
 ### D. 其他(README 🔲)
 
@@ -68,10 +87,12 @@
 - **tag.kind 跨來源 = 語意升級不降級**(character/copyright/meta > general > manual/path);但標籤庫**明示**改 kind 直接覆寫(`UpdateAsync`,允許降級)。
 - **tag CI 去重 = `name_ci`**(`ToLowerInvariant`,`SaveChanges` 自動維護)+ 唯一索引;非 ASCII 也去重。
 - **新增標籤參數:** 必填 `name`(正規化 + CI 去重)、選填 `kind`(預設 `manual`);`id`/`name_ci`/`count` 系統自動帶。撞既有 CI → `POST` 回 `200 existed:true`。
-- **WD14 = Phase 2 擱置**(使用者明示),先不碰標籤建議 / 佇列數 / 實機驗證。
+- **WD14 立場(2026-06-23 調整)**:實機驗證**已完成**;**顯示層清理 v1 已立案待實作**(§2-E14)。仍 deferred 的是:資料層清理(黑名單/別名/門檻)、佇列數/總命中數、採用拒絕 UI、失敗 job 重試、資料層作品/造型軸、tag DAG。
 
 ---
 
 ## 5. 接手起步建議
 
-下次 agent 從 **A1(virtual scroll)** 或 **A2(combobox 抽共用)** 開始最有價值。動前端務必:改完 `ng build` + 起 app 手測(無自動測試保護)。動後端走 TDD(既有測試是保護網)。設計決策有變更時,同步更新 `2026-06-21-picture-management-design.md`(§4/§7)與 README/CLAUDE(CLAUDE.md 鐵則要求)。
+**2026-06-23 起步序(已與使用者確認):先做 E13-A1(掃描批次消 N+1)** —— 後端、有既有 Scanner 測試(47)當保護網、走 TDD、效能根本問題、風險低。其後候選:A1 圖牆 virtual scroll、A2 combobox 抽共用(與 E14 顯示層同動 inspector,先抽再疊)、E14 顯示層 v1(待圖庫資料就緒)。
+
+動後端走 TDD(既有測試是保護網)。動前端務必:改完 `ng build` + 起 app 手測(無自動測試保護)。設計決策有變更時,同步更新 `2026-06-21-picture-management-design.md`(§4/§7)與 README/CLAUDE(CLAUDE.md 鐵則要求)。

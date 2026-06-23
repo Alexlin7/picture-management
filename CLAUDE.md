@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **完整設計與所有決策理由在 `docs/superpowers/specs/2026-06-21-picture-management-design.md` —— 動手前先讀它。** 本檔只摘大方向與不可違反的鐵則。UI/UX 見該文件 §6 與可點 mockup `docs/mockups/ui-preview.html`(瀏覽器開,`?view=` / `?only=inspector` 可切換截圖)。
 
-**狀態(2026-06-22):Phase 1 核心可端對端運作** —— 後端掃描/對帳/查詢/路徑→tag/saved search/facet/軟硬刪/manual tag/標籤庫(列表/改名/合併/刪除,全 Unicode CI 去重 via `name_ci`)端點皆完成且有測試;前端各頁(含標籤庫管理頁 `/tags`、檢視器 combobox 加/刪標籤)已接真實 API(非 mock);單一 .NET 程序 serve API + 前端。**WD14 自動標籤端到端就緒(opt-in)**:ML pipeline(前處理/ONNX in-proc 推論/後處理)＋ `TaggingWorker` 經 `AddWd14Tagging` wire 進 host,`Inference:Enabled=true` 才註冊推論工廠＋tagger＋背景服務消化 `tagging_job`(**預設關,免下載模型**);worker 寫 tag 走 `TagService`(CI 去重、kind 語意升級不降級、啟動回收孤兒 `running`)。**已在真實圖庫實機驗證(2026-06-22,AMD RX 9060 XT / DirectML,200 張 0 失敗;模型自動下載、DirectML 在 AMD GPU 推論成功、`source=wd14`+confidence 正確;category↔kind 對應確認無誤 —— WD14 v3 的 csv 僅 category 0/4/9,無 copyright,故 `KindOf` 的 `3→copyright` 為不觸發死碼、無害,作品名內嵌於角色標如 `aris_(blue_archive)`)**。CUDA/Windows ML 推論後端僅骨架(本 build 僅 cpu/directml);Phase 2(CLIP 語意搜尋)未開始。**現況、啟動方式、逐項功能狀態見根目錄 [`README.md`](README.md)。**
+**狀態(2026-06-22):Phase 1 核心可端對端運作** —— 後端掃描/對帳/查詢/路徑→tag/saved search/facet/軟硬刪/manual tag/標籤庫端點皆完成且有測試;前端各頁已接真實 API(非 mock);單一 .NET 程序 serve API + 前端。**WD14 自動標籤端到端就緒(opt-in)**,已在真實圖庫以 DirectML 實機驗證;CUDA/Windows ML 推論後端僅骨架(本 build 僅 cpu/directml);Phase 2(CLIP 語意搜尋)未開始。**現況、啟動方式、WD14 實作細節與逐項功能狀態見根目錄 [`README.md`](README.md);WD14 tag 顯示層決策見 `docs/superpowers/specs/2026-06-22-tag-display-layer-design.md`。**
 
 ## 架構大方向
 
@@ -75,5 +75,13 @@ dotnet publish src/Pm.Api -r win-x64 --self-contained -p:PublishSingleFile=true
 
 ## 開發約定
 
+**工作流程(動手前必讀):**
+- **計畫先行(review-first):動任何 code 前,先提出計畫或設計文件,等使用者確認再實作** —— 尤其重構、新功能、相依/設定變更。未經同意不要開始 implementation。
+- **小切片、逐步 commit**:重構/抽取時切成連續小切片,每片 build + 測試綠後再 commit,不要一大刀塞完。
+- **commit / merge 前先驗證**:多檔變更後跑 `dotnet build` + `dotnet test`(全測試),確認綠燈才 commit/merge;前端改完跑 `ng build` + 起 app 手測(前端自動測試覆蓋有限)。
+
+**慣例:**
 - 全程以**繁體中文(台灣用語)** 溝通;程式碼識別子與技術名詞保留原文。
+- **後端測試 DB 隔離**:每測試用獨立 SQLite 檔(`Data Source={tmp}`)或 `:memory:`(見 `tests/` 既有測試),避免互相污染 —— 本專案是 EF Core + SQLite,**無** Java `@Transactional` 那套。
+- **設定分層**:能力層開關(載不載模型等)走 `appsettings` / Rider launchSettings 啟動參數(改了要重啟);行為層執行期開關走 `app_setting`(見 `docs/superpowers/specs/2026-06-23-scanner-tagging-refactor-design.md`)。
 - schema/設計可演進;改動牽涉設計決策時,同步更新 `docs/superpowers/specs/` 設計文件。
