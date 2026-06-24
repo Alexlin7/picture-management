@@ -15,7 +15,7 @@
       <div class="ac-wrap">
         <input
           #si
-          placeholder="加標籤 · 空格=AND · -排除"
+          placeholder="搜尋標籤名…(打字挑、Enter 套精準標)"
           (input)="onType(si.value)"
           (keydown.arrowdown)="$event.preventDefault(); acMove(1)"
           (keydown.arrowup)="$event.preventDefault(); acMove(-1)"
