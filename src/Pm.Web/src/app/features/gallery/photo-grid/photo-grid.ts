@@ -5,6 +5,7 @@ import { GalleryStore, type SearchToken } from '../gallery.store';
 import { normalizeTagQuery, exactMatch, excludeSelected } from '@core/tag-search';
 import { displayOf } from '@core/tag-display';
 import { ToastService } from '@core/ui/toast';
+import { ConfirmService } from '@core/ui/confirm';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
@@ -17,6 +18,7 @@ export class PhotoGrid {
   private readonly store = inject(GalleryStore);
   private readonly api = inject(PmApi);
   private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
 
   // 資料來源:store(來自 PmApi)
   readonly photos = this.store.photos;
@@ -104,6 +106,27 @@ export class PhotoGrid {
     }).catch(() => {
       this.toast.error('儲存搜尋失敗,請稍後再試');
     });
+  }
+
+  // 重標失敗的:把所有 WD14 error 狀態的 job 重排(mode:retry,非破壞不清既有 tag)。
+  // 重標 = WD14 自動標籤推論,≠ 重掃(重掃=重建檔案索引,在「圖庫來源」頁)。
+  requeueFailed(): void {
+    void this.confirm
+      .ask(
+        '將所有標註失敗(WD14 error)的圖片重新加入佇列,等待推論引擎重試。\n\n' +
+          '注意:「重標」= 重跑 WD14 自動標籤推論;「重掃」= 重建檔案索引(在「圖庫來源」頁)。',
+        { title: '重標失敗的圖片?', confirmText: '重標失敗', cancelText: '取消' },
+      )
+      .then((ok) => {
+        if (!ok) return;
+        return this.api.requeue('retry', { error: true }).then((r) => {
+          const detail = `(共 ${r.matched} 筆,新建 ${r.jobsCreated}、更新 ${r.jobsUpdated} 個 job)`;
+          this.toast.success(`已重排 ${r.matched} 筆失敗標註 ${detail}`);
+        });
+      })
+      .catch(() => {
+        this.toast.error('重標失敗,請稍後再試');
+      });
   }
 
   // ---- 搜尋框 autocomplete(查既有標籤;與 inspector combobox 同模式,日後可抽共用)----

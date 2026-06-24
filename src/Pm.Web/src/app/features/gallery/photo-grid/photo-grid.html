@@ -59,6 +59,11 @@
       <span class="dot" style="color:var(--color-t-meta);background:var(--color-t-meta)"></span>
       WD14 佇列 <b class="num">{{ wd14QueueText() }}</b> 待標
     </span>
+    <button
+      class="btn ghost"
+      (click)="requeueFailed()"
+      title="重標(WD14 自動標籤)≠ 重掃(檔案系統索引)。將所有標註失敗的圖片重新加入佇列。"
+    >重標失敗</button>
     <div class="seg">
       <button [class.on]="viewMode() === 'dense'" (click)="viewMode.set('dense')" title="小圖密集">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">

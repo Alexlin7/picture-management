@@ -89,6 +89,20 @@ export class PmApi {
     );
   }
 
+  // 批次 requeue:維護動作(非破壞)。mode:retry=重排失敗 / refresh=清 wd14 重排 / clear=清不排。
+  // scope 四選一:photoIds/error/root/all。回傳 matched/clearedTags/jobsCreated/jobsUpdated。
+  requeue(
+    mode: 'retry' | 'refresh' | 'clear',
+    scope: { photoIds?: number[]; error?: boolean; root?: number; all?: boolean },
+  ): Promise<{ matched: number; clearedTags: number; jobsCreated: number; jobsUpdated: number }> {
+    return firstValueFrom(
+      this.http.post<{ matched: number; clearedTags: number; jobsCreated: number; jobsUpdated: number }>(
+        '/api/tag/requeue',
+        { mode, scope },
+      ),
+    );
+  }
+
   // ---- 標籤庫(管理頁 + autocomplete 共用)----
   tags(q?: string, limit?: number): Promise<TagListRow[]> {
     let params = new HttpParams();
