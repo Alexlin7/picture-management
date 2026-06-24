@@ -42,6 +42,7 @@ public class ScanEnqueueApiTests : IDisposable
 
     private record RootCreated(long Id, string Name, string AbsPath);
     private record ScanDto(int FilesSeen, int NewPhotos, int NewLocations, int JobsQueued);
+    private record ScanStatusDto(string State, ScanDto? Result, string? Error);
 
     private async Task<long> CreateRootAsync(HttpClient client)
     {
@@ -57,10 +58,12 @@ public class ScanEnqueueApiTests : IDisposable
         var rootId = await CreateRootAsync(client);
 
         var scan = await client.PostAsync($"/api/roots/{rootId}/scan", null);
-        var result = await scan.Content.ReadFromJsonAsync<ScanDto>();
+        Assert.Equal(System.Net.HttpStatusCode.Accepted, scan.StatusCode);
+        var status = await WaitForScanAsync(client, rootId);
 
-        Assert.Equal(1, result!.NewPhotos);    // 身分照索引
-        Assert.Equal(0, result.JobsQueued);    // 能力關 → 預設不排 job
+        Assert.Equal("completed", status.State);
+        Assert.Equal(1, status.Result!.NewPhotos);    // 身分照索引
+        Assert.Equal(0, status.Result.JobsQueued);    // 能力關 → 預設不排 job
     }
 
     [Fact]
@@ -70,8 +73,22 @@ public class ScanEnqueueApiTests : IDisposable
         var rootId = await CreateRootAsync(client);
 
         var scan = await client.PostAsync($"/api/roots/{rootId}/scan?enqueueTagging=true", null);
-        var result = await scan.Content.ReadFromJsonAsync<ScanDto>();
+        Assert.Equal(System.Net.HttpStatusCode.Accepted, scan.StatusCode);
+        var status = await WaitForScanAsync(client, rootId);
 
-        Assert.Equal(1, result!.JobsQueued);   // 明示 → pre-queue(待之後啟用 worker 再消化)
+        Assert.Equal("completed", status.State);
+        Assert.Equal(1, status.Result!.JobsQueued);   // 明示 → pre-queue(待之後啟用 worker 再消化)
+    }
+
+    private static async Task<ScanStatusDto> WaitForScanAsync(HttpClient client, long rootId)
+    {
+        for (var i = 0; i < 50; i++)
+        {
+            var status = await client.GetFromJsonAsync<ScanStatusDto>($"/api/roots/{rootId}/scan-status");
+            if (status!.State != "running") return status;
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException("scan did not finish");
     }
 }

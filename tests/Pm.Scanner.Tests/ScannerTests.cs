@@ -33,6 +33,9 @@ public class ScannerTests : IDisposable
     private CountingSaveContext NewCountingContext() =>
         new(new DbContextOptionsBuilder<PmDbContext>().UseSqlite(Cs).Options);
 
+    private ThrowOnSecondSaveContext NewThrowOnSecondSaveContext() =>
+        new(new DbContextOptionsBuilder<PmDbContext>().UseSqlite(Cs).Options);
+
     private async Task<long> SeedRootAsync()
     {
         await using var ctx = NewContext();
@@ -209,6 +212,28 @@ public class ScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task Batched_photo_and_location_write_rolls_back_together_when_location_save_fails()
+    {
+        WriteImage("a.png", "alpha");
+        var rootId = await SeedRootAsync();
+
+        await using (var ctx = NewThrowOnSecondSaveContext())
+        {
+            var scanner = new LibraryScanner(
+                ctx,
+                new Sha256FileHasher(),
+                new DecodableMetadataReader(),
+                new NoopThumbnailService());
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => scanner.ScanRootAsync(rootId));
+        }
+
+        await using var verify = NewContext();
+        Assert.Equal(0, await verify.Photos.CountAsync());
+        Assert.Equal(0, await verify.PhotoLocations.CountAsync());
+    }
+
+    [Fact]
     public async Task Missing_root_throws()
     {
         await using var ctx = NewContext();
@@ -306,6 +331,20 @@ public class ScannerTests : IDisposable
         public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default)
         {
             SaveChangesCalls++;
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+        }
+    }
+
+    private sealed class ThrowOnSecondSaveContext(DbContextOptions<PmDbContext> options) : PmDbContext(options)
+    {
+        private int _saveChangesCalls;
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default)
+        {
+            _saveChangesCalls++;
+            if (_saveChangesCalls == 2)
+                throw new InvalidOperationException("simulated location save failure");
+
             return base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
         }
     }

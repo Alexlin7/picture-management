@@ -38,6 +38,7 @@ public class PathTagApiTests : IDisposable
     }
 
     private record RootCreated(long Id);
+    private record ScanStatusDto(string State, string? Error);
 
     [Fact]
     public async Task Pending_then_confirm_tags_photos()
@@ -49,6 +50,7 @@ public class PathTagApiTests : IDisposable
         var root = await (await client.PostAsJsonAsync("/api/roots", new { name = "t", absPath = _root }))
             .Content.ReadFromJsonAsync<RootCreated>();
         await client.PostAsync($"/api/roots/{root!.Id}/scan", null);
+        await WaitForScanAsync(client, root.Id);
 
         var pending = await client.GetStringAsync($"/api/roots/{root.Id}/pending-segments");
         Assert.Contains("vspo", pending);
@@ -60,5 +62,18 @@ public class PathTagApiTests : IDisposable
         // 確認後 vspo 不再待確認
         var pending2 = await client.GetStringAsync($"/api/roots/{root.Id}/pending-segments");
         Assert.DoesNotContain("\"vspo\"", pending2);
+    }
+
+    private static async Task WaitForScanAsync(HttpClient client, long rootId)
+    {
+        for (var i = 0; i < 50; i++)
+        {
+            var status = await client.GetFromJsonAsync<ScanStatusDto>($"/api/roots/{rootId}/scan-status");
+            if (status!.State == "completed") return;
+            if (status.State == "error") throw new InvalidOperationException(status.Error);
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException("scan did not finish");
     }
 }

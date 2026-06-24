@@ -73,6 +73,35 @@ public class EnrichTests : IDisposable
     }
 
     [Fact]
+    public async Task Rescan_unchanged_decodable_image_backfills_missing_thumbnail()
+    {
+        using (var img = new Image<Rgba32>(320, 240))
+            await img.SaveAsPngAsync(Path.Combine(_root, "pic.png"));
+        var rootId = await SeedRoot();
+
+        await using (var ctx = NewContext())
+            await Scanner(ctx).ScanRootAsync(rootId);
+
+        string thumbPath;
+        await using (var verify = NewContext())
+        {
+            var hash = await verify.Photos.Select(p => p.FileHash).SingleAsync();
+            thumbPath = new ThumbnailService(new ThumbnailOptions { Dir = _thumbs }).PathFor(hash);
+        }
+
+        File.Delete(thumbPath);
+        Assert.False(File.Exists(thumbPath));
+
+        ScanResult result;
+        await using (var ctx = NewContext())
+            result = await Scanner(ctx).ScanRootAsync(rootId, enqueueTagging: false);
+
+        Assert.Equal(1, result.SkippedUnchanged);
+        Assert.Equal(1, result.ThumbsGenerated);
+        Assert.True(File.Exists(thumbPath));
+    }
+
+    [Fact]
     public async Task Bad_image_keeps_identity_but_no_thumb_or_job()
     {
         await File.WriteAllTextAsync(Path.Combine(_root, "broken.png"), "garbage");

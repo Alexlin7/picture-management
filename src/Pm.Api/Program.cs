@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Pm.Api;
 using Pm.Data;
@@ -7,8 +8,10 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<PmDbContext>(opt =>
-    opt.UseSqlite(builder.Configuration.GetConnectionString("Pm")));
+builder.Services.AddSingleton(new SqliteBusyTimeoutInterceptor(TimeSpan.FromSeconds(5)));
+builder.Services.AddDbContext<PmDbContext>((sp, opt) =>
+    opt.UseSqlite(BuildSqliteConnectionString(builder.Configuration.GetConnectionString("Pm")))
+        .AddInterceptors(sp.GetRequiredService<SqliteBusyTimeoutInterceptor>()));
 
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IConfiguration>().GetSection("Thumbnails").Get<ThumbnailOptions>()
@@ -23,6 +26,7 @@ builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<TaggingScheduler>();
+builder.Services.AddSingleton<RootScanCoordinator>();
 
 // WD14 自動標籤(opt-in:Inference:Wd14:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
 builder.Services.AddWd14Tagging(builder.Configuration);
@@ -38,8 +42,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
     db.Database.Migrate();
     // 開 WAL:API 請求與 WD14 背景 worker 同時寫入 pm.sqlite 時,讀寫不互卡(rollback journal 會)。
-    // WAL 為持久設定(寫入 db header),設一次後所有連線生效。短暫寫鎖則靠 Microsoft.Data.Sqlite
-    // 預設 command timeout(SQLITE_BUSY 自動重試)等待,而非立即「database is locked」。
+    // WAL 為持久設定(寫入 db header),設一次後所有連線生效。短暫寫鎖則靠 connection-level
+    // busy_timeout 等待;不能只靠 EF command timeout,因為連線歸還/清理也可能碰到 SQLITE_BUSY。
     db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
 }
 
@@ -82,11 +86,25 @@ app.MapPost("/api/roots", async (CreateRootDto dto, PmDbContext db) =>
 
 // enqueueTagging:是否為新可解碼圖排 WD14 job。未帶 query → 跟隨 WD14 能力旗標(Inference:Wd14:Enabled),
 // 推論關時預設純索引、不堆死 job;明示 ?enqueueTagging=true 可在推論關時 pre-queue,?=false 強制只索引。
-app.MapPost("/api/roots/{id:long}/scan", async (long id, bool? enqueueTagging, LibraryScanner scanner, IConfiguration config) =>
+app.MapPost("/api/roots/{id:long}/scan", async (
+    long id,
+    bool? enqueueTagging,
+    PmDbContext db,
+    RootScanCoordinator scans) =>
 {
-    var enqueue = enqueueTagging ?? config.GetValue<bool>("Inference:Wd14:Enabled");
-    var result = await scanner.ScanRootAsync(id, enqueue);
-    return Results.Ok(result);
+    if (!await db.LibraryRoots.AnyAsync(r => r.Id == id)) return Results.NotFound();
+
+    if (!scans.TryStart(id, enqueueTagging, out var status))
+        return Results.Conflict(status);
+
+    return Results.Accepted($"/api/roots/{id}/scan-status", status);
+})
+    .WithTags("Roots");
+
+app.MapGet("/api/roots/{id:long}/scan-status", async (long id, PmDbContext db, RootScanCoordinator scans) =>
+{
+    if (!await db.LibraryRoots.AnyAsync(r => r.Id == id)) return Results.NotFound();
+    return Results.Ok(scans.GetStatus(id));
 })
     .WithTags("Roots");
 
@@ -133,7 +151,7 @@ app.MapGet("/api/photos/{id:long}/thumb", async (long id, PmDbContext db, IThumb
     var hash = await db.Photos.Where(p => p.Id == id).Select(p => p.FileHash).FirstOrDefaultAsync();
     if (hash is null) return Results.NotFound();
     var path = Path.GetFullPath(thumbs.PathFor(hash));   // 絕對路徑:走 PhysicalFile 而非 VirtualFile(wwwroot)
-    return File.Exists(path) ? Results.File(path, "image/webp") : Results.NotFound();
+    return await OpenThumbAsync(path);
 })
     .WithTags("Photos");
 
@@ -340,6 +358,46 @@ app.MapPost("/api/tags/{id:long}/merge/{targetId:long}", async (long id, long ta
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+static string BuildSqliteConnectionString(string? configured)
+{
+    var cs = string.IsNullOrWhiteSpace(configured) ? "Data Source=pm.sqlite" : configured;
+    var builder = new SqliteConnectionStringBuilder(cs)
+    {
+        DefaultTimeout = 5
+    };
+    return builder.ToString();
+}
+
+static async Task<IResult> OpenThumbAsync(string path)
+{
+    if (!File.Exists(path)) return Results.NotFound();
+
+    for (var attempt = 0; attempt < 2; attempt++)
+    {
+        try
+        {
+            var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite,
+                bufferSize: 64 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            return Results.Stream(stream, "image/webp");
+        }
+        catch (IOException) when (attempt == 0)
+        {
+            await Task.Delay(80);
+        }
+        catch (IOException ex)
+        {
+            return Results.Json(new { error = "thumbnail temporarily unavailable", detail = ex.Message }, statusCode: 503);
+        }
+    }
+
+    return Results.Json(new { error = "thumbnail temporarily unavailable" }, statusCode: 503);
+}
 
 /// <summary>建立圖庫來源的請求:顯示名 + 絕對路徑。</summary>
 public record CreateRootDto(string Name, string AbsPath);

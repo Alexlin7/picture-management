@@ -12,14 +12,27 @@ public sealed class ThumbnailService(ThumbnailOptions options) : IThumbnailServi
     {
         var outPath = PathFor(hash);
         Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+        var tmpPath = Path.Combine(Path.GetDirectoryName(outPath)!, $"{Path.GetFileName(outPath)}.{Guid.NewGuid():N}.tmp");
 
-        using var img = await Image.LoadAsync(absPath, ct);   // 只讀原圖
-        img.Mutate(x => x.Resize(new ResizeOptions
+        try
         {
-            Mode = ResizeMode.Max,                            // 保持比例,長邊不超過 MaxEdge
-            Size = new Size(options.MaxEdge, options.MaxEdge),
-        }));
-        await img.SaveAsWebpAsync(outPath, ct);
+            using var img = await Image.LoadAsync(absPath, ct);   // 只讀原圖
+            img.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Mode = ResizeMode.Max,                            // 保持比例,長邊不超過 MaxEdge
+                Size = new Size(options.MaxEdge, options.MaxEdge),
+            }));
+            await img.SaveAsWebpAsync(tmpPath, ct);
+            if (File.Exists(outPath))
+                File.Replace(tmpPath, outPath, null);
+            else
+                File.Move(tmpPath, outPath);
+        }
+        finally
+        {
+            if (File.Exists(tmpPath)) File.Delete(tmpPath);
+        }
+
         return outPath;
     }
 }

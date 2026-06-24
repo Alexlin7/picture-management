@@ -32,7 +32,13 @@ public sealed class LibraryScanner(
         var seenPaths = new HashSet<string>();
         var locationsByPath = (await db.PhotoLocations
             .Where(l => l.LibraryRootId == rootId)
-            .Select(l => new { Location = l, PhotoFileSize = l.Photo.FileSize })
+            .Select(l => new
+            {
+                Location = l,
+                PhotoFileSize = l.Photo.FileSize,
+                PhotoFileHash = l.Photo.FileHash,
+                PhotoWidth = l.Photo.Width,
+            })
             .ToListAsync(ct))
             .ToDictionary(l => l.Location.RelPath, StringComparer.Ordinal);
 
@@ -63,6 +69,8 @@ public sealed class LibraryScanner(
                     && (prevMtime - mtime).Duration() < TimeSpan.FromSeconds(1))
                 {
                     loc.LastSeenAt = DateTimeOffset.UtcNow;
+                    if (locInfo.PhotoWidth is not null)
+                        thumbsGen += await GenerateThumbIfMissingAsync(file, locInfo.PhotoFileHash, ct);
                     skipped++;
                     continue;
                 }
@@ -114,6 +122,7 @@ public sealed class LibraryScanner(
             var newPhotosByHash = new Dictionary<string, NewPhotoWork>(StringComparer.Ordinal);
             var failedItems = new HashSet<PendingScanFile>();
             var batchTrackedEntities = new List<object>();
+            var thumbWorkByHash = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var item in batch)
             {
                 if (photosByHash.ContainsKey(item.Hash) || newPhotosByHash.ContainsKey(item.Hash))
@@ -153,22 +162,20 @@ public sealed class LibraryScanner(
                 newPhotos++;
             }
 
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+
             if (newPhotosByHash.Count > 0)
-                await db.SaveChangesAsync(ct);   // 取得 photo.Id
+                await db.SaveChangesAsync(ct);   // 取得 photo.Id,但仍在同一交易內。
 
             foreach (var (hash, work) in newPhotosByHash)
             {
                 photosByHash[hash] = work.Photo;
 
-                // 只有可解碼的圖才產縮圖 + 排 WD14(壞圖/非圖留身分但不做)
+                // 只有可解碼的圖才產縮圖 + 排 WD14(壞圖/非圖留身分但不做)。
+                // 縮圖本身在 DB transaction commit 後才產,失敗可由下次掃描補回。
                 if (!work.CanDecode) continue;
 
-                try
-                {
-                    await thumbs.GenerateAsync(work.File, hash, ct);
-                    thumbsGen++;
-                }
-                catch { /* 縮圖失敗不影響索引 */ }
+                thumbWorkByHash.TryAdd(hash, work.File);
 
                 // 縮圖屬索引一部分,照產;tagging job 才受 enqueueTagging 控制。
                 if (!enqueueTagging) continue;
@@ -184,6 +191,9 @@ public sealed class LibraryScanner(
                 if (failedItems.Contains(item)) continue;
 
                 var photo = photosByHash[item.Hash];
+                if (photo.Width is not null)
+                    thumbWorkByHash.TryAdd(item.Hash, item.File);
+
                 if (item.Location is null)
                 {
                     var location = new PhotoLocation
@@ -214,8 +224,28 @@ public sealed class LibraryScanner(
             if (db.ChangeTracker.HasChanges())
                 await db.SaveChangesAsync(ct);
 
+            await tx.CommitAsync(ct);
+
+            foreach (var (hash, file) in thumbWorkByHash)
+                thumbsGen += await GenerateThumbIfMissingAsync(file, hash, ct);
+
             foreach (var entity in batchTrackedEntities)
                 db.Entry(entity).State = EntityState.Detached;
+        }
+    }
+
+    private async Task<int> GenerateThumbIfMissingAsync(string file, string hash, CancellationToken ct)
+    {
+        if (File.Exists(thumbs.PathFor(hash))) return 0;
+
+        try
+        {
+            await thumbs.GenerateAsync(file, hash, ct);
+            return 1;
+        }
+        catch
+        {
+            return 0;
         }
     }
 
