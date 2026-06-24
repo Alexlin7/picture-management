@@ -1,4 +1,4 @@
-import { normalizeTagQuery, toggleExclude, exactMatch, reverseDisplayLookup } from './tag-search';
+import { normalizeTagQuery, toggleExclude, exactMatch, reverseDisplayLookup, excludeSelected } from './tag-search';
 import type { TagListRow } from '@core/api/pm-api';
 
 describe('normalizeTagQuery', () => {
@@ -52,5 +52,25 @@ describe('reverseDisplayLookup', () => {
   });
   it('空片段 → 空陣列', () => {
     expect(reverseDisplayLookup('  ')).toEqual([]);
+  });
+});
+
+const sugRows: TagListRow[] = [
+  { id: 1, name: 'smile', kind: 'general', count: 9 },
+  { id: 2, name: 'blue_archive', kind: 'copyright', count: 3 },
+];
+
+describe('excludeSelected', () => {
+  it('濾掉已選為包含的標', () => {
+    expect(excludeSelected(sugRows, ['smile']).map((r) => r.id)).toEqual([2]);
+  });
+  it('濾掉已選為排除的標(去 - 前綴比對)', () => {
+    expect(excludeSelected(sugRows, ['-smile']).map((r) => r.id)).toEqual([2]);
+  });
+  it('不分大小寫', () => {
+    expect(excludeSelected(sugRows, ['SMILE']).map((r) => r.id)).toEqual([2]);
+  });
+  it('無已選 → 全保留', () => {
+    expect(excludeSelected(sugRows, []).map((r) => r.id)).toEqual([1, 2]);
   });
 });

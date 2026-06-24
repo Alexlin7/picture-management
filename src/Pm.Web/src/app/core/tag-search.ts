@@ -25,6 +25,15 @@ export function exactMatch(rows: readonly TagListRow[], term: string): TagListRo
   return rows.find((r) => r.name.toLowerCase() === t) ?? null;
 }
 
+// 從建議中濾掉已選 token(token 的 '-' 排除前綴去掉再比 name;不分大小寫)。
+export function excludeSelected(
+  rows: readonly TagListRow[],
+  tokenTexts: readonly string[],
+): TagListRow[] {
+  const selected = new Set(tokenTexts.map((t) => t.replace(/^-/, '').toLowerCase()));
+  return rows.filter((r) => !selected.has(r.name.toLowerCase()));
+}
+
 // 中文/顯示名反查:回傳「顯示 label 含此片段」的 canonical 英文 tag 名。
 // 僅覆蓋 curated 顯示名(表情等);空片段或無命中 → []。
 export function reverseDisplayLookup(term: string): string[] {

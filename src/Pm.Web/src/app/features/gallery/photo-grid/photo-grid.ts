@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { tagColor, DANGER } from '@core/tag-color';
 import { PmApi, type PhotoListItem, type TagListRow } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
-import { normalizeTagQuery, exactMatch } from '@core/tag-search';
+import { normalizeTagQuery, exactMatch, excludeSelected } from '@core/tag-search';
 import { displayOf } from '@core/tag-display';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
@@ -112,7 +112,9 @@ export class PhotoGrid {
     const seq = ++this.acSeq;
     try {
       const rows = await this.api.tags(normalizeTagQuery(term), 12);
-      if (seq === this.acSeq) this.suggestions.set(rows);
+      if (seq === this.acSeq) {
+        this.suggestions.set(excludeSelected(rows, this.tokens().map((t) => t.text)));
+      }
     } catch {
       if (seq === this.acSeq) this.suggestions.set([]);
     }
