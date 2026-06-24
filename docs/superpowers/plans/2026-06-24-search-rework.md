@@ -481,8 +481,9 @@ git commit -m "feat(web): 搜尋改下拉驅動(正規化查詢/精準Enter/點c
 - [ ] **Step 1: photo-grid.ts import 加入 `reverseDisplayLookup`**
 
 ```ts
-import { normalizeTagQuery, exactMatch, reverseDisplayLookup } from '@core/tag-search';
+import { normalizeTagQuery, exactMatch, excludeSelected, reverseDisplayLookup } from '@core/tag-search';
 ```
+（`excludeSelected` 在 bug-fix commit `f225260` 已加入 import 與 `doSuggest`;Task 6 改寫 `doSuggest` 時務必保留它,見下。）
 
 - [ ] **Step 2: `doSuggest` 合併反查結果**
 
@@ -499,7 +500,7 @@ import { normalizeTagQuery, exactMatch, reverseDisplayLookup } from '@core/tag-s
       if (seq !== this.acSeq) return;
       const byId = new Map<number, TagListRow>();
       for (const r of [...extra, ...main]) byId.set(r.id, r); // 反查命中優先,依 id 去重
-      this.suggestions.set([...byId.values()]);
+      this.suggestions.set(excludeSelected([...byId.values()], this.tokens().map((t) => t.text)));
     } catch {
       if (seq === this.acSeq) this.suggestions.set([]);
     }
