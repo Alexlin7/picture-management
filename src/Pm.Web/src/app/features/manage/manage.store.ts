@@ -105,9 +105,10 @@ export class ManageStore {
   }
 
   // 新增來源(資料夾挑選器無法在純前端做 → 由 caller 傳 absPath 文字;deferred 真正挑選器)。
-  async createRoot(name: string, absPath: string): Promise<void> {
-    await this.api.createRoot(name, absPath);
+  async createRoot(name: string, absPath: string): Promise<Root> {
+    const root = await this.api.createRoot(name, absPath);
     await this.loadRoots();
+    return root;
   }
 
   // ===== 失蹤待辦匣 =====
