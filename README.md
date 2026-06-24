@@ -22,7 +22,7 @@
 - ✅ **WD14 已在真實圖庫實機驗證（2026-06-22，AMD RX 9060 XT / DirectML）**：200 張動漫圖一輪 0 失敗；HF 模型 + `selected_tags.csv` 自動下載成功；DirectML 在 AMD GPU 推論成功；標籤品質佳（`1girl`/`long_hair`/`halo`/角色名…），`source=wd14`＋`confidence` 正確寫入。**category↔kind 對應確認無誤**：WD14 v3 的 csv 只有 category `0`(general)/`4`(character)/`9`(rating，被過濾)，無 `3`(copyright)，故 `KindOf` 的 `3→copyright` 為不觸發死碼（無害；作品名內嵌於角色標如 `aris_(blue_archive)`）。門檻 general 0.35 / character 0.85 表現合理（character 偏高精度，想多召回可調低）
 - ✅ **WD14 tag 顯示層 v1**：英文 raw tag → 中文顯示名（`displayOf`）+ 角色解析（`parseCharacter`，作品內嵌於 `name_(work)`）；檢視器依 group 分區 + 來源徽章（path/manual/wd14 + confidence）+ per-photo 重標。**純前端 display model，不改 SQLite canonical**（`core/tag-display.ts`，TDD，`ng test` 綠）
 - ✅ **UI 樣式系統地基（Spec 1）**：Tailwind v4 `@theme` 擴充（success/warning 語意色、focus ring、shadow elevation、motion token）+ 全域 `:focus-visible` ＋ `prefers-reduced-motion` ＋ `.btn` 三態 / `.btn-danger` / `.input` / `.skeleton` primitive（純加法，`ng build`/`ng test` 綠）
-- 🚧 **Gallery 頂端操作 UX 重構（Spec 3）設計定稿待實作**：搜尋改「下拉驅動 substring 探索」（運算子退場）、刪冗餘掃描鈕、儲存搜尋/批次 requeue 接線
+- ✅ **Gallery 頂端操作 UX 重構（Spec 3，大致完成）**：搜尋改「下拉驅動 substring 探索」（打片段挑既有標、AND 隱含、點 chip 切排除、精準 Enter、查無此標、已選標不重複）；刪冗餘掃描鈕（②）；儲存搜尋存+套用接線（③）；toolbar「重標失敗」批次 requeue（④，error+retry 非破壞）。**剩**：Task 6 中文顯示名反查（打「微笑」找 smile，待使用者實測回饋後做）、破壞性「重標全部」deferred
 - 🚧 推論後端：CPU / DirectML 可用；CUDA、Windows ML 僅骨架（見 `src/Pm.Ml`）
 - 🔲 Phase 2（CLIP 語意搜尋）未開始
 
@@ -121,9 +121,9 @@ cd src/Pm.Web ; npm test          # 前端
 - 模型供應 `Wd14ModelProvider`：HF 下載走 `.part` 暫存檔 + atomic rename，中斷不留壞檔
 
 ### ⚠️ 已接 API 但功能簡化（API 無來源，刻意 deferred，非 bug）
-- 相簿：搜尋框 **autocomplete + token 已接**（打字查既有標籤、↑↓/Enter/Esc、token chip、空格 AND / `-` 排除）；但「儲存搜尋」「掃描」鈕仍 **no-op**（Spec 3 處理）；總命中數暫顯「已載入數」、WD14 佇列暫顯 0、per-tile tag chips 移除、無初始查詢
+- 相簿：搜尋為 **下拉驅動**（打片段挑既有標、AND 隱含、點 chip 切排除、精準 Enter、查無此標、已選標不重複）；「儲存搜尋」已接（存+套用）、「重標失敗」批次 requeue 已接、冗餘掃描鈕已刪；總命中數暫顯「已載入數」、WD14 佇列暫顯 0、per-tile tag chips 移除、無初始查詢
 - 檢視器：tag 已改 **中文顯示名 + 依 group 分區 + 來源徽章 + per-photo 重標 + 逐標移除**；WD14 建議（✓✕ 採用/拒絕）、系列/個人/GPS 仍移除
-- 管理：來源檔數/掃描時間/狀態點、reconcile 已續接數、saved 命中數/特殊卡隱藏；新增來源用 inline 表單收路徑（無資料夾挑選器）；saved 點卡套用查詢未接
+- 管理：來源檔數/掃描時間/狀態點、reconcile 已續接數、saved 命中數/特殊卡隱藏；新增來源用 inline 表單收路徑（無資料夾挑選器）；saved 點卡**已可套用查詢**（解析 queryJson → gallery setTokens）
 
 ### 🔲 尚未實作 / 待驗
 - **WD14 失敗 job 無自動重試**：`TaggingWorker` 失敗只標 `error` ＋ `Attempts++`，不自動重排（之後可加退避重試）。註：崩潰卡在 `running` 的 job 啟動時**會**自動回收重排（與此不同）
