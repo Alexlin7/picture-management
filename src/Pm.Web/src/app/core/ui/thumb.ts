@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, SimpleChanges, computed, inject, signal } from '@angular/core';
 import { PmApi } from '@core/api/pm-api';
 
 type ThumbState = 'loading' | 'loaded' | 'broken';
@@ -86,11 +86,14 @@ export class Thumb implements OnChanges, OnDestroy {
     return a === 0 ? base : `${base}?r=${a}`;
   });
 
-  ngOnChanges(): void {
-    // photoId 變動(同 tile 被重用)→ 重置狀態機。
-    this.clearTimer();
-    this.attempt.set(0);
-    this.state.set('loading');
+  ngOnChanges(changes: SimpleChanges): void {
+    // 只在 photoId 變動(同 tile 被重用)時重置狀態機;
+    // 僅改 aspectRatio/alt 不該讓已載入的圖閃回 skeleton。
+    if (changes['photoId']) {
+      this.clearTimer();
+      this.attempt.set(0);
+      this.state.set('loading');
+    }
   }
 
   onLoad(): void {
@@ -105,6 +108,7 @@ export class Thumb implements OnChanges, OnDestroy {
       return;
     }
     // 維持 loading(skeleton 持續),退避後遞增 attempt → src 改變 → img 重載。
+    this.clearTimer(); // 防 error 連續觸發時舊 timer handle 懸空
     this.timer = setTimeout(() => this.attempt.set(next + 1), Thumb.RETRY_DELAYS[next]);
   }
 
