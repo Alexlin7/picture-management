@@ -34,6 +34,25 @@ export function excludeSelected(
   return rows.filter((r) => !selected.has(r.name.toLowerCase()));
 }
 
+// token → URL query 片段:text 內部空白轉 '_',多個以 '+' 串。空 → ''。
+export function encodeTokens(tokens: readonly { text: string }[]): string {
+  return tokens
+    .map((t) => t.text.trim())
+    .filter(Boolean)
+    .map((t) => t.replace(/\s+/g, '_'))
+    .join('+');
+}
+
+// URL query 片段 → token(kind 不進 URL,一律 general;空/壞 → [])。
+export function decodeTokens(q: string): { text: string; kind: 'general' }[] {
+  if (!q) return [];
+  return q
+    .split('+')
+    .map((s) => s.replace(/_/g, ' ').trim())
+    .filter(Boolean)
+    .map((text) => ({ text, kind: 'general' as const }));
+}
+
 // 中文/顯示名反查:回傳「顯示 label 含此片段」的 canonical 英文 tag 名。
 // 僅覆蓋 curated 顯示名(表情等);空片段或無命中 → []。
 export function reverseDisplayLookup(term: string): string[] {

@@ -1,4 +1,4 @@
-import { normalizeTagQuery, toggleExclude, exactMatch, reverseDisplayLookup, excludeSelected } from './tag-search';
+import { normalizeTagQuery, toggleExclude, exactMatch, reverseDisplayLookup, excludeSelected, encodeTokens, decodeTokens } from './tag-search';
 import type { TagListRow } from '@core/api/pm-api';
 
 describe('normalizeTagQuery', () => {
@@ -72,5 +72,24 @@ describe('excludeSelected', () => {
   });
   it('無已選 → 全保留', () => {
     expect(excludeSelected(sugRows, []).map((r) => r.id)).toEqual([1, 2]);
+  });
+});
+
+describe('encodeTokens / decodeTokens', () => {
+  it('多 token 以 + 串、內部空白轉底線', () => {
+    expect(encodeTokens([{ text: 'blue archive' }, { text: '-smile' }])).toBe('blue_archive+-smile');
+  });
+  it('空陣列 → 空字串', () => {
+    expect(encodeTokens([])).toBe('');
+  });
+  it('decode 還原為 text + general kind', () => {
+    expect(decodeTokens('blue_archive+-smile')).toEqual([
+      { text: 'blue archive', kind: 'general' },
+      { text: '-smile', kind: 'general' },
+    ]);
+  });
+  it('空/壞值 → 空陣列', () => {
+    expect(decodeTokens('')).toEqual([]);
+    expect(decodeTokens('+++')).toEqual([]);
   });
 });
