@@ -75,6 +75,9 @@ curl -X POST http://localhost:5180/api/roots -H "Content-Type: application/json"
      -d '{"name":"my-lib","absPath":"D:/pics"}'
 # 觸發掃描（就地索引，絕不搬動原檔）
 curl -X POST http://localhost:5180/api/roots/1/scan -H "Content-Type: application/json" -d '{}'
+
+# 查掃描狀態（POST 會回 202，實際結果由這裡輪詢）
+curl http://localhost:5180/api/roots/1/scan-status
 ```
 之後在 UI 的「匯入確認」頁確認路徑→tag 規則。
 
@@ -109,7 +112,7 @@ cd src/Pm.Web ; npm test          # 前端
 
 ### ✅ 已完成且驗證
 - SQLite 九表 schema + migration；身分（`photo`）/位置（`photo_location`）兩層分離
-- 掃描器：走訪 + SHA-256 + upsert 身分/位置 + 同內容去重 + size/mtime 快路徑 + EXIF/尺寸/MIME + 512px webp 縮圖 + 走訪後對帳（missing/搬移/失蹤/復原）
+- 掃描器：背景非同步掃描 + 狀態輪詢、走訪 + SHA-256 + upsert 身分/位置 + 同內容去重 + size/mtime 快路徑 + EXIF/尺寸/MIME + 512px webp 縮圖/缺檔補產 + 走訪後對帳（missing/搬移/失蹤/復原）
 - 路徑→tag：待確認段收集 + 確認規則 + 重掃自動套用
 - 查詢：`TagClosureService`（DAG 後代閉包 recursive CTE）+ `PhotoQueryService`（布林 AND/排除 + keyset，只回 present）
 - API：roots(GET/POST)、scan、search、photos/{id}(+thumb)、reconcile/missing(+archive 軟刪/purge 硬刪)、path-rules、saved-searches(CRUD)、tags/tree(facet)、photos/{id}/tags(manual 新增/刪除)
