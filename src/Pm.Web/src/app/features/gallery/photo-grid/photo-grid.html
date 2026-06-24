@@ -93,7 +93,7 @@
     <div class="masonry" [class.dense]="viewMode() === 'dense'" [class.large]="viewMode() === 'large'">
       @for (p of photos(); track p.id) {
         <div class="tile" [class.sel]="selectedId() === p.id" (click)="pick(p)">
-          <img class="art" [src]="thumb(p.id)" [style.aspect-ratio]="aspect(p)" loading="lazy" alt="" />
+          <app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" />
         </div>
       }
     </div>

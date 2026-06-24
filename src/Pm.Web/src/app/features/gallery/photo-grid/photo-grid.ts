@@ -6,11 +6,12 @@ import { normalizeTagQuery, exactMatch, excludeSelected } from '@core/tag-search
 import { displayOf } from '@core/tag-display';
 import { ToastService } from '@core/ui/toast';
 import { ConfirmService } from '@core/ui/confirm';
+import { Thumb } from '@core/ui/thumb';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
   selector: 'app-photo-grid',
-  imports: [],
+  imports: [Thumb],
   templateUrl: './photo-grid.html',
   styleUrl: './photo-grid.css',
 })
@@ -41,11 +42,6 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
   // 千分位
   readonly hitCountText = computed(() => this.hitCount().toLocaleString('en-US'));
   readonly wd14QueueText = computed(() => this.wd14Queue().toLocaleString('en-US'));
-
-  // 縮圖 URL(依 hash,絕不碰原圖)
-  thumb(id: number): string {
-    return this.store.thumbUrl(id);
-  }
 
   // tile 用真實長寬比預留空間(無尺寸退 1:1):避免變形,且載入前先佔位不跳動。
   aspect(p: PhotoListItem): string {
