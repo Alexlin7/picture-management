@@ -34,21 +34,23 @@ export function excludeSelected(
   return rows.filter((r) => !selected.has(r.name.toLowerCase()));
 }
 
-// token → URL query 片段:text 內部空白轉 '_',多個以 '+' 串。空 → ''。
+// token → URL query 片段:多個以 ',' 串。text 已是 canonical(底線形式,無空白),原樣保留。
+// 分隔符用 ',' 不用 '+':URL query 慣例把 '+' 解碼成空白,會讓多 token 一分享/重整就壞;
+// ',' 不會被當空白,且 Danbooru tag 名絕不含 ','。不做 '_'↔' ' 轉換 —— token.text 一律 canonical
+// (空白在 normalizeTagQuery 於形成 token 前已收掉)。
 export function encodeTokens(tokens: readonly { text: string }[]): string {
   return tokens
     .map((t) => t.text.trim())
     .filter(Boolean)
-    .map((t) => t.replace(/\s+/g, '_'))
-    .join('+');
+    .join(',');
 }
 
-// URL query 片段 → token(kind 不進 URL,一律 general;空/壞 → [])。
+// URL query 片段 → token(kind 不進 URL,一律 general;空/壞 → [])。text 原樣還原。
 export function decodeTokens(q: string): { text: string; kind: 'general' }[] {
   if (!q) return [];
   return q
-    .split('+')
-    .map((s) => s.replace(/_/g, ' ').trim())
+    .split(',')
+    .map((s) => s.trim())
     .filter(Boolean)
     .map((text) => ({ text, kind: 'general' as const }));
 }

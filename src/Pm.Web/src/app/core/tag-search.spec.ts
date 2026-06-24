@@ -76,20 +76,25 @@ describe('excludeSelected', () => {
 });
 
 describe('encodeTokens / decodeTokens', () => {
-  it('多 token 以 + 串、內部空白轉底線', () => {
-    expect(encodeTokens([{ text: 'blue archive' }, { text: '-smile' }])).toBe('blue_archive+-smile');
+  it('多 token 以 , 串、canonical text 原樣保留', () => {
+    expect(encodeTokens([{ text: 'large_breasts' }, { text: '-smile' }])).toBe('large_breasts,-smile');
   });
   it('空陣列 → 空字串', () => {
     expect(encodeTokens([])).toBe('');
   });
-  it('decode 還原為 text + general kind', () => {
-    expect(decodeTokens('blue_archive+-smile')).toEqual([
-      { text: 'blue archive', kind: 'general' },
+  it('decode 還原為 text + general kind(底線不被改成空白)', () => {
+    expect(decodeTokens('large_breasts,-smile')).toEqual([
+      { text: 'large_breasts', kind: 'general' },
       { text: '-smile', kind: 'general' },
     ]);
   });
+  it('含底線 canonical tag 往返為 identity(回歸:large_breasts 不可變 large breasts)', () => {
+    const tokens = [{ text: 'large_breasts' }, { text: 'long_hair' }, { text: '-blue_archive' }];
+    const decoded = decodeTokens(encodeTokens(tokens));
+    expect(decoded.map((t) => t.text)).toEqual(['large_breasts', 'long_hair', '-blue_archive']);
+  });
   it('空/壞值 → 空陣列', () => {
     expect(decodeTokens('')).toEqual([]);
-    expect(decodeTokens('+++')).toEqual([]);
+    expect(decodeTokens(',,,')).toEqual([]);
   });
 });
