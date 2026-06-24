@@ -43,4 +43,32 @@ public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
         if (rows.Count > pageSize) rows.RemoveAt(rows.Count - 1);
         return new PhotoPage(rows, next);
     }
+
+    public async Task<long> CountAsync(
+        IEnumerable<string> all, IEnumerable<string> none,
+        CancellationToken ct = default)
+    {
+        var includeGroups = new List<List<long>>();
+        foreach (var name in all.Distinct())
+        {
+            var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == name, ct);
+            if (tag is null) return 0;   // 未知 tag → 無結果
+            includeGroups.Add(await closure.DescendantsAsync(tag.Id, ct));
+        }
+
+        var excludeIds = new List<long>();
+        foreach (var name in none.Distinct())
+        {
+            var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == name, ct);
+            if (tag is not null) excludeIds.AddRange(await closure.DescendantsAsync(tag.Id, ct));
+        }
+
+        var q = db.Photos.Where(p => p.Locations.Any(l => l.Status == "present"));
+        foreach (var group in includeGroups)
+            q = q.Where(p => p.Tags.Any(t => group.Contains(t.TagId)));
+        if (excludeIds.Count > 0)
+            q = q.Where(p => !p.Tags.Any(t => excludeIds.Contains(t.TagId)));
+
+        return await q.LongCountAsync(ct);
+    }
 }

@@ -124,6 +124,10 @@ app.MapPost("/api/search", async (SearchDto dto, PhotoQueryService svc) =>
     Results.Ok(await svc.SearchAsync(dto.All ?? [], dto.None ?? [], dto.AfterId, dto.PageSize ?? 200)))
     .WithTags("Search");
 
+app.MapPost("/api/search/count", async (SearchDto dto, PhotoQueryService svc) =>
+    Results.Ok(new { total = await svc.CountAsync(dto.All ?? [], dto.None ?? []) }))
+    .WithTags("Search");
+
 app.MapGet("/api/photos/{id:long}/thumb", async (long id, PmDbContext db, IThumbnailService thumbs) =>
 {
     var hash = await db.Photos.Where(p => p.Id == id).Select(p => p.FileHash).FirstOrDefaultAsync();
