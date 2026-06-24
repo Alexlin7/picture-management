@@ -288,6 +288,15 @@ app.MapPost("/api/tag/requeue", async (RequeueRequestDto dto, TaggingScheduler s
 })
     .WithTags("Tagging");
 
+app.MapGet("/api/tagging/stats", async (PmDbContext db) =>
+    Results.Ok(new
+    {
+        pending = await db.TaggingJobs.CountAsync(j => j.State == "pending"),
+        error = await db.TaggingJobs.CountAsync(j => j.State == "error"),
+        running = await db.TaggingJobs.CountAsync(j => j.State == "running"),
+    }))
+    .WithTags("Tagging");
+
 // 標籤庫:列出 + 使用數(autocomplete 與管理頁共用);q 不分大小寫過濾
 app.MapGet("/api/tags", async (string? q, int? limit, TagService tags) =>
     Results.Ok(await tags.ListAsync(q, Math.Clamp(limit ?? 50, 1, 500))))
