@@ -100,10 +100,7 @@
     @if (loading()) {
       <div class="empty">載入中…</div>
     }
-    @if (hasMore() && !loading()) {
-      <div class="loadmore">
-        <button class="btn ghost" (click)="loadMore()">載入更多</button>
-      </div>
-    }
+    <!-- 無限捲哨兵:進入視野(含 rootMargin 提前)即自動載下一頁 -->
+    <div #sentinel class="scroll-sentinel" aria-hidden="true"></div>
   </div>
 </div>

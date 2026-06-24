@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { tagColor, DANGER } from '@core/tag-color';
 import { PmApi, type PhotoListItem, type TagListRow } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
@@ -14,7 +14,7 @@ import { ConfirmService } from '@core/ui/confirm';
   templateUrl: './photo-grid.html',
   styleUrl: './photo-grid.css',
 })
-export class PhotoGrid {
+export class PhotoGrid implements AfterViewInit, OnDestroy {
   private readonly store = inject(GalleryStore);
   private readonly api = inject(PmApi);
   private readonly toast = inject(ToastService);
@@ -90,9 +90,25 @@ export class PhotoGrid {
     this.store.select(p.id);
   }
 
-  // 載入下一頁
-  loadMore(): void {
-    void this.store.loadMore();
+  // 無限捲哨兵:接近底部時自動載下一頁(rootMargin 提前預抓)。
+  @ViewChild('sentinel') private sentinel?: ElementRef<HTMLElement>;
+  private io?: IntersectionObserver;
+
+  ngAfterViewInit(): void {
+    if (!this.sentinel) return;
+    this.io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && this.hasMore() && !this.loading()) {
+          void this.store.loadMore();
+        }
+      },
+      { rootMargin: '600px' },
+    );
+    this.io.observe(this.sentinel.nativeElement);
+  }
+
+  ngOnDestroy(): void {
+    this.io?.disconnect();
   }
 
   // 儲存目前搜尋:無 token 時 disabled(template 層也保護),成功/失敗皆 toast 提示。
