@@ -97,10 +97,4 @@ export class InspectorStore {
   clearSuggestions(): void {
     this._suggestions.set([]);
   }
-
-  // 目前 detail 的縮圖 URL(無 detail 回 null)。
-  readonly thumbUrl = computed<string | null>(() => {
-    const d = this._detail();
-    return d == null ? null : this.api.thumbUrl(d.id);
-  });
 }

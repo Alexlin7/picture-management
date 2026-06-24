@@ -110,11 +110,6 @@ export class GalleryStore {
   private readonly _selectedId = signal<number | null>(null);
   readonly selectedId = this._selectedId.asReadonly();
 
-  // 縮圖 URL(給 template;絕不碰原圖)。
-  thumbUrl(id: number): string {
-    return this.api.thumbUrl(id);
-  }
-
   // 初次載入:只載 facet 樹(圖片查詢改由 gallery-view 的 URL 訂閱驅動)。
   async load(): Promise<void> {
     await this.loadFacets();

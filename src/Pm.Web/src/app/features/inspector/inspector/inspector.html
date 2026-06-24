@@ -1,14 +1,11 @@
 @if (photo(); as p) {
   <!-- 預覽圖:縮圖;aspect-ratio 依 width/height(無則自然) -->
   <div class="preview">
-    @if (thumbUrl(); as url) {
-      <img
-        class="pimg"
-        [src]="url"
-        [style.aspect-ratio]="p.width && p.height ? p.width + '/' + p.height : null"
-        alt=""
-      />
-    }
+    <app-thumb
+      class="pimg"
+      [photoId]="p.id"
+      [aspectRatio]="p.width && p.height ? p.width + '/' + p.height : '1/1'"
+    />
     <div class="grad"></div>
   </div>
 

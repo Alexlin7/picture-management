@@ -7,6 +7,7 @@ import {
 } from '../inspector.store';
 import { KIND_LABEL, tagColor } from '@core/tag-color';
 import { groupTags, type DisplayTag } from '@core/tag-display';
+import { Thumb } from '@core/ui/thumb';
 
 // combobox 浮層的列:既有標籤列 或 「建立新標籤」列。
 type ComboRow = { kind: 'tag'; tag: TagListRow } | { kind: 'create'; name: string };
@@ -16,7 +17,7 @@ type ComboRow = { kind: 'tag'; tag: TagListRow } | { kind: 'create'; name: strin
 // 資料來源接縫:InspectorStore(非同步載入 PhotoDetail)。
 @Component({
   selector: 'app-inspector',
-  imports: [],
+  imports: [Thumb],
   templateUrl: './inspector.html',
   styleUrl: './inspector.css',
 })
@@ -29,7 +30,6 @@ export class Inspector implements OnDestroy {
   readonly photo = this.store.detail;
   readonly loading = this.store.loading;
   readonly error = this.store.error;
-  readonly thumbUrl = this.store.thumbUrl;
 
   constructor() {
     // id 變動 → 觸發載入(store 內處理競態與清空),並收起/清空加標籤 combobox

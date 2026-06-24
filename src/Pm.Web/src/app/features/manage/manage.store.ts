@@ -21,7 +21,7 @@ export interface RootView {
 
 // ---- 失蹤待辦匣 view ----
 export type ReconState = 'pending' | 'waiting' | 'externalized' | 'deleted';
-// API missing(): { id, fileHash, paths }。title/last 由 paths 映射;seed/art 無來源(改用真實縮圖 thumbUrl)。
+// API missing(): { id, fileHash, paths }。title/last 由 paths 映射;縮圖改用共用 <app-thumb>(依 id)。
 export interface ReconView {
   id: number;
   fileHash: string;
@@ -146,11 +146,6 @@ export class ManageStore {
     } finally {
       this._reconLoading.set(false);
     }
-  }
-
-  // 縮圖 URL(依 photo id;絕不碰原圖)。
-  thumbUrl(id: number): string {
-    return this.api.thumbUrl(id);
   }
 
   // 「移到圖庫外」/「繼續等待」→ 軟刪 archive(保留 photo+tags)。
