@@ -247,6 +247,21 @@
   }
 }
 
+.masonry.dense {
+  column-count: 5;
+}
+.masonry.large {
+  column-count: 2;
+}
+@media (max-width: 1500px) {
+  .masonry.dense {
+    column-count: 4;
+  }
+  .masonry.large {
+    column-count: 2;
+  }
+}
+
 .tile {
   break-inside: avoid;
   margin-bottom: 12px;
