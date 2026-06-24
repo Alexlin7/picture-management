@@ -92,6 +92,12 @@ export class PmApi {
     );
   }
 
+  taggingStats(): Promise<{ pending: number; error: number; running: number }> {
+    return firstValueFrom(
+      this.http.get<{ pending: number; error: number; running: number }>('/api/tagging/stats'),
+    );
+  }
+
   // 批次 requeue:維護動作(非破壞)。mode:retry=重排失敗 / refresh=清 wd14 重排 / clear=清不排。
   // scope 四選一:photoIds/error/root/all。回傳 matched/clearedTags/jobsCreated/jobsUpdated。
   requeue(

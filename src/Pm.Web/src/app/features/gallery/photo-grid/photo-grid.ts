@@ -40,7 +40,7 @@ export class PhotoGrid {
 
   // 千分位
   readonly hitCountText = computed(() => this.hitCount().toLocaleString('en-US'));
-  readonly wd14QueueText = computed(() => this.wd14Queue.toLocaleString('en-US'));
+  readonly wd14QueueText = computed(() => this.wd14Queue().toLocaleString('en-US'));
 
   // 縮圖 URL(依 hash,絕不碰原圖)
   thumb(id: number): string {

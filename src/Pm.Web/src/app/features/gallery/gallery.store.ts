@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
 import { PmApi, type PhotoListItem } from '@core/api/pm-api';
 import { type TagKind } from '@core/tag-color';
 import { toggleExclude } from '@core/tag-search';
@@ -54,6 +54,21 @@ function mapNode(n: { name: string; kind: string; count: number; multi?: boolean
 export class GalleryStore {
   private readonly api = inject(PmApi);
 
+  constructor() {
+    void this.loadWd14Stats();
+    const id = setInterval(() => void this.loadWd14Stats(), 4000);
+    inject(DestroyRef).onDestroy(() => clearInterval(id));
+  }
+
+  private async loadWd14Stats(): Promise<void> {
+    try {
+      const s = await this.api.taggingStats();
+      this._wd14Queue.set(s.pending + s.error);
+    } catch {
+      /* 靜默:佇列數非關鍵,失敗保留前值 */
+    }
+  }
+
   // ---- 圖牆資料(keyset 無限捲,累積)----
   private readonly _photos = signal<PhotoListItem[]>([]);
   readonly photos = this._photos.asReadonly();
@@ -71,8 +86,9 @@ export class GalleryStore {
   private readonly _hitCount = signal(0);
   readonly hitCount = this._hitCount.asReadonly();
 
-  // WD14 佇列:API 無來源 → 顯示 0(deferred 註明)。
-  readonly wd14Queue = 0;
+  // WD14 待標佇列:真實 pending+error(每 4s 輪詢)。
+  private readonly _wd14Queue = signal(0);
+  readonly wd14Queue = this._wd14Queue.asReadonly();
 
   // ---- 頂欄搜尋 token ----
   private readonly _tokens = signal<SearchToken[]>([]);
