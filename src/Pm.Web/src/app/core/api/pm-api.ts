@@ -12,6 +12,24 @@ export interface PhotoDetail {
   locations: LocationView[]; tags: TagView[];
 }
 export interface Root { id: number; name: string; absPath: string; }
+export interface ScanResult {
+  filesSeen: number;
+  newPhotos: number;
+  newLocations: number;
+  skippedUnchanged: number;
+  errors: number;
+  thumbsGenerated: number;
+  jobsQueued: number;
+  markedMissing: number;
+}
+export interface ScanStatus {
+  rootId: number;
+  state: 'idle' | 'running' | 'completed' | 'error';
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  result?: ScanResult | null;
+  error?: string | null;
+}
 export interface PendingSegment { segment: string; count: number; samplePath: string; suggestedAction: string; }
 export interface SearchReq { all?: string[]; none?: string[]; afterId?: number | null; pageSize?: number; }
 export interface SavedSearchRow { id: number; name: string; queryJson: string; createdAt: string; }
@@ -41,8 +59,11 @@ export class PmApi {
   createRoot(name: string, absPath: string): Promise<Root> {
     return firstValueFrom(this.http.post<Root>('/api/roots', { name, absPath }));
   }
-  scan(id: number): Promise<unknown> {
-    return firstValueFrom(this.http.post(`/api/roots/${id}/scan`, {}));
+  scan(id: number): Promise<ScanStatus> {
+    return firstValueFrom(this.http.post<ScanStatus>(`/api/roots/${id}/scan`, {}));
+  }
+  scanStatus(id: number): Promise<ScanStatus> {
+    return firstValueFrom(this.http.get<ScanStatus>(`/api/roots/${id}/scan-status`));
   }
   missing(): Promise<{ id: number; fileHash: string; paths: string[] }[]> {
     return firstValueFrom(this.http.get<{ id: number; fileHash: string; paths: string[] }[]>('/api/reconcile/missing'));

@@ -33,7 +33,15 @@ export class Roots implements OnInit {
   async onRescan(id: number): Promise<void> {
     this.scanning.set(id);
     try {
-      await this.store.rescan(id);
+      const status = await this.store.rescan(id);
+      const r = status.result;
+      this.toast.success(
+        r
+          ? `掃描完成:新增 ${r.newPhotos} 張,位置 ${r.newLocations} 筆,縮圖 ${r.thumbsGenerated} 張`
+          : '掃描完成',
+      );
+    } catch (e) {
+      this.toast.error(e instanceof Error ? e.message : '掃描啟動失敗');
     } finally {
       this.scanning.set(null);
     }

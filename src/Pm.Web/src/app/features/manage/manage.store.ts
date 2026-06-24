@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   PmApi,
   type Root,
+  type ScanStatus,
   type PendingSegment,
   type SavedSearchRow,
 } from '@core/api/pm-api';
@@ -91,8 +92,16 @@ export class ManageStore {
   }
 
   // 重新掃描某來源。
-  async rescan(id: number): Promise<void> {
-    await this.api.scan(id);
+  async rescan(id: number): Promise<ScanStatus> {
+    let status = await this.api.scan(id);
+    while (status.state === 'running') {
+      await sleep(4000);
+      status = await this.api.scanStatus(id);
+    }
+    if (status.state === 'error') {
+      throw new Error(status.error ?? '掃描失敗');
+    }
+    return status;
   }
 
   // 新增來源(資料夾挑選器無法在純前端做 → 由 caller 傳 absPath 文字;deferred 真正挑選器)。
@@ -301,3 +310,7 @@ export class ManageStore {
 }
 
 export type { TagKind } from '@core/tag-color';
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
