@@ -32,6 +32,10 @@
 
 - `2026-06-23-ml-layer-architecture-assessment.md` — `Pm.Ml` 推論層盤點,為 CLIP / GPU 自動偵測(Phase 2)鋪路;決定哪些現在抽、哪些等真實形狀再抽。
 
+## 待決策(review,等使用者拍板)
+
+- `2026-06-25-tag-sidebar-and-import-confirm-review.md` — 左側 tag 側欄 UX 優化(分區收折 / top-N / 過濾 / 虛擬捲動)+ 匯入確認定位釐清(A 資料夾→tag / B 自訂預設 tag / C 兩者)。決定方向後各自再走 brainstorming → spec → plan。
+
 ## 待實作設計
 
 目前無待實作 spec。backlog 項目(見 handoff)在被接手時,先 `brainstorming` → 新 spec → `plans/` 的 plan,再實作。
