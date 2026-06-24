@@ -85,3 +85,12 @@ dotnet publish src/Pm.Api -r win-x64 --self-contained -p:PublishSingleFile=true
 - **後端測試 DB 隔離**:每測試用獨立 SQLite 檔(`Data Source={tmp}`)或 `:memory:`(見 `tests/` 既有測試),避免互相污染 —— 本專案是 EF Core + SQLite,**無** Java `@Transactional` 那套。
 - **設定分層**:能力層開關(載不載模型等)走 `appsettings` / Rider launchSettings 啟動參數(改了要重啟);行為層執行期開關走 `app_setting`(見 `docs/superpowers/specs/2026-06-23-scanner-tagging-refactor-design.md`)。
 - schema/設計可演進;改動牽涉設計決策時,同步更新 `docs/superpowers/specs/` 設計文件。
+
+**前端樣式慣例(Tailwind v4 + Angular 隔離編譯;完整理由見 `docs/superpowers/specs/2026-06-24-ui-style-system-design.md`):**
+- **新樣式落點決策樹**:
+  1. 能用 Tailwind utility 表達(間距/排版/顏色/簡單狀態)→ 寫在 **template 的 `class`**。
+  2. 會**跨元件重複**的元件樣式 → 進 `src/Pm.Web/src/styles.css` 的 `@layer components` 共用 primitive(`.btn`/`.input`/`.skeleton`… 可 `@apply`)。
+  3. 元件**專屬且複雜**(動畫、複雜 selector、RWD 條件)→ 元件 `.css`,**一律用 `var(--token)`**,不放能用 utility 表達的瑣碎樣式。
+  4. **顏色/字體/圓角/陰影/elevation 一律走 token**(`styles.css` `@theme`,同時產 utility 與 `var`),不寫裸 hex。
+- **鐵則**:元件 `.css`(component-scoped)**不得** `@apply`/`@tailwind`/`@reference` —— Angular 隔離編譯選不到全域 token,故元件 .css 只能手寫 + `var(--token)`。共用 `@apply` 只能寫在全域 `styles.css`。
+- **a11y 基礎已就位**:全域 `:focus-visible` cyan ring + `prefers-reduced-motion` 降載;新互動元件勿用 `outline:none` 蓋掉 focus ring(除非容器自理 focus)。
