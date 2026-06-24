@@ -9,16 +9,20 @@
 
 ---
 
-## 目前狀態（2026-06-22）
+## 目前狀態（2026-06-24）
 
 **Phase 1 核心可端對端運作**：掃描就地索引 → SHA-256 身分 → 縮圖 → 布林查詢 → Angular 相簿，
-前端各畫面**已接真實 API**（非 mock），單一 .NET 程序同時 serve API 與前端。
+前端各畫面**已接真實 API**（非 mock），單一 .NET 程序同時 serve API 與前端。近期進入 UI/UX 進化階段
+（tag 顯示層、樣式系統地基、頂端操作重構）。
 
 - ✅ 後端 scan / 對帳 / 查詢 / 路徑→tag / saved search / facet 樹 / 軟硬刪 / manual tag 端點（皆有測試）
 - ✅ 標籤庫端點：列表（含使用數）/ 改名 / 合併 / 刪除，正規化 + **全 Unicode 不分大小寫去重**（`name_ci` 鍵 + 唯一索引，非 ASCII 角色/作品名也去重）（`TagService`）
 - ✅ 前端 gallery / import / reconcile / saved / roots + inspector + **標籤庫管理頁 `/tags`** 接真實 API（實機驗證）；檢視器以 combobox 加/刪標籤（查既有、防近似重複）
 - ✅ **WD14 自動標籤端到端就緒（opt-in）**：ML pipeline（前處理 448² BGR / WD14 ONNX in-proc / 後處理門檻）＋ `TaggingWorker` 已透過 `AddWd14Tagging` wire 進 host —— `Inference:Enabled=true` 時註冊推論工廠＋tagger＋背景服務消化 `tagging_job`，**預設關閉**（免下載模型）；worker 寫 tag 走 `TagService`（全 Unicode CI 去重、kind 語意升級不降級、與 manual 共用 `AttachTag` 路徑），不再與手動標籤撞大小寫或畫錯 lane；崩潰留下的 `running` job 啟動時自動回收重排
 - ✅ **WD14 已在真實圖庫實機驗證（2026-06-22，AMD RX 9060 XT / DirectML）**：200 張動漫圖一輪 0 失敗；HF 模型 + `selected_tags.csv` 自動下載成功；DirectML 在 AMD GPU 推論成功；標籤品質佳（`1girl`/`long_hair`/`halo`/角色名…），`source=wd14`＋`confidence` 正確寫入。**category↔kind 對應確認無誤**：WD14 v3 的 csv 只有 category `0`(general)/`4`(character)/`9`(rating，被過濾)，無 `3`(copyright)，故 `KindOf` 的 `3→copyright` 為不觸發死碼（無害；作品名內嵌於角色標如 `aris_(blue_archive)`）。門檻 general 0.35 / character 0.85 表現合理（character 偏高精度，想多召回可調低）
+- ✅ **WD14 tag 顯示層 v1**：英文 raw tag → 中文顯示名（`displayOf`）+ 角色解析（`parseCharacter`，作品內嵌於 `name_(work)`）；檢視器依 group 分區 + 來源徽章（path/manual/wd14 + confidence）+ per-photo 重標。**純前端 display model，不改 SQLite canonical**（`core/tag-display.ts`，TDD，`ng test` 綠）
+- ✅ **UI 樣式系統地基（Spec 1）**：Tailwind v4 `@theme` 擴充（success/warning 語意色、focus ring、shadow elevation、motion token）+ 全域 `:focus-visible` ＋ `prefers-reduced-motion` ＋ `.btn` 三態 / `.btn-danger` / `.input` / `.skeleton` primitive（純加法，`ng build`/`ng test` 綠）
+- 🚧 **Gallery 頂端操作 UX 重構（Spec 3）設計定稿待實作**：搜尋改「下拉驅動 substring 探索」（運算子退場）、刪冗餘掃描鈕、儲存搜尋/批次 requeue 接線
 - 🚧 推論後端：CPU / DirectML 可用；CUDA、Windows ML 僅骨架（見 `src/Pm.Ml`）
 - 🔲 Phase 2（CLIP 語意搜尋）未開始
 
@@ -79,7 +83,7 @@ curl -X POST http://localhost:5180/api/roots/1/scan -H "Content-Type: applicatio
 
 ```powershell
 # 例:以環境變數臨時開啟(走 CPU)
-$env:Inference__Enabled = "true"; $env:Inference__Backend = "cpu"
+$env:Inference__Wd14__Enabled = "true"; $env:Inference__Wd14__Backend = "cpu"
 dotnet run --project src/Pm.Api
 ```
 
@@ -117,9 +121,9 @@ cd src/Pm.Web ; npm test          # 前端
 - 模型供應 `Wd14ModelProvider`：HF 下載走 `.part` 暫存檔 + atomic rename，中斷不留壞檔
 
 ### ⚠️ 已接 API 但功能簡化（API 無來源，刻意 deferred，非 bug）
-- 相簿：總命中數暫顯「已載入數」、WD14 佇列暫顯 0、per-tile 的 tag chips/系列/去重/個人照片標記已移除、搜尋框送出加 token 互動未接、無初始查詢
-- 檢視器：WD14 建議（✓✕ 採用/拒絕）移除、系列/個人/GPS 移除；manual tag 新增刪除 store 有方法但尚無 UI
-- 管理：來源檔數/掃描時間/狀態點、reconcile 已續接數、saved 命中數/特殊卡隱藏；新增來源用 prompt 收路徑（無資料夾挑選器）；saved 點卡套用查詢未接
+- 相簿：搜尋框 **autocomplete + token 已接**（打字查既有標籤、↑↓/Enter/Esc、token chip、空格 AND / `-` 排除）；但「儲存搜尋」「掃描」鈕仍 **no-op**（Spec 3 處理）；總命中數暫顯「已載入數」、WD14 佇列暫顯 0、per-tile tag chips 移除、無初始查詢
+- 檢視器：tag 已改 **中文顯示名 + 依 group 分區 + 來源徽章 + per-photo 重標 + 逐標移除**；WD14 建議（✓✕ 採用/拒絕）、系列/個人/GPS 仍移除
+- 管理：來源檔數/掃描時間/狀態點、reconcile 已續接數、saved 命中數/特殊卡隱藏；新增來源用 inline 表單收路徑（無資料夾挑選器）；saved 點卡套用查詢未接
 
 ### 🔲 尚未實作 / 待驗
 - **WD14 失敗 job 無自動重試**：`TaggingWorker` 失敗只標 `error` ＋ `Attempts++`，不自動重排（之後可加退避重試）。註：崩潰卡在 `running` 的 job 啟動時**會**自動回收重排（與此不同）
