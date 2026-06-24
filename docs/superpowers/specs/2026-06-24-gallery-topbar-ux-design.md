@@ -1,7 +1,7 @@
 # Gallery 頂端操作區 UX 重構(Spec 3)— 設計文件
 
 - 日期:2026-06-24
-- 狀態:**設計定稿,待 review → writing-plans → 實作**
+- 狀態:**已實作(2026-06-24)** —— ① 下拉搜尋 ② 掃描鈕移除 ③ 收藏搜尋套用 ④ requeue 入口;批次「依當前查詢」requeue scope 與「重標全部」deferred。
 - 關聯:`2026-06-24-ui-style-system-design.md`(Spec 1 地基已實作)、
   `2026-06-22-tag-display-layer-design.md`(顯示層 displayOf/parseCharacter)、
   memory `ui-search-scan-ux-concern`(使用者原始疑慮)

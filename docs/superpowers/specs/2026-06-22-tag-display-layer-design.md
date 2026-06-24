@@ -1,7 +1,7 @@
 # WD14 tag 顯示層清理(v1)— 設計文件
 
 - 日期:2026-06-22
-- 狀態:設計定稿,待實作
+- 狀態:**已實作(v1,2026-06-24)** —— 純前端顯示層,canonical 不動。
 - 關聯:`CLAUDE.md` 鐵則 #3(SQLite 是 tag 唯一真相)、#5(tag 來源要分);
   上層設計 `2026-06-21-picture-management-design.md`
 

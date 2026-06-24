@@ -1,6 +1,7 @@
 # 縮圖佔位狀態 + 新增來源自動掃描 設計
 
 **日期**:2026-06-24
+**狀態**:**已實作(2026-06-24)** —— `app-thumb` skeleton/重試/佔位,gallery/reconcile/inspector 共用;`src` 對 photoId 變動有反應(修重用實例切圖);新增來源自動掃描 + toast。
 **分支**:feat/frontend-followups
 **範圍**:兩個前端 UX 修正(問題 1 純前端;問題 2 前端為主,store API 回傳值微調)。
 

@@ -1,7 +1,7 @@
 # UI 樣式系統地基 + UI/UX 進化 — 設計文件
 
 - 日期:2026-06-24
-- 狀態:**設計定稿,待 review → writing-plans → 實作**
+- 狀態:**地基(Spec 1)已實作(2026-06-24)** —— `@theme` token + a11y/motion + primitive 三態;後續 UI/UX 進化為持續方向。
 - 關聯:`CLAUDE.md`(繁中協作、小切片);`docs/mockups/ui-preview.html`(視覺 token 原始來源);
   既有 `src/Pm.Web/src/styles.css`(`@theme` token + `@layer components` primitive)
 - 起因:專案初期以 frontend-design 生成,UI 到一定程度後要進化操作體驗與視覺風格;

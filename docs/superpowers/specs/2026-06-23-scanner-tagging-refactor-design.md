@@ -1,7 +1,7 @@
 # LibraryScanner 重構 + Tagging 解耦 — 設計文件
 
 - 日期:2026-06-23
-- 狀態:**Slice 1a/1b/1c/2/3 已實作;Slice 4+ 待實作**(切片順序見 §7)
+- 狀態:**Slice 1a–4 已實作,§B 掃描/Tagging 解耦完成(2026-06-24)**(切片順序見 §7)
 - 關聯:`CLAUDE.md` 鐵則 #1/#2(就地索引、hash 是身分、不碰原檔)、#5(tag 來源要分)、#6(ONNX/DirectML 抽象)、#7(`tagging_job` 程序內佇列);
   吸收 `2026-06-22-scan-detection-design.md` 的**路線 A**(掃描效能);現有實作 `src/Pm.Scanner/LibraryScanner.cs`、`src/Pm.Api/Wd14Setup.cs`、`src/Pm.Api/TaggingWorker.cs`
 - 取代範圍:本文**吸收** scan-detection-design 的路線 A1(批次消 N+1)並擴充;該文的**路線 B**(FileSystemWatcher 即時偵測)仍留在原文,屬更後續。

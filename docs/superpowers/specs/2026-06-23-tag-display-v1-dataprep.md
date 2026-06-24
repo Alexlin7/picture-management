@@ -1,7 +1,7 @@
 # WD14 顯示層 v1 — 資料準備產出 + 實作接手
 
 - 日期:2026-06-23
-- 狀態:**資料準備完成,待實作 Slice A/B**(spec 設計見 `2026-06-22-tag-display-layer-design.md`,§④ 已鎖 qualifier 黑名單)
+- 狀態:**已實作(Slice A/B 完成,2026-06-24)**(spec 設計見 `2026-06-22-tag-display-layer-design.md`,§④ 已鎖 qualifier 黑名單)
 - 來源:dynamic workflow `tag-display-v1-dataprep`(6 agents,從本機 `src/Pm.Api/models/wd14/selected_tags.csv` 撈、依全 danbooru 全球 count 排序、對抗式驗證 parseCharacter)
 - 為何不依賴使用者圖庫:對照表權威來源是 WD14 完整字典 + 全球 count,比任何單機圖庫更全;本機 300 張只當事後 sanity check。
 
