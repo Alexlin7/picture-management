@@ -45,7 +45,7 @@
       </div>
     </div>
     <div class="search-hint">挑標籤＝AND · 點標籤切換排除 · Enter 套用精準標</div>
-    <button class="btn ghost" title="儲存目前搜尋">
+    <button class="btn ghost" title="儲存目前搜尋" (click)="saveSearch()" [disabled]="!tokens().length">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
         <path d="m12 17-5.5 3 1-6.2L3 9.3l6.2-.9L12 3l2.8 5.4 6.2.9-4.5 4.5 1 6.2z" />
       </svg>儲存搜尋

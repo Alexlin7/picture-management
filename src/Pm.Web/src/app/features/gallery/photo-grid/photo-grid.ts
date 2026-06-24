@@ -4,6 +4,7 @@ import { PmApi, type PhotoListItem, type TagListRow } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
 import { normalizeTagQuery, exactMatch, excludeSelected } from '@core/tag-search';
 import { displayOf } from '@core/tag-display';
+import { ToastService } from '@core/ui/toast';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
@@ -15,6 +16,7 @@ import { displayOf } from '@core/tag-display';
 export class PhotoGrid {
   private readonly store = inject(GalleryStore);
   private readonly api = inject(PmApi);
+  private readonly toast = inject(ToastService);
 
   // 資料來源:store(來自 PmApi)
   readonly photos = this.store.photos;
@@ -89,6 +91,19 @@ export class PhotoGrid {
   // 載入下一頁
   loadMore(): void {
     void this.store.loadMore();
+  }
+
+  // 儲存目前搜尋:無 token 時 disabled(template 層也保護),成功/失敗皆 toast 提示。
+  saveSearch(): void {
+    const ts = this.tokens();
+    if (!ts.length) return;
+    const queryJson = JSON.stringify(ts);
+    const name = ts.map((t) => t.text).join(' ');
+    void this.api.createSavedSearch({ name, queryJson }).then(() => {
+      this.toast.success('已儲存搜尋');
+    }).catch(() => {
+      this.toast.error('儲存搜尋失敗,請稍後再試');
+    });
   }
 
   // ---- 搜尋框 autocomplete(查既有標籤;與 inspector combobox 同模式,日後可抽共用)----
