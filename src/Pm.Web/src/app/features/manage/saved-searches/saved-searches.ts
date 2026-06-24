@@ -37,20 +37,18 @@ export class SavedSearches implements OnInit {
     this.hovered.set(null);
   }
 
-  // 點卡片:解析 queryJson → setTokens 到 GalleryStore,再導到 /gallery。
-  // 解析失敗(舊/壞資料)→ 忽略、只導頁不爆。
+  // 點卡片:解析 queryJson → 推進 /gallery?q=(由 GalleryStore.setTokens 導頁)。
   onPick(id: number): void {
     this.active.set(id);
     const row = this.saved().find((s) => s.id === id);
-    if (row) {
-      try {
-        const tokens = JSON.parse(row.query) as SearchToken[];
-        if (Array.isArray(tokens)) {
-          this.gallery.setTokens(tokens);
-        }
-      } catch {
-        // 舊/壞資料:吞掉,只導頁
+    try {
+      const tokens = JSON.parse(row?.query ?? '[]') as SearchToken[];
+      if (Array.isArray(tokens) && tokens.length) {
+        this.gallery.setTokens(tokens);
+        return;
       }
+    } catch {
+      /* 舊/壞資料:落到下方導空 gallery */
     }
     void this.router.navigate(['/gallery']);
   }

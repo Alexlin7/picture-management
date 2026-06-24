@@ -1,7 +1,8 @@
 import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Router } from '@angular/router';
 import { PmApi, type PhotoListItem } from '@core/api/pm-api';
 import { type TagKind } from '@core/tag-color';
-import { toggleExclude } from '@core/tag-search';
+import { toggleExclude, encodeTokens, decodeTokens } from '@core/tag-search';
 
 // 相簿資料來源 store:元件與 API 之間的唯一接縫。
 // 資料一律來自 @core/api/pm-api 的 PmApi;元件只讀 store 的 signal。
@@ -53,6 +54,7 @@ function mapNode(n: { name: string; kind: string; count: number; multi?: boolean
 @Injectable({ providedIn: 'root' })
 export class GalleryStore {
   private readonly api = inject(PmApi);
+  private readonly router = inject(Router);
 
   constructor() {
     void this.loadWd14Stats();
@@ -113,9 +115,9 @@ export class GalleryStore {
     return this.api.thumbUrl(id);
   }
 
-  // 初次載入:facet 樹 + 第一頁圖。
+  // 初次載入:只載 facet 樹(圖片查詢改由 gallery-view 的 URL 訂閱驅動)。
   async load(): Promise<void> {
-    await Promise.all([this.loadFacets(), this.search()]);
+    await this.loadFacets();
   }
 
   // 重新搜尋(token 變動時呼叫):重置游標與累積清單。
@@ -181,31 +183,39 @@ export class GalleryStore {
     }
   }
 
-  // 設定 token 並重新搜尋。
-  setTokens(tokens: SearchToken[]): void {
-    this._tokens.set(tokens);
+  // URL query 'q' → 設 token 並查詢。gallery-view 的 queryParams 訂閱是唯一呼叫處。
+  applyQuery(q: string): void {
+    this._tokens.set(decodeTokens(q) as SearchToken[]);
     void this.search();
   }
 
-  // 加一個 token(text 無 '-' = all;'-x' = none)並重新搜尋;已有同 text 則略過(去重)。
+  // 推進 /gallery?q=...(空則移除 q);實際 setTokens+search 由訂閱回呼完成 → 無迴圈。
+  private pushTokens(tokens: SearchToken[]): void {
+    const q = encodeTokens(tokens);
+    void this.router.navigate(['/gallery'], { queryParams: q ? { q } : {} });
+  }
+
+  // 設定 token(saved 套用用):推進 URL。
+  setTokens(tokens: SearchToken[]): void {
+    this.pushTokens(tokens);
+  }
+
+  // 加一個 token(已有同 text 略過):推進 URL。
   addToken(token: SearchToken): void {
     const text = token.text.trim();
     if (!text) return;
     if (this._tokens().some((x) => x.text === text)) return;
-    this._tokens.update((ts) => [...ts, { ...token, text }]);
-    void this.search();
+    this.pushTokens([...this._tokens(), { ...token, text }]);
   }
 
-  // 移除頂欄 token 並重新搜尋。
+  // 移除 token:推進 URL。
   removeToken(idx: number): void {
-    this._tokens.update((ts) => ts.filter((_, i) => i !== idx));
-    void this.search();
+    this.pushTokens(this._tokens().filter((_, i) => i !== idx));
   }
 
-  // 切換某 token 的 排除/包含(翻 '-' 前綴)並重新搜尋。
+  // 切換排除/包含:推進 URL。
   toggleToken(idx: number): void {
-    this._tokens.update((ts) => ts.map((t, i) => (i === idx ? { ...t, text: toggleExclude(t.text) } : t)));
-    void this.search();
+    this.pushTokens(this._tokens().map((t, i) => (i === idx ? { ...t, text: toggleExclude(t.text) } : t)));
   }
 
   // 設定選取(供 inspector)。

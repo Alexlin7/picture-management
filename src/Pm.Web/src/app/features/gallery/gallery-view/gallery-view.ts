@@ -1,4 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FacetSidebar } from '../facet-sidebar/facet-sidebar';
 import { PhotoGrid } from '../photo-grid/photo-grid';
 import { Inspector } from '@features/inspector/inspector/inspector';
@@ -36,8 +38,14 @@ import { GalleryStore } from '../gallery.store';
 })
 export class GalleryView implements OnInit {
   readonly store = inject(GalleryStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
-    void this.store.load();
+    void this.store.load(); // facet 樹
+    // URL 'q' 是搜尋的單一真相:初次 + 每次變動(含上一頁)都套用並查詢。
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((p) => this.store.applyQuery((p['q'] as string) ?? ''));
   }
 }
