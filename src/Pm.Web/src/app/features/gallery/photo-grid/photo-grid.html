@@ -7,7 +7,7 @@
         <path d="m20 20-3.5-3.5" />
       </svg>
       @for (t of tokens(); track $index) {
-        <span class="tok" [style]="tokenStyle(t)">
+        <span class="tok" [style]="tokenStyle(t)" (click)="toggleToken($index, $event)" title="點一下切換 排除／包含">
           <b>{{ t.text }}</b>
           <span class="x" (click)="removeToken($index, $event)">×</span>
         </span>
@@ -33,14 +33,18 @@
                 (click)="pickSuggestion(s, si)"
               >
                 <span class="dot" [style.color]="kindColor(s.kind)" [style.background]="kindColor(s.kind)"></span>
-                <span class="acname">{{ s.name }}</span>
+                <span class="acname">{{ sugLabel(s) }}</span>
                 <span class="account">{{ s.count }}</span>
               </button>
             }
           </div>
         }
+        @if (noSuchTag()) {
+          <div class="ac-pop"><div class="ac-empty">{{ noSuchTag() }}</div></div>
+        }
       </div>
     </div>
+    <div class="search-hint">挑標籤＝AND · 點標籤切換排除 · Enter 套用精準標</div>
     <button class="btn ghost" title="儲存目前搜尋">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
         <path d="m12 17-5.5 3 1-6.2L3 9.3l6.2-.9L12 3l2.8 5.4 6.2.9-4.5 4.5 1 6.2z" />

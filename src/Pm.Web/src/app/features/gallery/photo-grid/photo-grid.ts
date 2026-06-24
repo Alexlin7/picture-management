@@ -2,6 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { tagColor, DANGER } from '@core/tag-color';
 import { PmApi, type PhotoListItem, type TagListRow } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
+import { normalizeTagQuery, exactMatch } from '@core/tag-search';
+import { displayOf } from '@core/tag-display';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
@@ -55,6 +57,18 @@ export class PhotoGrid {
     this.store.removeToken(idx);
   }
 
+  // 點 token chip(非 ×)→ 切換 排除/包含。
+  toggleToken(idx: number, ev: Event): void {
+    ev.stopPropagation();
+    this.store.toggleToken(idx);
+  }
+
+  // 下拉建議的顯示文字:中文顯示名 + 角色作品(displayOf);退回底線轉空白。
+  sugLabel(s: TagListRow): string {
+    const d = displayOf({ name: s.name, kind: s.kind });
+    return d.work ? `${d.label} 〔${d.work}〕` : d.label;
+  }
+
   // token 膠囊樣式(分色,半透明底);排除 token(-x)用 DANGER 紅 + 刪除線區分。
   tokenStyle(t: SearchToken): Record<string, string> {
     const excl = t.text.startsWith('-');
@@ -77,36 +91,27 @@ export class PhotoGrid {
     void this.store.loadMore();
   }
 
-  // 搜尋框送出:空格切多個 token 一次加入(無 '-' = AND;'-x' = 排除),觸發查詢。
-  addSearch(value: string, input: HTMLInputElement): void {
-    const parts = value.trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return;
-    this.store.setTokens([
-      ...this.store.tokens(),
-      ...parts.map((p) => ({ text: p, kind: 'general' as const })),
-    ]);
-    input.value = '';
-  }
-
   // ---- 搜尋框 autocomplete(查既有標籤;與 inspector combobox 同模式,日後可抽共用)----
   readonly suggestions = signal<TagListRow[]>([]);
   readonly acIndex = signal(-1);
+  readonly noSuchTag = signal<string | null>(null);
   private acDebounce: ReturnType<typeof setTimeout> | null = null;
   private acSeq = 0;
 
-  // 打字 → debounce 查既有標籤(去掉排除前綴 '-' 再查)。
+  // 打字 → debounce 查既有標籤(清 noSuchTag、傳原始 term)。
   onType(v: string): void {
     this.acIndex.set(-1);
-    const term = v.replace(/^-/, '').trim();
+    this.noSuchTag.set(null);
+    const term = v.trim();
     if (this.acDebounce) clearTimeout(this.acDebounce);
     if (!term) { this.suggestions.set([]); return; }
     this.acDebounce = setTimeout(() => void this.doSuggest(term), 180);
   }
 
   private async doSuggest(term: string): Promise<void> {
-    const seq = ++this.acSeq;   // 過期防護:丟棄較舊查詢的回應
+    const seq = ++this.acSeq;
     try {
-      const rows = await this.api.tags(term, 8);
+      const rows = await this.api.tags(normalizeTagQuery(term), 12);
       if (seq === this.acSeq) this.suggestions.set(rows);
     } catch {
       if (seq === this.acSeq) this.suggestions.set([]);
@@ -119,7 +124,7 @@ export class PhotoGrid {
     this.acIndex.set(Math.max(0, Math.min(this.acIndex() + delta, n - 1)));
   }
 
-  // Enter:有選中建議→加那個既有標籤 token;否則走 addSearch(支援空格多 token + 排除語法)。
+  // Enter:精準 exact 驗證 + 查無此標;移除 addSearch 舊路徑。
   onEnter(input: HTMLInputElement): void {
     const rows = this.suggestions();
     const i = this.acIndex();
@@ -127,8 +132,14 @@ export class PhotoGrid {
       this.pickSuggestion(rows[i], input);
       return;
     }
-    this.addSearch(input.value, input);
-    this.closeAc();
+    const hit = exactMatch(rows, input.value);
+    if (hit) {
+      this.store.addToken({ text: hit.name, kind: hit.kind as SearchToken['kind'] });
+      input.value = '';
+      this.closeAc();
+    } else {
+      this.noSuchTag.set(`查無此標:${input.value.trim()}`);
+    }
   }
 
   pickSuggestion(s: TagListRow, input: HTMLInputElement): void {

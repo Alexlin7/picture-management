@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { PmApi, type PhotoListItem } from '@core/api/pm-api';
 import { type TagKind } from '@core/tag-color';
+import { toggleExclude } from '@core/tag-search';
 
 // 相簿資料來源 store:元件與 API 之間的唯一接縫。
 // 資料一律來自 @core/api/pm-api 的 PmApi;元件只讀 store 的 signal。
@@ -176,6 +177,12 @@ export class GalleryStore {
   // 移除頂欄 token 並重新搜尋。
   removeToken(idx: number): void {
     this._tokens.update((ts) => ts.filter((_, i) => i !== idx));
+    void this.search();
+  }
+
+  // 切換某 token 的 排除/包含(翻 '-' 前綴)並重新搜尋。
+  toggleToken(idx: number): void {
+    this._tokens.update((ts) => ts.map((t, i) => (i === idx ? { ...t, text: toggleExclude(t.text) } : t)));
     void this.search();
   }
 
