@@ -59,15 +59,15 @@
 - 移除 `photo-grid.html` 頂端 `.btn primary` 掃描鈕(冗餘於 roots 頁 per-root 重新掃描)。
 - gallery 頂端 primary 槽空出;不在 gallery 重建掃描。若日後要「全部重掃」屬 library 維護動作,另案。
 
-## ③ 儲存搜尋:情境化接線
-- 接 `POST /api/saved-searches`(後端就緒),存當前 token 查詢。
-- **無 token 時 disable**(`.btn[disabled]`,Spec 1 已有三態樣式)。
-- 存完導引/連結到既有「收藏的搜尋」頁。
+## ③ 儲存搜尋:情境化接線 + 套用(2026-06-24 決策:含 apply 才算收尾)
+- **存**:gallery「儲存搜尋」鈕接 `POST /api/saved-searches`,`queryJson = JSON.stringify(tokens)`(`SearchToken[]`);名稱預設用 query 文字(token text 以空白接),存完 `ui/toast` 提示。**無 token 時 disable**(`.btn[disabled]`,Spec 1 三態樣式)。
+- **套用**(補既有「saved 點卡未接」缺口):「收藏的搜尋」頁 `onPick` 注入 `GalleryStore`,`JSON.parse(queryJson)` → `setTokens(...)` → 導 `/gallery`;解析失敗(舊/壞資料)→ 忽略只導頁,不爆。
 
-## ④ 批次 requeue 入口
-- 後端 `POST /api/tag/requeue`(就緒)。在 gallery 提供清楚入口:作用於**當前查詢結果**或**已選取**範圍
-  (沿用既有 selection)。預設置於 toolbar(命中數列那排)旁,文案明確區分「重標 ≠ 重掃」。
-- 細節(作用域 UI、確認對話)留 writing-plans;本案只定「要有此入口且語意清楚」。
+## ④ 批次 requeue 入口(2026-06-24 修正:後端 scope 現實)
+- **後端現實**:`RequeueScopeDto` 只支援四選一 `PhotoIds / Error / Root / All`,**無「依當前查詢 filter」scope**;gallery 又是單選(= per-photo retag,inspector 已有)。故 spec 原「作用於當前查詢/選取」**做不到**(要做需新增後端 by-query scope,逾本案純前端範圍)。
+- **改為維護動作**:gallery toolbar 提供「**重標失敗的**」入口 = `mode:retry` + `scope:{error:true}`(非破壞:只把 `error` job 重排,不清既有 tag);經 `ui/confirm` 確認 + `ui/toast` 回報 `Matched`/`JobsCreated`。
+- **「重標全部」(`scope:{all:true}`)破壞性高(refresh 清全庫 wd14 tag 重跑)→ 本案不做,deferred 待使用者明示。**
+- 文案明確「重標(WD14)≠ 重掃(檔案)」。
 
 ## 不做(YAGNI / 延後)
 - 檔名/全文/語意搜尋(語意 = Phase 2 CLIP)。
