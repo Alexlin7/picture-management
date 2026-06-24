@@ -77,20 +77,24 @@ export class Thumb implements OnChanges, OnDestroy {
 
   readonly state = signal<ThumbState>('loading');
   private readonly attempt = signal(0);
+  // photoId 的 signal 鏡像:src 必須對 photoId 變動有反應(@Input 欄位非 signal,
+  // computed 追不到),否則重用實例切圖時 src 停在舊 URL → img 不重載 → 卡 loading。
+  private readonly photoIdSig = signal(0);
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   // 目前 src:第一次無 query;重試帶遞增 cache-bust(?r=n)強制 img 重新載入。
   readonly src = computed(() => {
-    const base = this.api.thumbUrl(this.photoId);
+    const base = this.api.thumbUrl(this.photoIdSig());
     const a = this.attempt();
     return a === 0 ? base : `${base}?r=${a}`;
   });
 
   ngOnChanges(changes: SimpleChanges): void {
-    // 只在 photoId 變動(同 tile 被重用)時重置狀態機;
+    // 只在 photoId 變動(同 tile 被重用 / inspector 切圖)時重置狀態機;
     // 僅改 aspectRatio/alt 不該讓已載入的圖閃回 skeleton。
     if (changes['photoId']) {
       this.clearTimer();
+      this.photoIdSig.set(this.photoId); // 驅動 src 重算 → 新圖重載
       this.attempt.set(0);
       this.state.set('loading');
     }

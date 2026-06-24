@@ -47,4 +47,20 @@ describe('Thumb', () => {
     expect(fixture.nativeElement.querySelector('.broken')).toBeTruthy();
     vi.useRealTimers();
   });
+
+  // 重用同一實例切換 photoId(如 inspector 預覽切第二張圖):src 必須指向新圖、回到 loading。
+  it('reloads when photoId changes on a reused instance', () => {
+    const fixture = make(1);
+    const cmp = fixture.componentInstance;
+    cmp.onLoad(); // 第一張載入完成
+    fixture.detectChanges();
+    expect(cmp.state()).toBe('loaded');
+    expect(cmp.src()).toBe('/api/photos/1/thumb');
+
+    // 切到第二張(重用同一 app-thumb 實例)
+    fixture.componentRef.setInput('photoId', 2);
+    fixture.detectChanges();
+    expect(cmp.state()).toBe('loading');
+    expect(cmp.src()).toBe('/api/photos/2/thumb');
+  });
 });
