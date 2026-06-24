@@ -1,51 +1,47 @@
 # Current Backlog Handoff
 
-用途:給下一個 agent session 快速接手。已完成的 Phase 1 細節不要在這裡展開;現況看 `README.md`,鐵則看 `CLAUDE.md` / `agent.md`,完整背景看 `2026-06-21-picture-management-design.md`。
+用途:給下一個 agent session 快速接手。已完成細節不要在這裡展開;現況看 `README.md`,鐵則看 `CLAUDE.md` / `agent.md`,完整背景看 `2026-06-21-picture-management-design.md`。
 
-## 優先序
+**最後更新:2026-06-24**(thumb 佔位+自動掃描、reconcile/inspector 共用 app-thumb、async scan + SQLite 硬化落地後)。
 
-1. **掃描效能 + tagging 解耦**
-   - 來源 spec:`2026-06-23-scanner-tagging-refactor-design.md`。
-   - 現況:Slice 1a 已完成並提交:
-     - `c5168bc Optimize scanner fast-path rescan`
-     - `450f7fd Tighten scanner fast-path tracking`
-   - 已修:重掃快路徑開掃先載入 `photo_location` + `photo.file_size` dict,未變檔只批次更新 `LastSeenAt`;不再 `Include(Photo)`,避免 `Photo.Exif` 與十萬級 `Photo` entity 進 change tracker。Scanner 48 / 全測試 95 綠。
-   - Slice 1b 已完成:初次匯入/大量新檔改 chunk slow path,批次查 photo by hash、同批 hash 去重、兩階段批次新增 photo/location/job;並已補上批次後 detach slow-path entities,避免初次匯入 change tracker 無界成長。Scanner 51 綠。
-   - Slice 1c 已完成:**實機證實** EF Core 10 + SQLite 對 `!seenPaths.Contains` 是逐元素 `NOT IN (@p1...@pN)`,>32766 撞 `'too many SQL variables'`(十萬圖庫對帳必崩)。改用記憶體 set-diff(重用 `locationsByPath`)+ 以 location id `Chunk(10_000)` 分塊 `ExecuteUpdate`,無 schema 變更。
-   - Slice 2 已完成:`ScanRootAsync(rootId, enqueueTagging=true, ...)` + job 排入包 `if(enqueueTagging)`(縮圖照產);端點 `?enqueueTagging=` 未帶則跟隨 `Inference:Enabled`(關→純索引不堆死 job),明示可覆寫(`true`=pre-queue)。能力關時前端自動排程 toggle 反灰之 UI 約定已寫進 spec §B.1/§D。Scanner 54 / Api 23 / 全測試 103 綠。
-   - Slice 3 已完成:`POST /api/tag/requeue` + `POST /api/photos/{id}/retag`,支援 `retry` / `refresh` / `clear` 與四選一 scope(`photoIds` / `error` / `root` / `all`);job upsert、refresh/clear 只清該批 `source='wd14'` tag、root/all 只挑 present、大量 IN 分塊。
-   - Slice 4 已完成:`Inference:Enabled`/`Backend` **乾淨重命名**為 `Inference:Wd14:Enabled`/`Backend`(無 fallback);3 prod 讀取點(`Wd14Setup` gate+backend、scan enqueue 預設)+ `appsettings.json` + launchSettings + 測試同步遷移。全測試 110 綠。**§B 掃描/Tagging 解耦至此全部完成。**
-   - 下一步:§B 完。後續候選見下方架構盤點(GPU 自動偵測、Pm.Ml 整理為 CLIP 鋪路)或回到前端 backlog。
+## 當前 backlog(尚未做,依建議順序)
 
-2. **WD14 tag 顯示層清理**
-   - 來源 spec:`2026-06-22-tag-display-layer-design.md`。
-   - 範圍:純前端顯示層,canonical tag 不動。做底線轉空白、表情對照表、kind 分組、來源/信心度徽章、character 括號解析。
-   - 注意:若同時抽 tag combobox 共用元件,先抽共用,再疊顯示層。
+1. **掃描器 / ML 後續**
+   - GPU 廠牌自動偵測(目前 `InferenceBackendSelector` auto 傳 `gpuVendor=null`,固定 DirectML)。
+   - `Pm.Ml` 整理為 CLIP 鋪路(來源:`2026-06-23-ml-layer-architecture-assessment.md`)。
+   - 孤兒 photo 清理(2026-06-24 Codex async scan 後留下):防新孤兒已做(同 transaction);清舊孤兒=刪 DB,建議走**手動維護端點** +(可選)啟動時只 log 數量不自動刪。
+   - per-root「重產縮圖」維護入口:重掃已會補缺縮圖,獨立 rebuild-thumbs 按鈕/端點屬 nice-to-have。
 
-3. **圖牆 virtual scroll**
-   - 現況:gallery 已接真實 API 與 keyset 載入,但 DOM 仍會隨載入累積。
-   - 下一步:評估 `@angular/cdk/scrolling` 或自製 windowing。masonry 不定高較麻煩,必要時改固定高度/固定欄位策略。
+2. **圖牆 virtual scroll(真窗格化)**
+   - 現況:已接無限捲(IntersectionObserver 哨兵),但 DOM 仍隨載入累積。
+   - 下一步:評估 `@angular/cdk/scrolling` 或自製 windowing;masonry 不定高較麻煩,必要時改固定高度/欄位策略。
 
-4. **小型前端體驗**
+3. **小型前端體驗**
    - tag 合併時讓使用者選保留方向。
    - `/tags` 排序狀態持久化到 localStorage。
-   - photo-grid 的「儲存搜尋」「掃描」按鈕補接線。
-   - 搜尋總命中數與 WD14 pending/error 計數需要後端 count 端點。
-   - 搜尋狀態進 URL query,讓 facet/token 查詢可分享、重整後可復原。
+   - 批次 requeue 「依當前查詢 filter」scope(需新增後端 by-query scope;gallery-topbar Spec 3 ④ 已記為 deferred)。
+   - 「重標全部」(`scope:{all:true}`,破壞性高)deferred,待使用者明示。
    - 響應式與手機版仍未設計;目前以桌面 workbench 為主。
-   - a11y 尚未完整檢視,包含鍵盤操作、ARIA 與焦點環。
+   - a11y 尚未完整檢視(鍵盤操作、ARIA、焦點環)。
+   - thumb 收尾 Minor(非阻塞):`thumb.spec.ts` 可補「重試空窗期間 skeleton 持續顯示」斷言;重試成功後 URL 殘留 `?r=n`(無害,僅 awareness)。
 
-5. **交付與 Phase 2**
+4. **交付與 Phase 2**
    - 單檔 self-contained publish 尚待驗證。
-   - CUDA / Windows ML backend 仍是骨架。
-   - CLIP 語意搜尋未開始。
+   - CUDA / Windows ML backend 仍是骨架(本 build 僅 cpu/directml)。
+   - CLIP 語意搜尋未開始(Phase 2)。
 
 ## 已完成,不要重做
 
-- Phase 1 核心:SQLite schema、掃描/對帳、縮圖、路徑到 tag、查詢、facet、saved search、軟硬刪、manual tag、標籤庫。
-- Angular 前端:gallery/import/reconcile/saved/roots/tags/inspector 已接真實 API;SPA 由 .NET serve。
-- 標籤一條龍:TagService 去重、標籤庫管理頁、inspector combobox 都已完成。
-- WD14:ONNX in-proc pipeline、TaggingWorker、opt-in host wiring、DirectML 實機驗證已完成。
+- **Phase 1 核心**:SQLite schema、掃描/對帳、縮圖、路徑→tag、查詢、facet、saved search、軟硬刪、manual tag、標籤庫。
+- **Angular 前端**:gallery/import/reconcile/saved/roots/tags/inspector 已接真實 API;SPA 由 .NET serve。
+- **WD14**:ONNX in-proc pipeline、TaggingWorker、opt-in host wiring、DirectML 實機驗證。
+- **§B 掃描/Tagging 解耦(2026-06-23)**:快路徑重掃、chunk slow path、記憶體 set-diff 對帳、`enqueueTagging` 旗標、`/api/tag/requeue` + `/api/photos/{id}/retag`、`Inference:Wd14:*` 乾淨重命名。
+- **WD14 tag 顯示層 v1(2026-06-22 spec)**:底線轉空白、表情對照、kind 分組、來源/信心徽章、character 括號解析(純前端)。
+- **UI 樣式系統 Spec 1(2026-06-24)**:`@theme` token + a11y/motion + primitive 三態。
+- **gallery-topbar UX Spec 3(2026-06-24,`2026-06-24-gallery-topbar-ux-design.md`)**:① 下拉驅動 substring 搜尋(運算子退場)、② 掃描鈕從 gallery 移除(改 roots 頁)、③ 收藏搜尋點卡套用(onPick→setTokens→導頁)、④ 「重標失敗」requeue 入口(by-query scope deferred)。
+- **gallery 改進(2026-06-24)**:真實總命中數、WD14 待標佇列數(後端 count 端點)、搜尋狀態進 URL query(可重整/分享/上一頁)、密度切換接 masonry column-count、無限捲。
+- **async scan + SQLite 硬化(2026-06-24)**:`POST /api/roots/{id}/scan` 回 202 + `GET .../scan-status` 輪詢(`RootScanCoordinator`);`SqliteBusyTimeoutInterceptor`(每連線 `PRAGMA busy_timeout` + connection string `Default Timeout`);掃描完整性(photo/location/job 同 transaction、縮圖補產不限新 photo、thumb endpoint `FileShare.ReadWrite` + 503 重試)。spec:`2026-06-24-async-scan-design.md`。
+- **縮圖佔位 + 新增來源自動掃描(2026-06-24)**:共用 `<app-thumb>`(`@core/ui/thumb`)skeleton + 指數退避重試 + 失敗佔位,gallery/reconcile/inspector 皆已採用;`src` 對 photoId 變動有反應(修重用實例切圖卡 loading);新增來源後自動排掃描 + toast(不跳 confirm)。spec:`2026-06-24-thumb-placeholder-and-autoscan-design.md`、plan:`../plans/2026-06-24-thumb-placeholder-and-autoscan.md`(已完成,可移除)。
 
 ## 固定決策
 
@@ -54,3 +50,4 @@
 - tag kind 跨來源採語意升級不降級;標籤庫明示修改可覆寫。
 - WD14 顯示清理只動前端 display model,不改 SQLite canonical tag。
 - 掃描永遠純讀取與就地索引;不要引入會搬動原圖的投放夾模式。
+- 新增來源後自動掃描(非破壞性、預期下一步),不用 confirm 對話框擋。
