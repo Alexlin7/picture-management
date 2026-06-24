@@ -67,8 +67,9 @@ export class GalleryStore {
   private readonly _error = signal<string | null>(null);
   readonly error = this._error.asReadonly();
 
-  // 命中數:API 無總數,先顯示已載入筆數(deferred 註明)。
-  readonly hitCount = computed(() => this._photos().length);
+  // 命中數:真實總數(來自 /api/search/count)。
+  private readonly _hitCount = signal(0);
+  readonly hitCount = this._hitCount.asReadonly();
 
   // WD14 佇列:API 無來源 → 顯示 0(deferred 註明)。
   readonly wd14Queue = 0;
@@ -107,12 +108,17 @@ export class GalleryStore {
     this._error.set(null);
     const { all, none } = splitTokens(this._tokens());
     try {
-      const page = await this.api.search({ all, none, afterId: null, pageSize: PAGE_SIZE });
+      const [count, page] = await Promise.all([
+        this.api.searchCount({ all, none }),
+        this.api.search({ all, none, afterId: null, pageSize: PAGE_SIZE }),
+      ]);
+      this._hitCount.set(count.total);
       this._photos.set(page.items);
       this._nextCursor.set(page.nextCursor ?? null);
     } catch (e) {
       this._error.set(this.msg(e));
       this._photos.set([]);
+      this._hitCount.set(0);
       this._nextCursor.set(null);
     } finally {
       this._loading.set(false);

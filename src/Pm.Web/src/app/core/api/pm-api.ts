@@ -29,6 +29,9 @@ export class PmApi {
   search(req: SearchReq): Promise<PhotoPage> {
     return firstValueFrom(this.http.post<PhotoPage>('/api/search', req));
   }
+  searchCount(req: SearchReq): Promise<{ total: number }> {
+    return firstValueFrom(this.http.post<{ total: number }>('/api/search/count', req));
+  }
   photo(id: number): Promise<PhotoDetail> {
     return firstValueFrom(this.http.get<PhotoDetail>(`/api/photos/${id}`));
   }
