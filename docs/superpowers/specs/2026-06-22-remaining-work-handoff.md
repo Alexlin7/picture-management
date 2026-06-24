@@ -25,8 +25,18 @@
    - a11y 尚未完整檢視(鍵盤操作、ARIA、焦點環)。
    - thumb 收尾 Minor(非阻塞):`thumb.spec.ts` 可補「重試空窗期間 skeleton 持續顯示」斷言;重試成功後 URL 殘留 `?r=n`(無害,僅 awareness)。
 
-4. **交付與 Phase 2**
-   - 單檔 self-contained publish 尚待驗證。
+4. **可觀測性:log 套件 + log 落點(議題,待決策)**
+   - **現況**:無 Serilog/NLog,只有 ASP.NET Core 預設 **console logging**(`appsettings.json` 只設 `Logging:LogLevel`,無 file sink)。打包成**單檔 self-contained exe(雙擊、無 console 視窗)後,log 直接消失** —— 出事(掃描錯誤、WD14 失敗、縮圖問題)沒有可追的紀錄。
+   - **議題 ①(log 套件)**:選一個寫檔 + rolling 的 logging。選項:
+     - **Serilog(建議)** —— .NET 生態最主流,`UseSerilog` 接 ASP.NET Core,rolling file + console sink、結構化、設定簡單。
+     - NLog —— 同樣成熟,設定檔導向。
+     - 內建 `Microsoft.Extensions.Logging` + 第三方 file provider —— 最輕,但功能少(無原生 rolling)。
+   - **議題 ②(log 放哪)**:需要一個**每位使用者可寫、好找**的位置。建議 **`%LOCALAPPDATA%\sus-picture-management\logs\`**(rolling、保留 N 天/大小上限)。不要放 exe 旁(安裝版可能在 `Program Files` 唯讀)。
+   - **相關(可一起或分開做)**:目前 `pm.sqlite`(`Data Source=pm.sqlite`)、縮圖 `thumbs`、模型 `models/wd14` 都**相對工作目錄**。單檔 exe 交付時這些也該一起落到 `%LOCALAPPDATA%\sus-picture-management\`(`data/` `thumbs/` `models/` `logs/`),否則雙擊執行的工作目錄不確定 → 資料散落。**log 落點建議與這個 app data dir 收斂一致。**
+   - 接手:先決定 Serilog vs 其他 + 是否一併收斂 app data dir,再 brainstorming → spec。
+
+5. **交付與 Phase 2**
+   - 單檔 self-contained publish 尚待驗證(連帶上面 app data dir 落點)。
    - CUDA / Windows ML backend 仍是骨架(本 build 僅 cpu/directml)。
    - CLIP 語意搜尋未開始(Phase 2)。
 
