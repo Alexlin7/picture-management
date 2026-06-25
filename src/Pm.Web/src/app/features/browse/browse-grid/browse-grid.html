@@ -1,0 +1,44 @@
+<div class="main">
+  <!-- 麵包屑 -->
+  <div class="topbar">
+    <div class="crumbs">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+      @for (c of breadcrumb(); track c.relPath; let last = $last) {
+        <span class="c" [class.cur]="last" (click)="enter(c.relPath)">{{ c.name }}</span>
+        @if (!last) { <span class="sep">›</span> }
+      }
+    </div>
+  </div>
+
+  <!-- 子資料夾晶片(深層下鑽);無子夾則不顯示 -->
+  @if (subfolders().length) {
+    <div class="subbar">
+      <span class="lab">子資料夾</span>
+      @for (c of subfolders(); track c.relPath) {
+        <button class="dchip" (click)="enterChild(c)">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+          {{ c.name }} <span class="n">{{ fmt(c.photoCount) }}</span>
+        </button>
+      }
+    </div>
+  }
+
+  <!-- toolbar:當前夾命中數 -->
+  <div class="toolbar"><span class="count">此資料夾含子夾 <b>{{ hitText() }}</b> 張</span></div>
+
+  <!-- 遞迴圖牆 -->
+  <div class="view">
+    @if (error()) {
+      <div class="empty">載入失敗:{{ error() }}</div>
+    } @else if (!loading() && photos().length === 0) {
+      <div class="empty">這個資料夾沒有圖片。{{ subfolders().length ? '點上方子資料夾往下看。' : '' }}</div>
+    }
+    <div class="masonry">
+      @for (p of photos(); track p.id) {
+        <div class="tile" (click)="pick(p)"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
+      }
+    </div>
+    @if (loading()) { <div class="empty">載入中…</div> }
+    <div #sentinel class="scroll-sentinel" aria-hidden="true"></div>
+  </div>
+</div>
