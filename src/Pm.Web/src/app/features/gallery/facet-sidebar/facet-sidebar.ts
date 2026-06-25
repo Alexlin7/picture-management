@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { GalleryStore, type FacetNode } from '../gallery.store';
 import { TAG_COLOR } from '@core/tag-color';
+import { loadCollapsed, saveCollapsed, toggleCollapsed, type FacetSection } from './facet-collapse';
 
 // 契約:相簿左側 facet 側欄(作品/角色 DAG 樹、屬性、年份)。
 // 由 workflow agent 補完內部(templateUrl/styleUrl + 互動)。
@@ -41,6 +42,15 @@ export class FacetSidebar {
     const next = new Map(this.overrides());
     next.set(node, !this.isOpen(node));
     this.overrides.set(next);
+  }
+
+  // 分區整段收折(dag/屬性/年份),狀態存 localStorage,預設全展。
+  private readonly collapsed = signal<Set<FacetSection>>(loadCollapsed(localStorage));
+  readonly isCollapsed = (s: FacetSection): boolean => this.collapsed().has(s);
+  toggleSection(s: FacetSection): void {
+    const next = toggleCollapsed(this.collapsed(), s);
+    this.collapsed.set(next);
+    saveCollapsed(localStorage, next);
   }
 
   // 千分位數字
