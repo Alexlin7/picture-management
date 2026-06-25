@@ -1,7 +1,7 @@
 # 資料層作品軸:WD14 copyright 拆分 + tag_relation — 設計
 
 - 日期:2026-06-25
-- 狀態:**設計定稿(待 review → plan)**
+- 狀態:**已實作並 merge 回 main(2026-06-25)** —— 7 task 全完成、全套件綠;已知行為見「§五之補」。
 - 範圍:把 WD14 角色 tag 字串裡夾的作品(`aris_(blue_archive)` 的 `blue_archive`)在**後端持久化**拆成獨立 copyright tag + 寫 `tag_relation` 邊,讓側欄 facet 樹有真實的「作品→角色」階層、且能用既有 closure 搜「整個作品」。
 - 來源:這是 `2026-06-22-tag-display-layer-design.md` 第 119–122 行**明文 deferred 的「資料層作品軸 + DAG 階層」大題**。今日(2026-06-25)經盤點 + 競品驗證後正式啟動。
 - 鐵則對照:守 #1(原圖唯讀)、#3(SQLite 為 tag 真相;此處**新增**衍生資料,不弱化)、#5(tag 來源分:衍生 copyright/邊標 `wd14`)。**不違反** #5 的「自動 vs 手動分」——自動拆的結果可被標籤庫手動覆寫。
@@ -104,6 +104,16 @@ ParseWork(canonicalName) -> (work: string?, isCharacterSuffix: bool)
 - **人工審核流程 UI**:本輪自動 seed + 標籤庫既有手動編輯即可覆寫;不另做審核佇列。
 - **多層階層**(studio→series→character):WD14 只給 character+其作品,單層 copyright→character;多層等真實資料出現再說。
 - **i18n / 中文基礎 tag**:衍生 copyright tag 的 canonical **維持 WD14 英文原值**(`blue_archive`),與顯示層 v1 的「EN canonical / ZH display」分工一致;中文譯名屬**顯示層**,i18n 真正啟動時再於顯示層決定(基礎 tag 英文或中文的取捨待那時定),本資料層不需改。
+
+### 五之補:實作後已知行為(2026-06-25 已實作 merge,誠實記錄)
+
+實作收斂後與本 spec 原文有三處偏差/副作用,**皆為刻意接受的已知行為**(非缺陷),記於此防日後被當 bug 重新發現:
+
+1. **facet count 實採 §3.5 (ii) 近似,非預設 (i)**:§3.5 原訂預設取 (i) 準確版。實作改採 **(ii) in-memory `父 count = Σ 直接子 count`**(zero 額外 query)。**已知高估**:同一角色掛在兩個作品下、或同一張圖掛同作品兩個角色時會重複計入。facet 數字僅作瀏覽提示、非精度關鍵,可接受;要精確再切回 (i)。
+
+2. **`source` 欄不存在,衍生身分改以 `Kind == "copyright"` 識別**:§3.2 步驟 3 原寫「衍生邊/copyright tag 的 source 記 `wd14`」。現行 schema 的 `TagRelation` 只有 `ParentTagId/ChildTagId`、`Tag` 無 `Source` 欄,**故此步未實作**;衍生 copyright 一律以 `Kind == "copyright"` 識別,人工覆寫 = 標籤庫刪/改該 tag 或邊(既有 `TagService.Delete/Update/Merge`)。v1 不需要 source 欄。
+
+3. **`UpsertByNameAsync` 會把既有同名 general/manual tag「升級」成 copyright kind**:沿用 `TagService` 既有「語意升級、永不降級」(`KindRank` copyright=3 > general=1)。若使用者原本已有一個名為 `blue_archive` 的 general tag,第一次拆作品 seed 時會把它的 `Kind` 翻成 `copyright` 並納入作品→角色樹。**與既有 upsert 契約一致、且通常是想要的結果**,但屬使用者可見副作用,記此備查。
 
 ## 六、測試
 
