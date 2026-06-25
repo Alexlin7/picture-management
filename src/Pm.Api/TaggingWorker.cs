@@ -23,7 +23,8 @@ public sealed class TaggingWorker(
             using var scope = scopes.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
             var tagSvc = scope.ServiceProvider.GetRequiredService<TagService>();
-            var processed = await ProcessNextAsync(db, tagSvc, ct);
+            var copyrightAxis = scope.ServiceProvider.GetRequiredService<CopyrightAxisService>();
+            var processed = await ProcessNextAsync(db, tagSvc, copyrightAxis, ct);
             if (!processed) await Task.Delay(TimeSpan.FromSeconds(2), ct);
         }
     }
@@ -38,7 +39,7 @@ public sealed class TaggingWorker(
                 .SetProperty(j => j.State, "pending")
                 .SetProperty(j => j.UpdatedAt, DateTimeOffset.UtcNow), ct);
 
-    public async Task<bool> ProcessNextAsync(PmDbContext db, TagService tagSvc, CancellationToken ct)
+    public async Task<bool> ProcessNextAsync(PmDbContext db, TagService tagSvc, CopyrightAxisService copyrightAxis, CancellationToken ct)
     {
         var job = await db.TaggingJobs
             .Where(j => j.State == "pending")
@@ -62,6 +63,8 @@ public sealed class TaggingWorker(
             {
                 var tag = await tagSvc.UpsertByNameAsync(name, kind, ct);
                 await tagSvc.AttachTagAsync(job.PhotoId, tag.Id, "wd14", conf, existing, ct);
+                if (kind == "character")
+                    await copyrightAxis.SeedFromCharacterAsync(tag, ct);   // 拆作品 + 寫邊(冪等)
             }
 
             job.State = "done";

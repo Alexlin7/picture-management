@@ -49,6 +49,7 @@ builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
 builder.Services.AddScoped<TagService>();
+builder.Services.AddScoped<CopyrightAxisService>();
 builder.Services.AddScoped<TaggingScheduler>();
 builder.Services.AddSingleton<RootScanCoordinator>();
 
