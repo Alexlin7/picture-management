@@ -36,6 +36,23 @@
   --font-display: "Space Grotesk", "Noto Sans TC", sans-serif;
   --font-body: "Inter", "Noto Sans TC", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* 語意狀態色(原只有 danger;補 success/warning,與 booru 分色語意分離) */
+  --color-success: #34d399; /* 成功/完成(emerald,刻意異於 character 綠 #4ade80) */
+  --color-warning: #f5b454; /* 警告(amber,異於 meta tag 黃 #fbbf24) */
+
+  /* focus ring(a11y CRITICAL,現幾乎無);= accent,以 outline 呈現 */
+  --color-ring: #22d3ee;
+
+  /* elevation/shadow 階(暗色宜淡;面板→浮層→彈窗分層) */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 6px 18px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 16px 40px rgba(0, 0, 0, 0.6);
+
+  /* motion(統一時長/緩動;搭配 Tailwind duration-*) */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
 }
 
 /* ===========================================================================
@@ -57,6 +74,22 @@ body {
 }
 ::selection {
   background: rgba(34, 211, 238, 0.28);
+}
+/* 鍵盤可見 focus(只在鍵盤操作時出現,不干擾滑鼠) */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+/* 尊重系統「減少動態」偏好(ui-ux-pro-max a11y checklist) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 /* scrollbars */
 ::-webkit-scrollbar {
@@ -102,6 +135,44 @@ body {
   .btn-ghost {
     @apply bg-transparent;
   }
+  /* 三態補強:active 輕微變暗下沉;disabled 不可點 + 降透明 */
+  .btn:active {
+    @apply brightness-90;
+  }
+  .btn:disabled,
+  .btn[disabled] {
+    @apply opacity-[0.45] cursor-default pointer-events-none;
+  }
+  /* 危險動作(用 --color-danger),與 primary 視覺區隔 */
+  .btn-danger {
+    @apply text-danger border-[rgba(240,97,109,0.35)];
+  }
+  .btn-danger:hover {
+    @apply bg-[rgba(240,97,109,0.12)] border-danger;
+  }
+
+  /* 文字輸入統一(背景 raised、border hair、focus 走全域 :focus-visible ring) */
+  .input {
+    @apply w-full rounded-[7px] border border-hair bg-raised px-[11px] py-[7px]
+      text-[13px] text-text placeholder:text-faint
+      transition-[border-color] duration-150;
+  }
+  .input:hover {
+    @apply border-[#3b4150];
+  }
+
+  /* loading 微光;reduced-motion 下由全域規則凍結為靜態淡色塊 */
+  .skeleton {
+    @apply rounded-[6px];
+    background: linear-gradient(
+      90deg,
+      var(--color-raised) 25%,
+      var(--color-raised-2) 37%,
+      var(--color-raised) 63%
+    );
+    background-size: 400% 100%;
+    animation: pm-shimmer 1.4s ease infinite;
+  }
 
   /* facet / 側欄列 */
   .frow {
@@ -125,5 +196,15 @@ body {
   .dot {
     @apply w-2 h-2 rounded-full shrink-0;
     box-shadow: 0 0 7px -1px currentColor;
+  }
+}
+
+/* skeleton 微光動畫(@layer 之外;reduced-motion 由全域 base 規則凍結) */
+@keyframes pm-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
   }
 }

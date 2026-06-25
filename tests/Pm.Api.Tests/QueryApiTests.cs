@@ -40,6 +40,7 @@ public class QueryApiTests : IDisposable
     private record RootCreated(long Id);
     private record Item(long Id, string FileHash);
     private record Page(List<Item> Items, long? NextCursor);
+    private record ScanStatusDto(string State, string? Error);
 
     [Fact]
     public async Task Scan_then_search_thumb_and_detail()
@@ -50,6 +51,7 @@ public class QueryApiTests : IDisposable
         var root = await (await client.PostAsJsonAsync("/api/roots", new { name = "t", absPath = _root }))
             .Content.ReadFromJsonAsync<RootCreated>();
         await client.PostAsync($"/api/roots/{root!.Id}/scan", null);
+        await WaitForScanAsync(client, root.Id);
 
         // 無條件瀏覽應回 1 張
         var page = await (await client.PostAsJsonAsync("/api/search", new { }))
@@ -70,5 +72,18 @@ public class QueryApiTests : IDisposable
 
         // 不存在 → 404
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/photos/99999")).StatusCode);
+    }
+
+    private static async Task WaitForScanAsync(HttpClient client, long rootId)
+    {
+        for (var i = 0; i < 50; i++)
+        {
+            var status = await client.GetFromJsonAsync<ScanStatusDto>($"/api/roots/{rootId}/scan-status");
+            if (status!.State == "completed") return;
+            if (status.State == "error") throw new InvalidOperationException(status.Error);
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException("scan did not finish");
     }
 }

@@ -30,6 +30,12 @@ public class ScannerTests : IDisposable
     private PmDbContext NewContext() =>
         new(new DbContextOptionsBuilder<PmDbContext>().UseSqlite(Cs).Options);
 
+    private CountingSaveContext NewCountingContext() =>
+        new(new DbContextOptionsBuilder<PmDbContext>().UseSqlite(Cs).Options);
+
+    private ThrowOnSecondSaveContext NewThrowOnSecondSaveContext() =>
+        new(new DbContextOptionsBuilder<PmDbContext>().UseSqlite(Cs).Options);
+
     private async Task<long> SeedRootAsync()
     {
         await using var ctx = NewContext();
@@ -73,6 +79,161 @@ public class ScannerTests : IDisposable
     }
 
     [Fact]
+    public async Task First_scan_batches_new_files_and_dedups_within_batch()
+    {
+        WriteImage("a.png", "alpha");
+        WriteImage("sub/b.png", "beta");
+        WriteImage("sub/b_copy.png", "beta");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewCountingContext();
+        var result = await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        Assert.Equal(3, result.FilesSeen);
+        Assert.Equal(2, result.NewPhotos);
+        Assert.Equal(3, result.NewLocations);
+        Assert.Equal(2, ctx.SaveChangesCalls);
+
+        await using var verify = NewContext();
+        Assert.Equal(2, await verify.Photos.CountAsync());
+        Assert.Equal(3, await verify.PhotoLocations.CountAsync());
+    }
+
+    [Fact]
+    public async Task First_scan_releases_batched_import_entities_from_change_tracker()
+    {
+        for (var i = 0; i < 501; i++)
+            WriteImage($"img-{i:000}.png", $"unique-{i}");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewContext();
+        var result = await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        Assert.Equal(501, result.FilesSeen);
+        Assert.Equal(501, result.NewPhotos);
+        Assert.Equal(501, result.NewLocations);
+        Assert.Empty(ctx.ChangeTracker.Entries<Photo>());
+        Assert.Empty(ctx.ChangeTracker.Entries<PhotoLocation>());
+        Assert.Empty(ctx.ChangeTracker.Entries<TaggingJob>());
+    }
+
+    [Fact]
+    public async Task Scan_default_queues_tag_jobs_for_decodable_images()
+    {
+        WriteImage("a.png", "alpha");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewContext();
+        var scanner = new LibraryScanner(
+            ctx, new Sha256FileHasher(), new DecodableMetadataReader(), new NoopThumbnailService());
+        var result = await scanner.ScanRootAsync(rootId);   // 預設 enqueueTagging:true
+
+        Assert.Equal(1, result.JobsQueued);
+        await using var verify = NewContext();
+        Assert.Equal(1, await verify.TaggingJobs.CountAsync());
+    }
+
+    [Fact]
+    public async Task Scan_with_enqueueTagging_false_indexes_without_queuing_jobs()
+    {
+        WriteImage("a.png", "alpha");
+        WriteImage("b.png", "beta");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewContext();
+        var scanner = new LibraryScanner(
+            ctx, new Sha256FileHasher(), new DecodableMetadataReader(), new NoopThumbnailService());
+        var result = await scanner.ScanRootAsync(rootId, enqueueTagging: false);
+
+        Assert.Equal(2, result.NewPhotos);       // 身分/位置照索引
+        Assert.Equal(2, result.NewLocations);
+        Assert.Equal(0, result.JobsQueued);       // 但不排 tagging job
+        await using var verify = NewContext();
+        Assert.Equal(2, await verify.Photos.CountAsync());
+        Assert.Equal(0, await verify.TaggingJobs.CountAsync());
+    }
+
+    [Fact]
+    public async Task Reconcile_marks_missing_above_sqlite_variable_limit_without_crashing()
+    {
+        // SQLite 變數上限 32766。對帳不可把整包集合塞進單一 IN(`NOT IN (@p1...@pN)` 或 `Id IN (...)`)。
+        // 直接 seed 超過上限的 present location,再掃「空 root」→ 全數該標 missing,且不可 'too many SQL variables'。
+        const int n = 33_000;
+        var rootId = await SeedRootAsync();
+        await using (var seed = NewContext())
+        {
+            var photo = new Photo { FileHash = "seedhash", FileSize = 1 };
+            seed.Photos.Add(photo);
+            await seed.SaveChangesAsync();
+            for (var i = 0; i < n; i++)
+                seed.PhotoLocations.Add(new PhotoLocation
+                {
+                    PhotoId = photo.Id, LibraryRootId = rootId, RelPath = $"gone/f{i}.png",
+                    Status = "present", FirstSeenAt = DateTimeOffset.UtcNow, LastSeenAt = DateTimeOffset.UtcNow,
+                });
+            await seed.SaveChangesAsync();
+        }
+
+        // _root 目錄是空的(沒寫任何檔)→ 這輪看不到任何 location,n 個全部該轉 missing。
+        await using var ctx = NewContext();
+        var result = await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        Assert.Equal(0, result.FilesSeen);
+        Assert.Equal(n, result.MarkedMissing);
+
+        await using var verify = NewContext();
+        Assert.Equal(n, await verify.PhotoLocations.CountAsync(l => l.Status == "missing"));
+    }
+
+    [Fact]
+    public async Task Batched_scan_keeps_per_file_metadata_errors_isolated()
+    {
+        WriteImage("bad.png", "bad");
+        WriteImage("ok.png", "ok");
+        var rootId = await SeedRootAsync();
+
+        await using var ctx = NewContext();
+        var scanner = new LibraryScanner(
+            ctx,
+            new Sha256FileHasher(),
+            new ThrowingMetadataReader("bad.png"),
+            new NoopThumbnailService());
+        var result = await scanner.ScanRootAsync(rootId);
+
+        Assert.Equal(2, result.FilesSeen);
+        Assert.Equal(1, result.Errors);
+        Assert.Equal(1, result.NewPhotos);
+        Assert.Equal(1, result.NewLocations);
+
+        await using var verify = NewContext();
+        Assert.Equal(1, await verify.Photos.CountAsync());
+        Assert.Equal(1, await verify.PhotoLocations.CountAsync());
+        Assert.Equal("ok.png", await verify.PhotoLocations.Select(l => l.RelPath).SingleAsync());
+    }
+
+    [Fact]
+    public async Task Batched_photo_and_location_write_rolls_back_together_when_location_save_fails()
+    {
+        WriteImage("a.png", "alpha");
+        var rootId = await SeedRootAsync();
+
+        await using (var ctx = NewThrowOnSecondSaveContext())
+        {
+            var scanner = new LibraryScanner(
+                ctx,
+                new Sha256FileHasher(),
+                new DecodableMetadataReader(),
+                new NoopThumbnailService());
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => scanner.ScanRootAsync(rootId));
+        }
+
+        await using var verify = NewContext();
+        Assert.Equal(0, await verify.Photos.CountAsync());
+        Assert.Equal(0, await verify.PhotoLocations.CountAsync());
+    }
+
+    [Fact]
     public async Task Missing_root_throws()
     {
         await using var ctx = NewContext();
@@ -99,6 +260,25 @@ public class ScannerTests : IDisposable
         Assert.Equal(0, result.NewLocations);
         Assert.Equal(1, result.SkippedUnchanged);
         Assert.Equal(0, counting.Calls);          // 關鍵:沒重算 hash
+    }
+
+    [Fact]
+    public async Task Rescan_unchanged_batches_fast_path_save()
+    {
+        WriteImage("a.png", "alpha");
+        WriteImage("b.png", "beta");
+        WriteImage("c.png", "gamma");
+        var rootId = await SeedRootAsync();
+
+        await using (var ctx = NewContext())
+            await new LibraryScanner(ctx, new Sha256FileHasher()).ScanRootAsync(rootId);
+
+        await using var ctx2 = NewCountingContext();
+        var result = await new LibraryScanner(ctx2, new CountingHasher(new Sha256FileHasher())).ScanRootAsync(rootId);
+
+        Assert.Equal(3, result.SkippedUnchanged);
+        Assert.Equal(1, ctx2.SaveChangesCalls);
+        Assert.Empty(ctx2.ChangeTracker.Entries<Photo>());
     }
 
     [Fact]
@@ -143,6 +323,31 @@ public class ScannerTests : IDisposable
         Assert.Equal(2, await verify.Photos.CountAsync());
         Assert.Equal(2, await verify.PhotoLocations.CountAsync());
     }
+
+    private sealed class CountingSaveContext(DbContextOptions<PmDbContext> options) : PmDbContext(options)
+    {
+        public int SaveChangesCalls { get; private set; }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default)
+        {
+            SaveChangesCalls++;
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+        }
+    }
+
+    private sealed class ThrowOnSecondSaveContext(DbContextOptions<PmDbContext> options) : PmDbContext(options)
+    {
+        private int _saveChangesCalls;
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct = default)
+        {
+            _saveChangesCalls++;
+            if (_saveChangesCalls == 2)
+                throw new InvalidOperationException("simulated location save failure");
+
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+        }
+    }
 }
 
 file sealed class CountingHasher(IFileHasher inner) : IFileHasher
@@ -153,4 +358,26 @@ file sealed class CountingHasher(IFileHasher inner) : IFileHasher
         Calls++;
         return inner.HashFileAsync(absPath, ct);
     }
+}
+
+file sealed class ThrowingMetadataReader(string relPath) : IImageMetadataReader
+{
+    public ImageMeta Read(string absPath)
+    {
+        if (Path.GetFileName(absPath) == relPath) throw new IOException("metadata unavailable");
+        return new ImageMeta(null, null, null, null, null, null, null, null);
+    }
+}
+
+file sealed class NoopThumbnailService : IThumbnailService
+{
+    public string PathFor(string hash) => hash;
+    public Task<string?> GenerateAsync(string absPath, string hash, CancellationToken ct = default) =>
+        Task.FromResult<string?>(hash);
+}
+
+// 回傳可解碼 meta(Width 非 null)→ scanner 視為可標,才會排 tagging job。
+file sealed class DecodableMetadataReader : IImageMetadataReader
+{
+    public ImageMeta Read(string absPath) => new(1, 1, "image/png", null, null, null, null, null);
 }

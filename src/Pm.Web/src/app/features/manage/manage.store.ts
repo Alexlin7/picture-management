@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   PmApi,
   type Root,
+  type ScanStatus,
   type PendingSegment,
   type SavedSearchRow,
 } from '@core/api/pm-api';
@@ -20,7 +21,7 @@ export interface RootView {
 
 // ---- 失蹤待辦匣 view ----
 export type ReconState = 'pending' | 'waiting' | 'externalized' | 'deleted';
-// API missing(): { id, fileHash, paths }。title/last 由 paths 映射;seed/art 無來源(改用真實縮圖 thumbUrl)。
+// API missing(): { id, fileHash, paths }。title/last 由 paths 映射;縮圖改用共用 <app-thumb>(依 id)。
 export interface ReconView {
   id: number;
   fileHash: string;
@@ -91,14 +92,23 @@ export class ManageStore {
   }
 
   // 重新掃描某來源。
-  async rescan(id: number): Promise<void> {
-    await this.api.scan(id);
+  async rescan(id: number): Promise<ScanStatus> {
+    let status = await this.api.scan(id);
+    while (status.state === 'running') {
+      await sleep(4000);
+      status = await this.api.scanStatus(id);
+    }
+    if (status.state === 'error') {
+      throw new Error(status.error ?? '掃描失敗');
+    }
+    return status;
   }
 
   // 新增來源(資料夾挑選器無法在純前端做 → 由 caller 傳 absPath 文字;deferred 真正挑選器)。
-  async createRoot(name: string, absPath: string): Promise<void> {
-    await this.api.createRoot(name, absPath);
+  async createRoot(name: string, absPath: string): Promise<Root> {
+    const root = await this.api.createRoot(name, absPath);
     await this.loadRoots();
+    return root;
   }
 
   // ===== 失蹤待辦匣 =====
@@ -136,11 +146,6 @@ export class ManageStore {
     } finally {
       this._reconLoading.set(false);
     }
-  }
-
-  // 縮圖 URL(依 photo id;絕不碰原圖)。
-  thumbUrl(id: number): string {
-    return this.api.thumbUrl(id);
   }
 
   // 「移到圖庫外」/「繼續等待」→ 軟刪 archive(保留 photo+tags)。
@@ -301,3 +306,7 @@ export class ManageStore {
 }
 
 export type { TagKind } from '@core/tag-color';
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}

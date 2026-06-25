@@ -9,16 +9,20 @@
 
 ---
 
-## 目前狀態（2026-06-22）
+## 目前狀態（2026-06-24）
 
 **Phase 1 核心可端對端運作**：掃描就地索引 → SHA-256 身分 → 縮圖 → 布林查詢 → Angular 相簿，
-前端各畫面**已接真實 API**（非 mock），單一 .NET 程序同時 serve API 與前端。
+前端各畫面**已接真實 API**（非 mock），單一 .NET 程序同時 serve API 與前端。近期進入 UI/UX 進化階段
+（tag 顯示層、樣式系統地基、頂端操作重構）。
 
 - ✅ 後端 scan / 對帳 / 查詢 / 路徑→tag / saved search / facet 樹 / 軟硬刪 / manual tag 端點（皆有測試）
 - ✅ 標籤庫端點：列表（含使用數）/ 改名 / 合併 / 刪除，正規化 + **全 Unicode 不分大小寫去重**（`name_ci` 鍵 + 唯一索引，非 ASCII 角色/作品名也去重）（`TagService`）
 - ✅ 前端 gallery / import / reconcile / saved / roots + inspector + **標籤庫管理頁 `/tags`** 接真實 API（實機驗證）；檢視器以 combobox 加/刪標籤（查既有、防近似重複）
 - ✅ **WD14 自動標籤端到端就緒（opt-in）**：ML pipeline（前處理 448² BGR / WD14 ONNX in-proc / 後處理門檻）＋ `TaggingWorker` 已透過 `AddWd14Tagging` wire 進 host —— `Inference:Enabled=true` 時註冊推論工廠＋tagger＋背景服務消化 `tagging_job`，**預設關閉**（免下載模型）；worker 寫 tag 走 `TagService`（全 Unicode CI 去重、kind 語意升級不降級、與 manual 共用 `AttachTag` 路徑），不再與手動標籤撞大小寫或畫錯 lane；崩潰留下的 `running` job 啟動時自動回收重排
 - ✅ **WD14 已在真實圖庫實機驗證（2026-06-22，AMD RX 9060 XT / DirectML）**：200 張動漫圖一輪 0 失敗；HF 模型 + `selected_tags.csv` 自動下載成功；DirectML 在 AMD GPU 推論成功；標籤品質佳（`1girl`/`long_hair`/`halo`/角色名…），`source=wd14`＋`confidence` 正確寫入。**category↔kind 對應確認無誤**：WD14 v3 的 csv 只有 category `0`(general)/`4`(character)/`9`(rating，被過濾)，無 `3`(copyright)，故 `KindOf` 的 `3→copyright` 為不觸發死碼（無害；作品名內嵌於角色標如 `aris_(blue_archive)`）。門檻 general 0.35 / character 0.85 表現合理（character 偏高精度，想多召回可調低）
+- ✅ **WD14 tag 顯示層 v1**：英文 raw tag → 中文顯示名（`displayOf`）+ 角色解析（`parseCharacter`，作品內嵌於 `name_(work)`）；檢視器依 group 分區 + 來源徽章（path/manual/wd14 + confidence）+ per-photo 重標。**純前端 display model，不改 SQLite canonical**（`core/tag-display.ts`，TDD，`ng test` 綠）
+- ✅ **UI 樣式系統地基（Spec 1）**：Tailwind v4 `@theme` 擴充（success/warning 語意色、focus ring、shadow elevation、motion token）+ 全域 `:focus-visible` ＋ `prefers-reduced-motion` ＋ `.btn` 三態 / `.btn-danger` / `.input` / `.skeleton` primitive（純加法，`ng build`/`ng test` 綠）
+- ✅ **Gallery 頂端操作 UX 重構（Spec 3，大致完成）**：搜尋改「下拉驅動 substring 探索」（打片段挑既有標、AND 隱含、點 chip 切排除、精準 Enter、查無此標、已選標不重複）；刪冗餘掃描鈕（②）；儲存搜尋存+套用接線（③）；toolbar「重標失敗」批次 requeue（④，error+retry 非破壞）。**剩**：Task 6 中文顯示名反查（打「微笑」找 smile，待使用者實測回饋後做）、破壞性「重標全部」deferred
 - 🚧 推論後端：CPU / DirectML 可用；CUDA、Windows ML 僅骨架（見 `src/Pm.Ml`）
 - 🔲 Phase 2（CLIP 語意搜尋）未開始
 
@@ -71,15 +75,18 @@ curl -X POST http://localhost:5180/api/roots -H "Content-Type: application/json"
      -d '{"name":"my-lib","absPath":"D:/pics"}'
 # 觸發掃描（就地索引，絕不搬動原檔）
 curl -X POST http://localhost:5180/api/roots/1/scan -H "Content-Type: application/json" -d '{}'
+
+# 查掃描狀態（POST 會回 202，實際結果由這裡輪詢）
+curl http://localhost:5180/api/roots/1/scan-status
 ```
 之後在 UI 的「匯入確認」頁確認路徑→tag 規則。
 
 ### 啟用 WD14 自動標籤（opt-in，預設關）
-在 `src/Pm.Api/appsettings.json`（或環境變數）把 `Inference:Enabled` 設為 `true`，並視硬體設 `Inference:Backend`（`directml` 預設 / `cpu` / 日後 `cuda`）。開啟後啟動程序即註冊 `TaggingWorker` 背景服務，會消化掃描排入的 `tagging_job`；**首次標註會自動 HF 下載 WD14 模型（~300MB）＋ `selected_tags.csv` 到 `Inference:Wd14:ModelDir`（預設 `models/wd14`）**。關閉時零開銷、不下載。
+在 `src/Pm.Api/appsettings.json`（或環境變數）把 `Inference:Wd14:Enabled` 設為 `true`，並視硬體設 `Inference:Wd14:Backend`（`directml` 預設 / `cpu` / 日後 `cuda`）。開啟後啟動程序即註冊 `TaggingWorker` 背景服務，會消化掃描排入的 `tagging_job`；**首次標註會自動 HF 下載 WD14 模型（~300MB）＋ `selected_tags.csv` 到 `Inference:Wd14:ModelDir`（預設 `models/wd14`）**。關閉時零開銷、不下載。能力開關按模型獨立（`Inference:Wd14:*`，未來 CLIP 走 `Inference:Clip:*`）。
 
 ```powershell
 # 例:以環境變數臨時開啟(走 CPU)
-$env:Inference__Enabled = "true"; $env:Inference__Backend = "cpu"
+$env:Inference__Wd14__Enabled = "true"; $env:Inference__Wd14__Backend = "cpu"
 dotnet run --project src/Pm.Api
 ```
 
@@ -105,7 +112,7 @@ cd src/Pm.Web ; npm test          # 前端
 
 ### ✅ 已完成且驗證
 - SQLite 九表 schema + migration；身分（`photo`）/位置（`photo_location`）兩層分離
-- 掃描器：走訪 + SHA-256 + upsert 身分/位置 + 同內容去重 + size/mtime 快路徑 + EXIF/尺寸/MIME + 512px webp 縮圖 + 走訪後對帳（missing/搬移/失蹤/復原）
+- 掃描器：背景非同步掃描 + 狀態輪詢、走訪 + SHA-256 + upsert 身分/位置 + 同內容去重 + size/mtime 快路徑 + EXIF/尺寸/MIME + 512px webp 縮圖/缺檔補產 + 走訪後對帳（missing/搬移/失蹤/復原）
 - 路徑→tag：待確認段收集 + 確認規則 + 重掃自動套用
 - 查詢：`TagClosureService`（DAG 後代閉包 recursive CTE）+ `PhotoQueryService`（布林 AND/排除 + keyset，只回 present）
 - API：roots(GET/POST)、scan、search、photos/{id}(+thumb)、reconcile/missing(+archive 軟刪/purge 硬刪)、path-rules、saved-searches(CRUD)、tags/tree(facet)、photos/{id}/tags(manual 新增/刪除)
@@ -113,13 +120,13 @@ cd src/Pm.Web ; npm test          # 前端
 - 前端各頁接真實 API + 真實縮圖 + 點圖→檢視器真實 detail；標籤庫管理頁 `/tags`（列表/過濾/改名→撞名自動合併/刪除）；檢視器 combobox 加/刪標籤（查既有、↑↓/Enter/Esc、僅無 CI 完全相符才顯示「建立新標籤」）；單程序 serve SPA
 - 推論後端抽象 `IInferenceSessionFactory`（CPU / DirectML 可用）
 - WD14 ML pipeline（`Pm.Ml`）：`Wd14Preprocess`（方形白底 padding→448²→BGR NHWC）、`Wd14Tagger`（lazy load + session 重用 ONNX in-proc）、`Wd14Postprocess`（general/character 門檻、category→kind）、`Wd14ModelProvider`（HF 下載模型 + selected_tags.csv）
-- `TaggingWorker`（抽 `tagging_job`→推論→經 `TagService` CI 去重 + `AttachTag` 寫 `photo_tag(source=wd14)`→done/error；預載既有 tagId 消 N+1；啟動回收孤兒 `running`）＋ `AddWd14Tagging` host wiring（`Inference:Enabled` opt-in gate，預設關；backend→factory 自 `.Backend` 查找）—— 皆有測試
+- `TaggingWorker`（抽 `tagging_job`→推論→經 `TagService` CI 去重 + `AttachTag` 寫 `photo_tag(source=wd14)`→done/error；預載既有 tagId 消 N+1；啟動回收孤兒 `running`）＋ `AddWd14Tagging` host wiring（`Inference:Wd14:Enabled` opt-in gate，預設關；backend→factory 自 `.Backend` 查找）—— 皆有測試
 - 模型供應 `Wd14ModelProvider`：HF 下載走 `.part` 暫存檔 + atomic rename，中斷不留壞檔
 
 ### ⚠️ 已接 API 但功能簡化（API 無來源，刻意 deferred，非 bug）
-- 相簿：總命中數暫顯「已載入數」、WD14 佇列暫顯 0、per-tile 的 tag chips/系列/去重/個人照片標記已移除、搜尋框送出加 token 互動未接、無初始查詢
-- 檢視器：WD14 建議（✓✕ 採用/拒絕）移除、系列/個人/GPS 移除；manual tag 新增刪除 store 有方法但尚無 UI
-- 管理：來源檔數/掃描時間/狀態點、reconcile 已續接數、saved 命中數/特殊卡隱藏；新增來源用 prompt 收路徑（無資料夾挑選器）；saved 點卡套用查詢未接
+- 相簿：搜尋為 **下拉驅動**（打片段挑既有標、AND 隱含、點 chip 切排除、精準 Enter、查無此標、已選標不重複）；「儲存搜尋」已接（存+套用）、「重標失敗」批次 requeue 已接、冗餘掃描鈕已刪；總命中數暫顯「已載入數」、WD14 佇列暫顯 0、per-tile tag chips 移除、無初始查詢
+- 檢視器：tag 已改 **中文顯示名 + 依 group 分區 + 來源徽章 + per-photo 重標 + 逐標移除**；WD14 建議（✓✕ 採用/拒絕）、系列/個人/GPS 仍移除
+- 管理：來源檔數/掃描時間/狀態點、reconcile 已續接數、saved 命中數/特殊卡隱藏；新增來源用 inline 表單收路徑（無資料夾挑選器）；saved 點卡**已可套用查詢**（解析 queryJson → gallery setTokens）
 
 ### 🔲 尚未實作 / 待驗
 - **WD14 失敗 job 無自動重試**：`TaggingWorker` 失敗只標 `error` ＋ `Attempts++`，不自動重排（之後可加退避重試）。註：崩潰卡在 `running` 的 job 啟動時**會**自動回收重排（與此不同）

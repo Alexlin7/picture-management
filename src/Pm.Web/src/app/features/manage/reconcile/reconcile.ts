@@ -1,11 +1,12 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ManageStore } from '../manage.store';
+import { Thumb } from '@core/ui/thumb';
 
 // 契約(route /reconcile):失蹤待辦匣 —— 縮圖卡 + 上次位置 + 三動作。
-// 資料一律來自 ManageStore(PmApi.missing());縮圖改用真實 thumbUrl(不再用漸層 seed)。
+// 資料一律來自 ManageStore(PmApi.missing());縮圖用共用 <app-thumb>(skeleton/重試/佔位)。
 @Component({
   selector: 'app-reconcile',
-  imports: [],
+  imports: [Thumb],
   templateUrl: './reconcile.html',
   styleUrl: './reconcile.css',
 })
@@ -20,11 +21,6 @@ export class Reconcile implements OnInit {
 
   ngOnInit(): void {
     void this.store.loadRecon();
-  }
-
-  // 縮圖 URL(依 photo id;絕不碰原圖)
-  thumb(id: number): string {
-    return this.store.thumbUrl(id);
   }
 
   // 三動作:對應軟刪 / 硬刪 / 等待。

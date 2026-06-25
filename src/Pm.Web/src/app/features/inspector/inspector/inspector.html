@@ -1,14 +1,11 @@
 @if (photo(); as p) {
   <!-- 預覽圖:縮圖;aspect-ratio 依 width/height(無則自然) -->
   <div class="preview">
-    @if (thumbUrl(); as url) {
-      <img
-        class="pimg"
-        [src]="url"
-        [style.aspect-ratio]="p.width && p.height ? p.width + '/' + p.height : null"
-        alt=""
-      />
-    }
+    <app-thumb
+      class="pimg"
+      [photoId]="p.id"
+      [aspectRatio]="p.width && p.height ? p.width + '/' + p.height : '1/1'"
+    />
     <div class="grad"></div>
   </div>
 
@@ -40,23 +37,31 @@
       </div>
     </div>
 
-    <!-- 標籤 lanes(依 kind 分色)。source ∈ path/manual/wd14 由顏色與信心呈現 -->
+    <!-- 標籤 lanes:依 displayOf 的 group 分區(character/copyright/expression/general/meta)。
+         來源(path/manual/wd14)以每 tag 的徽章顯示;canonical 永遠可見可搜。 -->
     <div class="isec">
-      <div class="isec-h">標籤<span class="line"></span></div>
+      <div class="isec-h">標籤<span class="line"></span>
+        <button class="mini" type="button" [disabled]="retagging()" (click)="retag('refresh')"
+          title="清除舊的 WD14 自動標並重新標註（需啟用推論才會立即重標）">重標</button>
+        <button class="mini" type="button" [disabled]="retagging()" (click)="retag('clear')"
+          title="清除這張圖的 WD14 自動標（保留手動／路徑標）">清除自動標</button>
+      </div>
 
-      @for (lane of lanes(); track lane.kind) {
+      @for (lane of lanes(); track lane.group) {
         <div class="lane">
           <div class="lane-t">
             <span class="dot" [style.color]="lane.color" [style.background]="lane.color"></span>{{ lane.label }}<span class="n">{{ lane.tags.length }}</span>
           </div>
           <div class="tags">
             @for (t of lane.tags; track t.id) {
+              <!-- 統一 chip:tmain(emoji+label+造型/作品徽章)+ tmeta(canonical·來源)。
+                   RWD:tmeta 只在「同一行放不下」時才自動折到第二行(內容驅動,無 JS)。 -->
               <span
                 class="tag"
                 [style.color]="lane.color"
                 [style.border-color]="rgba(lane.color, 0.4)"
                 [style.background]="rgba(lane.color, 0.08)"
-              >{{ t.name }}@if (t.confidence != null) {<span class="conf">{{ pct(t.confidence) }}%</span>}<button class="tx" type="button" title="從這張圖移除" (click)="remove(t.id)">×</button></span>
+              ><span class="tmain">@if (t.emoji) {<span class="emo">{{ t.emoji }}</span>}<span class="tlabel">{{ t.label }}</span>@for (c of t.costumes; track c) {<span class="cb cos">造型:{{ c }}</span>}@if (t.work) {<span class="cb work">作品:{{ t.work }}</span>}</span><span class="tmeta">@if (t.label !== t.canonical) {<span class="canon">{{ t.canonical }}</span>}<span class="src">{{ sourceLabel(t) }}</span><button class="tx" type="button" title="從這張圖移除" (click)="remove(t.id)">×</button></span></span>
             }
           </div>
         </div>

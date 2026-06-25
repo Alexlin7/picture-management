@@ -118,4 +118,35 @@ public class PhotoQueryTests : IDisposable
         await using var ctx2 = NewContext();
         Assert.Empty((await Svc(ctx2).SearchAsync([], [], null, 200)).Items);
     }
+
+    [Fact]
+    public async Task Count_matches_search_total_with_include_and_exclude()
+    {
+        long vspo, pekora, nsfw;
+        await using (var ctx = NewContext())
+        {
+            var r = new LibraryRoot { Name = "t", AbsPath = @"D:\x" };
+            ctx.LibraryRoots.Add(r); await ctx.SaveChangesAsync();
+
+            var t_vspo = new Tag { Name = "vspo", Kind = "copyright" };
+            var t_pekora = new Tag { Name = "pekora", Kind = "character" };
+            var t_nsfw = new Tag { Name = "nsfw", Kind = "meta" };
+            ctx.Tags.AddRange(t_vspo, t_pekora, t_nsfw); await ctx.SaveChangesAsync();
+            ctx.TagRelations.Add(new TagRelation { ParentTagId = t_vspo.Id, ChildTagId = t_pekora.Id });
+            await ctx.SaveChangesAsync();
+            vspo = t_vspo.Id; pekora = t_pekora.Id; nsfw = t_nsfw.Id;
+
+            await AddPhoto(ctx, r, "p1", pekora);
+            await AddPhoto(ctx, r, "p2", pekora, nsfw);
+            await AddPhoto(ctx, r, "p3");
+        }
+
+        await using var ctx2 = NewContext();
+        var svc = Svc(ctx2);
+
+        Assert.Equal(2, await svc.CountAsync(["vspo"], []));        // implication 命中 p1,p2
+        Assert.Equal(1, await svc.CountAsync(["vspo"], ["nsfw"]));  // 排除 nsfw → p1
+        Assert.Equal(3, await svc.CountAsync([], []));              // 全部 present
+        Assert.Equal(0, await svc.CountAsync(["nonexistent"], [])); // 未知 tag → 0
+    }
 }

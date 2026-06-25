@@ -39,6 +39,7 @@ public class ReconcileApiTests : IDisposable
     }
 
     private record RootCreated(long Id);
+    private record ScanStatusDto(string State, string? Error);
 
     [Fact]
     public async Task Missing_endpoint_lists_only_truly_gone_photos()
@@ -50,9 +51,11 @@ public class ReconcileApiTests : IDisposable
         var created = await (await client.PostAsJsonAsync("/api/roots", new { name = "t", absPath = _root }))
             .Content.ReadFromJsonAsync<RootCreated>();
         await client.PostAsync($"/api/roots/{created!.Id}/scan", null);
+        await WaitForScanAsync(client, created.Id);
 
         File.Delete(Path.Combine(_root, "gone.png"));
         await client.PostAsync($"/api/roots/{created.Id}/scan", null);
+        await WaitForScanAsync(client, created.Id);
 
         var resp = await client.GetAsync("/api/reconcile/missing");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -60,5 +63,18 @@ public class ReconcileApiTests : IDisposable
 
         Assert.Contains("gone.png", body);
         Assert.DoesNotContain("stay.png", body);
+    }
+
+    private static async Task WaitForScanAsync(HttpClient client, long rootId)
+    {
+        for (var i = 0; i < 50; i++)
+        {
+            var status = await client.GetFromJsonAsync<ScanStatusDto>($"/api/roots/{rootId}/scan-status");
+            if (status!.State == "completed") return;
+            if (status.State == "error") throw new InvalidOperationException(status.Error);
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException("scan did not finish");
     }
 }

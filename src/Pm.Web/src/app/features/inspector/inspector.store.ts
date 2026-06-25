@@ -63,6 +63,13 @@ export class InspectorStore {
     if (this.currentId === photoId) await this.refresh();
   }
 
+  // 單張重標 / 清除 WD14 自動標(動作層);完成後 refresh detail 反映變化。
+  // refresh:清舊 wd14 + 重排(worker 開啟才會立即重標);clear:清舊 wd14、不排。
+  async retag(photoId: number, mode: 'retry' | 'refresh' | 'clear'): Promise<void> {
+    await this.api.retag(photoId, mode);
+    if (this.currentId === photoId) await this.refresh();
+  }
+
   // ---- 加標籤 combobox:查既有標籤,避免打出近似重複 ----
   private readonly _suggestions = signal<TagListRow[]>([]);
   readonly suggestions = this._suggestions.asReadonly();
@@ -90,10 +97,4 @@ export class InspectorStore {
   clearSuggestions(): void {
     this._suggestions.set([]);
   }
-
-  // 目前 detail 的縮圖 URL(無 detail 回 null)。
-  readonly thumbUrl = computed<string | null>(() => {
-    const d = this._detail();
-    return d == null ? null : this.api.thumbUrl(d.id);
-  });
 }

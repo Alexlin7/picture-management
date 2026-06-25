@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ManageStore } from '../manage.store';
+import { GalleryStore, type SearchToken } from '../../gallery/gallery.store';
 
 // 契約(route /saved):收藏的搜尋 —— 查詢卡片格。
 // 資料一律來自 ManageStore(PmApi.savedSearches());mock-only 的 hits/special 無 API 來源 → 已隱藏。
@@ -13,6 +14,7 @@ import { ManageStore } from '../manage.store';
 export class SavedSearches implements OnInit {
   private readonly store = inject(ManageStore);
   private readonly router = inject(Router);
+  private readonly gallery = inject(GalleryStore);
 
   // 收藏的搜尋(讀 store signal)
   readonly saved = this.store.saved;
@@ -35,9 +37,19 @@ export class SavedSearches implements OnInit {
     this.hovered.set(null);
   }
 
-  // 點卡片:先標記選取,再導到 /gallery(套用查詢到頂欄屬下輪,deferred 註明)。
+  // 點卡片:解析 queryJson → 推進 /gallery?q=(由 GalleryStore.setTokens 導頁)。
   onPick(id: number): void {
     this.active.set(id);
+    const row = this.saved().find((s) => s.id === id);
+    try {
+      const tokens = JSON.parse(row?.query ?? '[]') as SearchToken[];
+      if (Array.isArray(tokens) && tokens.length) {
+        this.gallery.setTokens(tokens);
+        return;
+      }
+    } catch {
+      /* 舊/壞資料:落到下方導空 gallery */
+    }
     void this.router.navigate(['/gallery']);
   }
 

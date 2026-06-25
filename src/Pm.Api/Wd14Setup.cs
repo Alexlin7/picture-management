@@ -3,21 +3,22 @@ using Pm.Ml;
 
 namespace Pm.Api;
 
-// WD14 自動標籤的 host wiring。預設關閉(Inference:Enabled=false),
+// WD14 自動標籤的 host wiring。預設關閉(Inference:Wd14:Enabled=false),
 // 開啟後才註冊 ONNX 推論工廠、Wd14Tagger(singleton、session 重用)與 TaggingWorker 背景服務。
+// 能力開關按模型獨立(Inference:Wd14:*),未來 CLIP 走 Inference:Clip:*,互不綁。
 public static class Wd14Setup
 {
     public static IServiceCollection AddWd14Tagging(this IServiceCollection services, IConfiguration config)
     {
         // opt-in gate:預設關閉,免下載模型、零開銷。
-        if (!config.GetValue<bool>("Inference:Enabled")) return services;
+        if (!config.GetValue<bool>("Inference:Wd14:Enabled")) return services;
 
         var options = config.GetSection("Inference:Wd14").Get<Wd14Options>() ?? new Wd14Options();
         services.AddSingleton(options);
 
-        // 預設 DirectML(鐵則 6,跨 NV/AMD);無 GPU 可設 Inference:Backend=cpu。
+        // 預設 DirectML(鐵則 6,跨 NV/AMD);無 GPU 可設 Inference:Wd14:Backend=cpu。
         // GPU 廠牌自動偵測列為日後工作,故 auto 模式暫傳 gpuVendor=null。
-        var backend = InferenceBackendSelector.Select(config["Inference:Backend"], gpuVendor: null);
+        var backend = InferenceBackendSelector.Select(config["Inference:Wd14:Backend"], gpuVendor: null);
         services.AddSingleton(FactoryFor(backend));
 
         services.AddSingleton<IWd14Tagger, Wd14Tagger>();

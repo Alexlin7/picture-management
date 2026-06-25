@@ -17,7 +17,7 @@ public class Wd14SetupTests
     public void Disabled_by_default_registers_nothing()
     {
         var services = new ServiceCollection();
-        services.AddWd14Tagging(Config());   // 無 Inference:Enabled → 預設關
+        services.AddWd14Tagging(Config());   // 無 Inference:Wd14:Enabled → 預設關
 
         var sp = services.BuildServiceProvider();
         Assert.Null(sp.GetService<IWd14Tagger>());
@@ -30,8 +30,8 @@ public class Wd14SetupTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddWd14Tagging(Config(
-            ("Inference:Enabled", "true"),
-            ("Inference:Backend", "cpu")));
+            ("Inference:Wd14:Enabled", "true"),
+            ("Inference:Wd14:Backend", "cpu")));
 
         var sp = services.BuildServiceProvider();
         Assert.IsType<Wd14Tagger>(sp.GetRequiredService<IWd14Tagger>());

@@ -39,6 +39,7 @@ public class RootScanTests : IDisposable
 
     private record RootCreated(long Id, string Name, string AbsPath);
     private record ScanDto(int FilesSeen, int NewPhotos, int NewLocations, int SkippedUnchanged, int Errors);
+    private record ScanStatusDto(string State, ScanDto? Result, string? Error);
 
     [Fact]
     public async Task Create_root_then_scan_indexes_files()
@@ -51,11 +52,24 @@ public class RootScanTests : IDisposable
         Assert.NotNull(root);
 
         var scan = await client.PostAsync($"/api/roots/{root!.Id}/scan", null);
-        Assert.Equal(HttpStatusCode.OK, scan.StatusCode);
-        var result = await scan.Content.ReadFromJsonAsync<ScanDto>();
+        Assert.Equal(HttpStatusCode.Accepted, scan.StatusCode);
+        var status = await WaitForScanAsync(client, root.Id);
 
-        Assert.Equal(2, result!.FilesSeen);
-        Assert.Equal(2, result.NewPhotos);
-        Assert.Equal(2, result.NewLocations);
+        Assert.Equal("completed", status.State);
+        Assert.Equal(2, status.Result!.FilesSeen);
+        Assert.Equal(2, status.Result.NewPhotos);
+        Assert.Equal(2, status.Result.NewLocations);
+    }
+
+    private static async Task<ScanStatusDto> WaitForScanAsync(HttpClient client, long rootId)
+    {
+        for (var i = 0; i < 50; i++)
+        {
+            var status = await client.GetFromJsonAsync<ScanStatusDto>($"/api/roots/{rootId}/scan-status");
+            if (status!.State != "running") return status;
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException("scan did not finish");
     }
 }

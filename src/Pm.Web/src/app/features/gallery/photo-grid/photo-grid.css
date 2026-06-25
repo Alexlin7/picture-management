@@ -247,6 +247,21 @@
   }
 }
 
+.masonry.dense {
+  column-count: 5;
+}
+.masonry.large {
+  column-count: 2;
+}
+@media (max-width: 1500px) {
+  .masonry.dense {
+    column-count: 4;
+  }
+  .masonry.large {
+    column-count: 2;
+  }
+}
+
 .tile {
   break-inside: avoid;
   margin-bottom: 12px;
@@ -362,4 +377,20 @@
   padding: 2px 6px;
   font-size: 10px;
   font-family: var(--font-mono);
+}
+
+.search-hint {
+  font-size: 11px;
+  color: var(--color-faint);
+  white-space: nowrap;
+  align-self: center;
+}
+.ac-empty {
+  padding: 8px 11px;
+  font-size: 12.5px;
+  color: var(--color-muted);
+}
+
+.scroll-sentinel {
+  height: 1px;
 }

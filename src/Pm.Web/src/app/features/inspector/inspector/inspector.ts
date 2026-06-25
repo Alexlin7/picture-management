@@ -5,7 +5,9 @@ import {
   type TagKind,
   type TagListRow,
 } from '../inspector.store';
-import { TAG_COLOR, KIND_LABEL, tagColor } from '@core/tag-color';
+import { KIND_LABEL, tagColor } from '@core/tag-color';
+import { groupTags, type DisplayTag } from '@core/tag-display';
+import { Thumb } from '@core/ui/thumb';
 
 // combobox 浮層的列:既有標籤列 或 「建立新標籤」列。
 type ComboRow = { kind: 'tag'; tag: TagListRow } | { kind: 'create'; name: string };
@@ -15,7 +17,7 @@ type ComboRow = { kind: 'tag'; tag: TagListRow } | { kind: 'create'; name: strin
 // 資料來源接縫:InspectorStore(非同步載入 PhotoDetail)。
 @Component({
   selector: 'app-inspector',
-  imports: [],
+  imports: [Thumb],
   templateUrl: './inspector.html',
   styleUrl: './inspector.css',
 })
@@ -28,7 +30,6 @@ export class Inspector implements OnDestroy {
   readonly photo = this.store.detail;
   readonly loading = this.store.loading;
   readonly error = this.store.error;
-  readonly thumbUrl = this.store.thumbUrl;
 
   constructor() {
     // id 變動 → 觸發載入(store 內處理競態與清空),並收起/清空加標籤 combobox
@@ -44,25 +45,25 @@ export class Inspector implements OnDestroy {
     if (this.debounce) clearTimeout(this.debounce);
   }
 
-  // tag lane 的固定排序(依 kind)
-  private readonly laneOrder: TagKind[] = [
-    'character', 'copyright', 'general', 'meta', 'path', 'manual',
-  ];
-
-  // 依序組出有 tag 的 lane(空 lane 不顯示)。
-  // 注意:tag.kind 來自 API(string),以 TAG_COLOR/KIND_LABEL 之 key 比對分色。
+  // tag lanes:經 displayOf 依 group 分區(character/copyright/expression/general/meta,
+  // 其餘 group 如 manual/path 不丟、附在後)。group 取代舊版誤把 source(path/manual)當 kind 的作法;
+  // 來源(path/manual/wd14)改由每 tag 的 source 徽章呈現。空 lane 自然不出現。
   readonly lanes = computed(() => {
     const p = this.photo();
     if (!p) return [];
-    return this.laneOrder
-      .map((kind) => ({
-        kind,
-        label: KIND_LABEL[kind],
-        color: TAG_COLOR[kind],
-        tags: p.tags.filter((t) => t.kind === kind),
-      }))
-      .filter((lane) => lane.tags.length > 0);
+    return groupTags(p.tags).map((lane) => ({
+      group: lane.group,
+      label: KIND_LABEL[lane.group as TagKind] ?? lane.group,
+      color: tagColor(lane.group),
+      tags: lane.tags,
+    }));
   });
+
+  // 來源徽章文字:wd14 帶信心度,其餘(manual/path)直接顯示來源。
+  sourceLabel(t: DisplayTag): string {
+    if (t.source === 'wd14') return t.confidence != null ? `wd14 ${this.pct(t.confidence)}%` : 'wd14';
+    return t.source ?? '';
+  }
 
   // EXIF 是否有相機資訊(takenAt / cameraModel 任一存在)
   readonly hasExif = computed(() => {
@@ -198,5 +199,19 @@ export class Inspector implements OnDestroy {
     const id = this.photoId();
     if (id == null) return;
     void this.store.removeTag(id, tagId);
+  }
+
+  // 單張 WD14 動作(動作層):refresh=清舊自動標+重排;clear=清舊自動標不排。
+  // 重排是否立即重標取決於 worker 能力旗標(Inference:Wd14:Enabled);關閉時為 pre-queue。
+  readonly retagging = signal(false);
+  async retag(mode: 'refresh' | 'clear'): Promise<void> {
+    const id = this.photoId();
+    if (id == null || this.retagging()) return;
+    this.retagging.set(true);
+    try {
+      await this.store.retag(id, mode);
+    } finally {
+      this.retagging.set(false);
+    }
   }
 }

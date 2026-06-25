@@ -33,7 +33,15 @@ export class Roots implements OnInit {
   async onRescan(id: number): Promise<void> {
     this.scanning.set(id);
     try {
-      await this.store.rescan(id);
+      const status = await this.store.rescan(id);
+      const r = status.result;
+      this.toast.success(
+        r
+          ? `掃描完成:新增 ${r.newPhotos} 張,位置 ${r.newLocations} 筆,縮圖 ${r.thumbsGenerated} 張`
+          : '掃描完成',
+      );
+    } catch (e) {
+      this.toast.error(e instanceof Error ? e.message : '掃描啟動失敗');
     } finally {
       this.scanning.set(null);
     }
@@ -48,8 +56,11 @@ export class Roots implements OnInit {
       return;
     }
     const n = name.trim() || p;
-    await this.store.createRoot(n, p);
-    this.toast.success(`已新增來源「${n}」`);
+    const root = await this.store.createRoot(n, p);
+    this.toast.success(`已新增來源「${n}」,開始掃描…`);
     this.adding.set(false);
+    // 新增即自動掃描:非破壞性、且是新增來源天經地義的下一步(不跳 confirm)。
+    // onRescan 已處理 scanning 狀態 + 輪詢 + 完成/失敗 toast。
+    await this.onRescan(root.id);
   }
 }

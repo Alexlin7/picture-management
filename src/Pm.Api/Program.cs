@@ -1,13 +1,17 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Pm.Api;
 using Pm.Data;
 using Pm.Data.Entities;
 using Pm.Scanner;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<PmDbContext>(opt =>
-    opt.UseSqlite(builder.Configuration.GetConnectionString("Pm")));
+builder.Services.AddSingleton(new SqliteBusyTimeoutInterceptor(TimeSpan.FromSeconds(5)));
+builder.Services.AddDbContext<PmDbContext>((sp, opt) =>
+    opt.UseSqlite(BuildSqliteConnectionString(builder.Configuration.GetConnectionString("Pm")))
+        .AddInterceptors(sp.GetRequiredService<SqliteBusyTimeoutInterceptor>()));
 
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IConfiguration>().GetSection("Thumbnails").Get<ThumbnailOptions>()
@@ -21,9 +25,14 @@ builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
 builder.Services.AddScoped<TagService>();
+builder.Services.AddScoped<TaggingScheduler>();
+builder.Services.AddSingleton<RootScanCoordinator>();
 
-// WD14 自動標籤(opt-in:Inference:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
+// WD14 自動標籤(opt-in:Inference:Wd14:Enabled,預設關)。開啟才註冊推論工廠 + tagger + 背景 worker。
 builder.Services.AddWd14Tagging(builder.Configuration);
+
+// OpenAPI 文件產生(Minimal API 自動掃端點)。供 Scalar UI 與外部工具讀取。
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -33,8 +42,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
     db.Database.Migrate();
     // 開 WAL:API 請求與 WD14 背景 worker 同時寫入 pm.sqlite 時,讀寫不互卡(rollback journal 會)。
-    // WAL 為持久設定(寫入 db header),設一次後所有連線生效。短暫寫鎖則靠 Microsoft.Data.Sqlite
-    // 預設 command timeout(SQLITE_BUSY 自動重試)等待,而非立即「database is locked」。
+    // WAL 為持久設定(寫入 db header),設一次後所有連線生效。短暫寫鎖則靠 connection-level
+    // busy_timeout 等待;不能只靠 EF command timeout,因為連線歸還/清理也可能碰到 SQLITE_BUSY。
     db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
 }
 
@@ -42,8 +51,15 @@ using (var scope = app.Services.CreateScope())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+// API 文件:/openapi/v1.json(機器可讀)+ Scalar 互動式 UI 於 /scalar/v1。
+// 鐵則 #8(localhost 單人、無認證)下曝露 API explorer 無安全顧慮;日後要收進
+// Development-only 只需包一層 if (app.Environment.IsDevelopment())。
+app.MapOpenApi();
+app.MapScalarApiReference();
+
 // liveness:程序活著就好,不碰 DB
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+    .WithTags("Health");
 
 // readiness:確認 DB 開得起來
 app.MapGet("/health/db", async (PmDbContext db) =>
@@ -52,10 +68,12 @@ app.MapGet("/health/db", async (PmDbContext db) =>
     return canConnect
         ? Results.Ok(new { db = "ok" })
         : Results.Json(new { db = "down" }, statusCode: 503);
-});
+})
+    .WithTags("Health");
 
 app.MapGet("/api/roots", async (PmDbContext db) =>
-    Results.Ok(await db.LibraryRoots.Select(r => new { r.Id, r.Name, r.AbsPath }).ToListAsync()));
+    Results.Ok(await db.LibraryRoots.Select(r => new { r.Id, r.Name, r.AbsPath }).ToListAsync()))
+    .WithTags("Roots");
 
 app.MapPost("/api/roots", async (CreateRootDto dto, PmDbContext db) =>
 {
@@ -63,13 +81,32 @@ app.MapPost("/api/roots", async (CreateRootDto dto, PmDbContext db) =>
     db.LibraryRoots.Add(root);
     await db.SaveChangesAsync();
     return Results.Created($"/api/roots/{root.Id}", new { root.Id, root.Name, root.AbsPath });
-});
+})
+    .WithTags("Roots");
 
-app.MapPost("/api/roots/{id:long}/scan", async (long id, LibraryScanner scanner) =>
+// enqueueTagging:是否為新可解碼圖排 WD14 job。未帶 query → 跟隨 WD14 能力旗標(Inference:Wd14:Enabled),
+// 推論關時預設純索引、不堆死 job;明示 ?enqueueTagging=true 可在推論關時 pre-queue,?=false 強制只索引。
+app.MapPost("/api/roots/{id:long}/scan", async (
+    long id,
+    bool? enqueueTagging,
+    PmDbContext db,
+    RootScanCoordinator scans) =>
 {
-    var result = await scanner.ScanRootAsync(id);
-    return Results.Ok(result);
-});
+    if (!await db.LibraryRoots.AnyAsync(r => r.Id == id)) return Results.NotFound();
+
+    if (!scans.TryStart(id, enqueueTagging, out var status))
+        return Results.Conflict(status);
+
+    return Results.Accepted($"/api/roots/{id}/scan-status", status);
+})
+    .WithTags("Roots");
+
+app.MapGet("/api/roots/{id:long}/scan-status", async (long id, PmDbContext db, RootScanCoordinator scans) =>
+{
+    if (!await db.LibraryRoots.AnyAsync(r => r.Id == id)) return Results.NotFound();
+    return Results.Ok(scans.GetStatus(id));
+})
+    .WithTags("Roots");
 
 app.MapGet("/api/reconcile/missing", async (PmDbContext db) =>
 {
@@ -83,30 +120,40 @@ app.MapGet("/api/reconcile/missing", async (PmDbContext db) =>
         })
         .ToListAsync();
     return Results.Ok(gone);
-});
+})
+    .WithTags("Reconcile");
 
 app.MapGet("/api/roots/{id:long}/pending-segments", async (long id, PathTagService svc) =>
-    Results.Ok(await svc.GetPendingSegmentsAsync(id)));
+    Results.Ok(await svc.GetPendingSegmentsAsync(id)))
+    .WithTags("PathTags");
 
 app.MapPost("/api/path-rules", async (PathRuleDto dto, PathTagService svc) =>
 {
     await svc.ApplyRuleAsync(dto.RootId, dto.Segment, dto.Action, dto.TagName);
     return Results.Ok();
-});
+})
+    .WithTags("PathTags");
 
 app.MapPost("/api/roots/{id:long}/apply-path-tags", async (long id, PathTagService svc) =>
-    Results.Ok(new { rulesApplied = await svc.ApplyExistingRulesAsync(id) }));
+    Results.Ok(new { rulesApplied = await svc.ApplyExistingRulesAsync(id) }))
+    .WithTags("PathTags");
 
 app.MapPost("/api/search", async (SearchDto dto, PhotoQueryService svc) =>
-    Results.Ok(await svc.SearchAsync(dto.All ?? [], dto.None ?? [], dto.AfterId, dto.PageSize ?? 200)));
+    Results.Ok(await svc.SearchAsync(dto.All ?? [], dto.None ?? [], dto.AfterId, dto.PageSize ?? 200)))
+    .WithTags("Search");
+
+app.MapPost("/api/search/count", async (SearchDto dto, PhotoQueryService svc) =>
+    Results.Ok(new { total = await svc.CountAsync(dto.All ?? [], dto.None ?? []) }))
+    .WithTags("Search");
 
 app.MapGet("/api/photos/{id:long}/thumb", async (long id, PmDbContext db, IThumbnailService thumbs) =>
 {
     var hash = await db.Photos.Where(p => p.Id == id).Select(p => p.FileHash).FirstOrDefaultAsync();
     if (hash is null) return Results.NotFound();
     var path = Path.GetFullPath(thumbs.PathFor(hash));   // 絕對路徑:走 PhysicalFile 而非 VirtualFile(wwwroot)
-    return File.Exists(path) ? Results.File(path, "image/webp") : Results.NotFound();
-});
+    return await OpenThumbAsync(path);
+})
+    .WithTags("Photos");
 
 app.MapGet("/api/photos/{id:long}", async (long id, PmDbContext db) =>
 {
@@ -131,10 +178,12 @@ app.MapGet("/api/photos/{id:long}", async (long id, PmDbContext db) =>
         locations = photo.Locations.Select(l => new { l.LibraryRootId, l.RelPath, l.Status }),
         tags = tagView
     });
-});
+})
+    .WithTags("Photos");
 
 app.MapGet("/api/saved-searches", async (PmDbContext db) =>
-    Results.Ok(await db.SavedSearches.OrderByDescending(s => s.Id).ToListAsync()));
+    Results.Ok(await db.SavedSearches.OrderByDescending(s => s.Id).ToListAsync()))
+    .WithTags("SavedSearches");
 
 app.MapPost("/api/saved-searches", async (SavedSearchDto dto, PmDbContext db) =>
 {
@@ -142,7 +191,8 @@ app.MapPost("/api/saved-searches", async (SavedSearchDto dto, PmDbContext db) =>
     db.SavedSearches.Add(s);
     await db.SaveChangesAsync();
     return Results.Created($"/api/saved-searches/{s.Id}", new { s.Id });
-});
+})
+    .WithTags("SavedSearches");
 
 app.MapDelete("/api/saved-searches/{id:long}", async (long id, PmDbContext db) =>
 {
@@ -151,7 +201,8 @@ app.MapDelete("/api/saved-searches/{id:long}", async (long id, PmDbContext db) =
     db.SavedSearches.Remove(s);
     await db.SaveChangesAsync();
     return Results.NoContent();
-});
+})
+    .WithTags("SavedSearches");
 
 // 側欄 facet 樹(餵 FacetSidebar)
 app.MapGet("/api/tags/tree", async (TagFacetService svc) =>
@@ -175,7 +226,8 @@ app.MapGet("/api/tags/tree", async (TagFacetService svc) =>
         general = f.General.Select(p => new object[] { p.Name, p.Count }).ToList(),
         meta = f.Meta.Select(p => new object[] { p.Name, p.Count }).ToList()
     });
-});
+})
+    .WithTags("Tags");
 
 // reconcile:軟刪(把該 photo 所有 location 標 archived,保留 photo+tags)
 app.MapPost("/api/photos/{id:long}/archive", async (long id, PmDbContext db) =>
@@ -185,7 +237,8 @@ app.MapPost("/api/photos/{id:long}/archive", async (long id, PmDbContext db) =>
     foreach (var l in locs) l.Status = "archived";
     await db.SaveChangesAsync();
     return Results.Ok(new { archived = locs.Count });
-});
+})
+    .WithTags("Photos");
 
 // reconcile:硬刪 purge(cascade 連帶 location/photo_tag),僅明示端點才做
 app.MapDelete("/api/photos/{id:long}", async (long id, PmDbContext db) =>
@@ -195,7 +248,8 @@ app.MapDelete("/api/photos/{id:long}", async (long id, PmDbContext db) =>
     db.Photos.Remove(photo);
     await db.SaveChangesAsync();
     return Results.NoContent();
-});
+})
+    .WithTags("Photos");
 
 // 寫 manual tag(upsert tag,新增 photo_tag source='manual';已存在則 idempotent)
 app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db, TagService tags) =>
@@ -211,7 +265,8 @@ app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDb
 
     var pt = await db.PhotoTags.FirstAsync(x => x.PhotoId == id && x.TagId == tag.Id);
     return Results.Ok(new { id = tag.Id, name = tag.Name, kind = tag.Kind, source = pt.Source, confidence = pt.Confidence });
-});
+})
+    .WithTags("Photos");
 
 // 移除 photo_tag
 app.MapDelete("/api/photos/{id:long}/tags/{tagId:long}", async (long id, long tagId, PmDbContext db) =>
@@ -221,11 +276,49 @@ app.MapDelete("/api/photos/{id:long}/tags/{tagId:long}", async (long id, long ta
     db.PhotoTags.Remove(pt);
     await db.SaveChangesAsync();
     return Results.NoContent();
-});
+})
+    .WithTags("Photos");
+
+app.MapPost("/api/photos/{id:long}/retag", async (long id, string? mode, TaggingScheduler scheduler) =>
+{
+    try
+    {
+        var result = await scheduler.ScheduleAsync(mode ?? "retry", new RequeueScopeDto(PhotoIds: [id]));
+        return result.Matched == 0 ? Results.NotFound() : Results.Ok(result);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+    .WithTags("Tagging");
+
+app.MapPost("/api/tag/requeue", async (RequeueRequestDto dto, TaggingScheduler scheduler) =>
+{
+    try
+    {
+        return Results.Ok(await scheduler.ScheduleAsync(dto.Mode, dto.Scope));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+    .WithTags("Tagging");
+
+app.MapGet("/api/tagging/stats", async (PmDbContext db) =>
+    Results.Ok(new
+    {
+        pending = await db.TaggingJobs.CountAsync(j => j.State == "pending"),
+        error = await db.TaggingJobs.CountAsync(j => j.State == "error"),
+        running = await db.TaggingJobs.CountAsync(j => j.State == "running"),
+    }))
+    .WithTags("Tagging");
 
 // 標籤庫:列出 + 使用數(autocomplete 與管理頁共用);q 不分大小寫過濾
 app.MapGet("/api/tags", async (string? q, int? limit, TagService tags) =>
-    Results.Ok(await tags.ListAsync(q, Math.Clamp(limit ?? 50, 1, 500))));
+    Results.Ok(await tags.ListAsync(q, Math.Clamp(limit ?? 50, 1, 500))))
+    .WithTags("Tags");
 
 // 建純標籤(不掛圖):name + kind(預設 manual)。撞既有(CI)回 200 + existed:true;否則 201。
 app.MapPost("/api/tags", async (CreateTagDto dto, TagService tags, PmDbContext db) =>
@@ -238,7 +331,8 @@ app.MapPost("/api/tags", async (CreateTagDto dto, TagService tags, PmDbContext d
         return Results.Ok(new { id = existing.Id, name = existing.Name, kind = existing.Kind, existed = true });
     var tag = await tags.UpsertByNameAsync(name, dto.Kind ?? "manual");
     return Results.Created($"/api/tags/{tag.Id}", new { id = tag.Id, name = tag.Name, kind = tag.Kind, existed = false });
-});
+})
+    .WithTags("Tags");
 
 // 編輯:改名 and/or 改 kind(任一可省);改名撞既有→合併。回 { merged }
 app.MapPut("/api/tags/{id:long}", async (long id, UpdateTagDto dto, TagService tags) =>
@@ -247,27 +341,77 @@ app.MapPut("/api/tags/{id:long}", async (long id, UpdateTagDto dto, TagService t
         return Results.BadRequest(new { error = "標籤名不可為空白" });
     var (found, merged) = await tags.UpdateAsync(id, dto.Name, dto.Kind);
     return found ? Results.Ok(new { merged }) : Results.NotFound();
-});
+})
+    .WithTags("Tags");
 
 // 刪除 tag(連帶關聯)
 app.MapDelete("/api/tags/{id:long}", async (long id, TagService tags) =>
-    await tags.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
+    await tags.DeleteAsync(id) ? Results.NoContent() : Results.NotFound())
+    .WithTags("Tags");
 
 // 合併 id → targetId
 app.MapPost("/api/tags/{id:long}/merge/{targetId:long}", async (long id, long targetId, TagService tags) =>
-    await tags.MergeAsync(id, targetId) ? Results.Ok() : Results.NotFound());
+    await tags.MergeAsync(id, targetId) ? Results.Ok() : Results.NotFound())
+    .WithTags("Tags");
 
 // SPA fallback:前端路由不被 API 404 攔截
 app.MapFallbackToFile("index.html");
 
 app.Run();
 
+static string BuildSqliteConnectionString(string? configured)
+{
+    var cs = string.IsNullOrWhiteSpace(configured) ? "Data Source=pm.sqlite" : configured;
+    var builder = new SqliteConnectionStringBuilder(cs)
+    {
+        DefaultTimeout = 5
+    };
+    return builder.ToString();
+}
+
+static async Task<IResult> OpenThumbAsync(string path)
+{
+    if (!File.Exists(path)) return Results.NotFound();
+
+    for (var attempt = 0; attempt < 2; attempt++)
+    {
+        try
+        {
+            var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite,
+                bufferSize: 64 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            return Results.Stream(stream, "image/webp");
+        }
+        catch (IOException) when (attempt == 0)
+        {
+            await Task.Delay(80);
+        }
+        catch (IOException ex)
+        {
+            return Results.Json(new { error = "thumbnail temporarily unavailable", detail = ex.Message }, statusCode: 503);
+        }
+    }
+
+    return Results.Json(new { error = "thumbnail temporarily unavailable" }, statusCode: 503);
+}
+
+/// <summary>建立圖庫來源的請求:顯示名 + 絕對路徑。</summary>
 public record CreateRootDto(string Name, string AbsPath);
+/// <summary>路徑段→tag 確認規則:指定根目錄、路徑段、動作(map/ignore)與對應標籤名。</summary>
 public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName);
+/// <summary>布林查詢請求:all 取交集、none 排除、keyset 分頁(AfterId + PageSize)。</summary>
 public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
+/// <summary>儲存搜尋請求:名稱 + 序列化為 JSON 的查詢條件。</summary>
 public record SavedSearchDto(string Name, string QueryJson);
+/// <summary>手動加標請求:標籤名稱與可選分類(kind)。</summary>
 public record ManualTagDto(string Name, string? Kind);
+/// <summary>建立純標籤(不掛圖)請求:名稱與可選分類(kind,預設 manual)。</summary>
 public record CreateTagDto(string Name, string? Kind);
+/// <summary>更新標籤請求:可選改名與/或改 kind,任一可省略。</summary>
 public record UpdateTagDto(string? Name, string? Kind);
 
 public partial class Program { }   // 供 WebApplicationFactory 測試引用

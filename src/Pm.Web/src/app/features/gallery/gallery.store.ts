@@ -1,6 +1,8 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Router } from '@angular/router';
 import { PmApi, type PhotoListItem } from '@core/api/pm-api';
 import { type TagKind } from '@core/tag-color';
+import { toggleExclude, encodeTokens, decodeTokens } from '@core/tag-search';
 
 // 相簿資料來源 store:元件與 API 之間的唯一接縫。
 // 資料一律來自 @core/api/pm-api 的 PmApi;元件只讀 store 的 signal。
@@ -52,6 +54,22 @@ function mapNode(n: { name: string; kind: string; count: number; multi?: boolean
 @Injectable({ providedIn: 'root' })
 export class GalleryStore {
   private readonly api = inject(PmApi);
+  private readonly router = inject(Router);
+
+  constructor() {
+    void this.loadWd14Stats();
+    const id = setInterval(() => void this.loadWd14Stats(), 4000);
+    inject(DestroyRef).onDestroy(() => clearInterval(id));
+  }
+
+  private async loadWd14Stats(): Promise<void> {
+    try {
+      const s = await this.api.taggingStats();
+      this._wd14Queue.set(s.pending + s.error);
+    } catch {
+      /* 靜默:佇列數非關鍵,失敗保留前值 */
+    }
+  }
 
   // ---- 圖牆資料(keyset 無限捲,累積)----
   private readonly _photos = signal<PhotoListItem[]>([]);
@@ -66,11 +84,13 @@ export class GalleryStore {
   private readonly _error = signal<string | null>(null);
   readonly error = this._error.asReadonly();
 
-  // 命中數:API 無總數,先顯示已載入筆數(deferred 註明)。
-  readonly hitCount = computed(() => this._photos().length);
+  // 命中數:真實總數(來自 /api/search/count)。
+  private readonly _hitCount = signal(0);
+  readonly hitCount = this._hitCount.asReadonly();
 
-  // WD14 佇列:API 無來源 → 顯示 0(deferred 註明)。
-  readonly wd14Queue = 0;
+  // WD14 待標佇列:真實 pending+error(每 4s 輪詢)。
+  private readonly _wd14Queue = signal(0);
+  readonly wd14Queue = this._wd14Queue.asReadonly();
 
   // ---- 頂欄搜尋 token ----
   private readonly _tokens = signal<SearchToken[]>([]);
@@ -90,14 +110,9 @@ export class GalleryStore {
   private readonly _selectedId = signal<number | null>(null);
   readonly selectedId = this._selectedId.asReadonly();
 
-  // 縮圖 URL(給 template;絕不碰原圖)。
-  thumbUrl(id: number): string {
-    return this.api.thumbUrl(id);
-  }
-
-  // 初次載入:facet 樹 + 第一頁圖。
+  // 初次載入:只載 facet 樹(圖片查詢改由 gallery-view 的 URL 訂閱驅動)。
   async load(): Promise<void> {
-    await Promise.all([this.loadFacets(), this.search()]);
+    await this.loadFacets();
   }
 
   // 重新搜尋(token 變動時呼叫):重置游標與累積清單。
@@ -106,12 +121,17 @@ export class GalleryStore {
     this._error.set(null);
     const { all, none } = splitTokens(this._tokens());
     try {
-      const page = await this.api.search({ all, none, afterId: null, pageSize: PAGE_SIZE });
+      const [count, page] = await Promise.all([
+        this.api.searchCount({ all, none }),
+        this.api.search({ all, none, afterId: null, pageSize: PAGE_SIZE }),
+      ]);
+      this._hitCount.set(count.total);
       this._photos.set(page.items);
       this._nextCursor.set(page.nextCursor ?? null);
     } catch (e) {
       this._error.set(this.msg(e));
       this._photos.set([]);
+      this._hitCount.set(0);
       this._nextCursor.set(null);
     } finally {
       this._loading.set(false);
@@ -158,25 +178,39 @@ export class GalleryStore {
     }
   }
 
-  // 設定 token 並重新搜尋。
-  setTokens(tokens: SearchToken[]): void {
-    this._tokens.set(tokens);
+  // URL query 'q' → 設 token 並查詢。gallery-view 的 queryParams 訂閱是唯一呼叫處。
+  applyQuery(q: string): void {
+    this._tokens.set(decodeTokens(q) as SearchToken[]);
     void this.search();
   }
 
-  // 加一個 token(text 無 '-' = all;'-x' = none)並重新搜尋;已有同 text 則略過(去重)。
+  // 推進 /gallery?q=...(空則移除 q);實際 setTokens+search 由訂閱回呼完成 → 無迴圈。
+  private pushTokens(tokens: SearchToken[]): void {
+    const q = encodeTokens(tokens);
+    void this.router.navigate(['/gallery'], { queryParams: q ? { q } : {} });
+  }
+
+  // 設定 token(saved 套用用):推進 URL。
+  setTokens(tokens: SearchToken[]): void {
+    this.pushTokens(tokens);
+  }
+
+  // 加一個 token(已有同 text 略過):推進 URL。
   addToken(token: SearchToken): void {
     const text = token.text.trim();
     if (!text) return;
     if (this._tokens().some((x) => x.text === text)) return;
-    this._tokens.update((ts) => [...ts, { ...token, text }]);
-    void this.search();
+    this.pushTokens([...this._tokens(), { ...token, text }]);
   }
 
-  // 移除頂欄 token 並重新搜尋。
+  // 移除 token:推進 URL。
   removeToken(idx: number): void {
-    this._tokens.update((ts) => ts.filter((_, i) => i !== idx));
-    void this.search();
+    this.pushTokens(this._tokens().filter((_, i) => i !== idx));
+  }
+
+  // 切換排除/包含:推進 URL。
+  toggleToken(idx: number): void {
+    this.pushTokens(this._tokens().map((t, i) => (i === idx ? { ...t, text: toggleExclude(t.text) } : t)));
   }
 
   // 設定選取(供 inspector)。

@@ -1,18 +1,25 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { tagColor, DANGER } from '@core/tag-color';
 import { PmApi, type PhotoListItem, type TagListRow } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
+import { normalizeTagQuery, exactMatch, excludeSelected } from '@core/tag-search';
+import { displayOf } from '@core/tag-display';
+import { ToastService } from '@core/ui/toast';
+import { ConfirmService } from '@core/ui/confirm';
+import { Thumb } from '@core/ui/thumb';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
   selector: 'app-photo-grid',
-  imports: [],
+  imports: [Thumb],
   templateUrl: './photo-grid.html',
   styleUrl: './photo-grid.css',
 })
-export class PhotoGrid {
+export class PhotoGrid implements AfterViewInit, OnDestroy {
   private readonly store = inject(GalleryStore);
   private readonly api = inject(PmApi);
+  private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
 
   // 資料來源:store(來自 PmApi)
   readonly photos = this.store.photos;
@@ -34,12 +41,7 @@ export class PhotoGrid {
 
   // 千分位
   readonly hitCountText = computed(() => this.hitCount().toLocaleString('en-US'));
-  readonly wd14QueueText = computed(() => this.wd14Queue.toLocaleString('en-US'));
-
-  // 縮圖 URL(依 hash,絕不碰原圖)
-  thumb(id: number): string {
-    return this.store.thumbUrl(id);
-  }
+  readonly wd14QueueText = computed(() => this.wd14Queue().toLocaleString('en-US'));
 
   // tile 用真實長寬比預留空間(無尺寸退 1:1):避免變形,且載入前先佔位不跳動。
   aspect(p: PhotoListItem): string {
@@ -53,6 +55,18 @@ export class PhotoGrid {
   removeToken(idx: number, ev: Event): void {
     ev.stopPropagation();
     this.store.removeToken(idx);
+  }
+
+  // 點 token chip(非 ×)→ 切換 排除/包含。
+  toggleToken(idx: number, ev: Event): void {
+    ev.stopPropagation();
+    this.store.toggleToken(idx);
+  }
+
+  // 下拉建議的顯示文字:中文顯示名 + 角色作品(displayOf);退回底線轉空白。
+  sugLabel(s: TagListRow): string {
+    const d = displayOf({ name: s.name, kind: s.kind });
+    return d.work ? `${d.label} 〔${d.work}〕` : d.label;
   }
 
   // token 膠囊樣式(分色,半透明底);排除 token(-x)用 DANGER 紅 + 刪除線區分。
@@ -72,42 +86,85 @@ export class PhotoGrid {
     this.store.select(p.id);
   }
 
-  // 載入下一頁
-  loadMore(): void {
-    void this.store.loadMore();
+  // 無限捲哨兵:接近底部時自動載下一頁(rootMargin 提前預抓)。
+  @ViewChild('sentinel') private sentinel?: ElementRef<HTMLElement>;
+  private io?: IntersectionObserver;
+
+  ngAfterViewInit(): void {
+    if (!this.sentinel) return;
+    this.io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && this.hasMore() && !this.loading()) {
+          void this.store.loadMore();
+        }
+      },
+      { rootMargin: '600px' },
+    );
+    this.io.observe(this.sentinel.nativeElement);
   }
 
-  // 搜尋框送出:空格切多個 token 一次加入(無 '-' = AND;'-x' = 排除),觸發查詢。
-  addSearch(value: string, input: HTMLInputElement): void {
-    const parts = value.trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return;
-    this.store.setTokens([
-      ...this.store.tokens(),
-      ...parts.map((p) => ({ text: p, kind: 'general' as const })),
-    ]);
-    input.value = '';
+  ngOnDestroy(): void {
+    this.io?.disconnect();
+  }
+
+  // 儲存目前搜尋:無 token 時 disabled(template 層也保護),成功/失敗皆 toast 提示。
+  saveSearch(): void {
+    const ts = this.tokens();
+    if (!ts.length) return;
+    const queryJson = JSON.stringify(ts);
+    const name = ts.map((t) => t.text).join(' ');
+    void this.api.createSavedSearch({ name, queryJson }).then(() => {
+      this.toast.success('已儲存搜尋');
+    }).catch(() => {
+      this.toast.error('儲存搜尋失敗,請稍後再試');
+    });
+  }
+
+  // 重標失敗的:把所有 WD14 error 狀態的 job 重排(mode:retry,非破壞不清既有 tag)。
+  // 重標 = WD14 自動標籤推論,≠ 重掃(重掃=重建檔案索引,在「圖庫來源」頁)。
+  requeueFailed(): void {
+    void this.confirm
+      .ask(
+        '將所有標註失敗(WD14 error)的圖片重新加入佇列,等待推論引擎重試。\n\n' +
+          '注意:「重標」= 重跑 WD14 自動標籤推論;「重掃」= 重建檔案索引(在「圖庫來源」頁)。',
+        { title: '重標失敗的圖片?', confirmText: '重標失敗', cancelText: '取消' },
+      )
+      .then((ok) => {
+        if (!ok) return;
+        return this.api.requeue('retry', { error: true }).then((r) => {
+          const detail = `(共 ${r.matched} 筆,新建 ${r.jobsCreated}、更新 ${r.jobsUpdated} 個 job)`;
+          this.toast.success(`已重排 ${r.matched} 筆失敗標註 ${detail}`);
+        });
+      })
+      .catch(() => {
+        this.toast.error('重標失敗,請稍後再試');
+      });
   }
 
   // ---- 搜尋框 autocomplete(查既有標籤;與 inspector combobox 同模式,日後可抽共用)----
   readonly suggestions = signal<TagListRow[]>([]);
   readonly acIndex = signal(-1);
+  readonly noSuchTag = signal<string | null>(null);
   private acDebounce: ReturnType<typeof setTimeout> | null = null;
   private acSeq = 0;
 
-  // 打字 → debounce 查既有標籤(去掉排除前綴 '-' 再查)。
+  // 打字 → debounce 查既有標籤(清 noSuchTag、傳原始 term)。
   onType(v: string): void {
     this.acIndex.set(-1);
-    const term = v.replace(/^-/, '').trim();
+    this.noSuchTag.set(null);
+    const term = v.trim();
     if (this.acDebounce) clearTimeout(this.acDebounce);
     if (!term) { this.suggestions.set([]); return; }
     this.acDebounce = setTimeout(() => void this.doSuggest(term), 180);
   }
 
   private async doSuggest(term: string): Promise<void> {
-    const seq = ++this.acSeq;   // 過期防護:丟棄較舊查詢的回應
+    const seq = ++this.acSeq;
     try {
-      const rows = await this.api.tags(term, 8);
-      if (seq === this.acSeq) this.suggestions.set(rows);
+      const rows = await this.api.tags(normalizeTagQuery(term), 12);
+      if (seq === this.acSeq) {
+        this.suggestions.set(excludeSelected(rows, this.tokens().map((t) => t.text)));
+      }
     } catch {
       if (seq === this.acSeq) this.suggestions.set([]);
     }
@@ -119,7 +176,7 @@ export class PhotoGrid {
     this.acIndex.set(Math.max(0, Math.min(this.acIndex() + delta, n - 1)));
   }
 
-  // Enter:有選中建議→加那個既有標籤 token;否則走 addSearch(支援空格多 token + 排除語法)。
+  // Enter:精準 exact 驗證 + 查無此標;移除 addSearch 舊路徑。
   onEnter(input: HTMLInputElement): void {
     const rows = this.suggestions();
     const i = this.acIndex();
@@ -127,8 +184,14 @@ export class PhotoGrid {
       this.pickSuggestion(rows[i], input);
       return;
     }
-    this.addSearch(input.value, input);
-    this.closeAc();
+    const hit = exactMatch(rows, input.value);
+    if (hit) {
+      this.store.addToken({ text: hit.name, kind: hit.kind as SearchToken['kind'] });
+      input.value = '';
+      this.closeAc();
+    } else {
+      this.noSuchTag.set(`查無此標:${input.value.trim()}`);
+    }
   }
 
   pickSuggestion(s: TagListRow, input: HTMLInputElement): void {

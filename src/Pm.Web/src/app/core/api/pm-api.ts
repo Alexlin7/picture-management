@@ -12,6 +12,24 @@ export interface PhotoDetail {
   locations: LocationView[]; tags: TagView[];
 }
 export interface Root { id: number; name: string; absPath: string; }
+export interface ScanResult {
+  filesSeen: number;
+  newPhotos: number;
+  newLocations: number;
+  skippedUnchanged: number;
+  errors: number;
+  thumbsGenerated: number;
+  jobsQueued: number;
+  markedMissing: number;
+}
+export interface ScanStatus {
+  rootId: number;
+  state: 'idle' | 'running' | 'completed' | 'error';
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  result?: ScanResult | null;
+  error?: string | null;
+}
 export interface PendingSegment { segment: string; count: number; samplePath: string; suggestedAction: string; }
 export interface SearchReq { all?: string[]; none?: string[]; afterId?: number | null; pageSize?: number; }
 export interface SavedSearchRow { id: number; name: string; queryJson: string; createdAt: string; }
@@ -29,6 +47,9 @@ export class PmApi {
   search(req: SearchReq): Promise<PhotoPage> {
     return firstValueFrom(this.http.post<PhotoPage>('/api/search', req));
   }
+  searchCount(req: SearchReq): Promise<{ total: number }> {
+    return firstValueFrom(this.http.post<{ total: number }>('/api/search/count', req));
+  }
   photo(id: number): Promise<PhotoDetail> {
     return firstValueFrom(this.http.get<PhotoDetail>(`/api/photos/${id}`));
   }
@@ -38,8 +59,11 @@ export class PmApi {
   createRoot(name: string, absPath: string): Promise<Root> {
     return firstValueFrom(this.http.post<Root>('/api/roots', { name, absPath }));
   }
-  scan(id: number): Promise<unknown> {
-    return firstValueFrom(this.http.post(`/api/roots/${id}/scan`, {}));
+  scan(id: number): Promise<ScanStatus> {
+    return firstValueFrom(this.http.post<ScanStatus>(`/api/roots/${id}/scan`, {}));
+  }
+  scanStatus(id: number): Promise<ScanStatus> {
+    return firstValueFrom(this.http.get<ScanStatus>(`/api/roots/${id}/scan-status`));
   }
   missing(): Promise<{ id: number; fileHash: string; paths: string[] }[]> {
     return firstValueFrom(this.http.get<{ id: number; fileHash: string; paths: string[] }[]>('/api/reconcile/missing'));
@@ -79,6 +103,34 @@ export class PmApi {
   }
   removeTag(photoId: number, tagId: number): Promise<unknown> {
     return firstValueFrom(this.http.delete(`/api/photos/${photoId}/tags/${tagId}`));
+  }
+
+  // 單張重標 / 清除 WD14 自動標。mode:refresh(清舊 wd14 + 重排)/ clear(清舊 wd14 不排)
+  // / retry(重排失敗)。後端動作層,不碰檔案系統。
+  retag(photoId: number, mode: 'retry' | 'refresh' | 'clear'): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post(`/api/photos/${photoId}/retag`, null, { params: new HttpParams().set('mode', mode) }),
+    );
+  }
+
+  taggingStats(): Promise<{ pending: number; error: number; running: number }> {
+    return firstValueFrom(
+      this.http.get<{ pending: number; error: number; running: number }>('/api/tagging/stats'),
+    );
+  }
+
+  // 批次 requeue:維護動作(非破壞)。mode:retry=重排失敗 / refresh=清 wd14 重排 / clear=清不排。
+  // scope 四選一:photoIds/error/root/all。回傳 matched/clearedTags/jobsCreated/jobsUpdated。
+  requeue(
+    mode: 'retry' | 'refresh' | 'clear',
+    scope: { photoIds?: number[]; error?: boolean; root?: number; all?: boolean },
+  ): Promise<{ matched: number; clearedTags: number; jobsCreated: number; jobsUpdated: number }> {
+    return firstValueFrom(
+      this.http.post<{ matched: number; clearedTags: number; jobsCreated: number; jobsUpdated: number }>(
+        '/api/tag/requeue',
+        { mode, scope },
+      ),
+    );
   }
 
   // ---- 標籤庫(管理頁 + autocomplete 共用)----
