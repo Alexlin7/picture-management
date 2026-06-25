@@ -20,7 +20,9 @@ public class OrphanCleanupApiTests : IDisposable
             b.ConfigureAppConfiguration((_, cfg) =>
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["ConnectionStrings:Pm"] = $"Data Source={db};Foreign Keys=True"
+                    // 生產等價:不開 FK(BuildSqliteConnectionString 也沒帶),確保 purge 端點層自保正確,
+                    // 而非被 DB FK cascade 遮蔽。改此測試類別在 FK off 下跑是關鍵迴歸守衛。
+                    ["ConnectionStrings:Pm"] = $"Data Source={db}"
                 })));
     }
 

@@ -295,17 +295,24 @@ app.MapDelete("/api/photos/{id:long}", async (long id, PmDbContext db) =>
 // 維護:孤兒 photo(零 location,async scan 舊 bug 殘留)預覽 —— 先看再刪。
 app.MapGet("/api/maintenance/orphan-photos", async (PmDbContext db) =>
 {
-    var ids = await db.Photos.Where(p => !p.Locations.Any()).Select(p => p.Id).ToListAsync();
+    var ids = await db.Photos.Where(p => !p.Locations.Any()).OrderBy(p => p.Id).Select(p => p.Id).ToListAsync();
     return Results.Ok(new { count = ids.Count, ids });
 })
     .WithTags("Maintenance");
 
-// 維護:硬刪孤兒 photo —— cascade 帶走 location/photo_tag/tagging_job;縮圖另刪(先取 hash 再刪 DB)。
+// 維護:硬刪孤兒 photo —— 端點層自保,不依賴 DB FK cascade(生產連線字串未開 FK)。
+// EF-tracked 刪除:.Include(p.Tags) 讓 change tracker 一併發 photo_tag DELETE;
+// tagging_job 在 Photo 無導航屬性,顯式按 id 刪;location 不必處理(孤兒恆零 location)。
 app.MapDelete("/api/maintenance/orphan-photos", async (PmDbContext db, IThumbnailService thumbs) =>
 {
-    var orphans = await db.Photos.Where(p => !p.Locations.Any()).ToListAsync();
-    var hashes = orphans.Select(p => p.FileHash).ToList();
-    db.Photos.RemoveRange(orphans);
+    var orphans = await db.Photos.Where(p => !p.Locations.Any()).OrderBy(p => p.Id)
+        .Include(p => p.Tags).ToListAsync();
+    var ids = orphans.Select(p => p.Id).ToList();
+    var hashes = orphans.Select(p => p.FileHash).ToList();   // RemoveRange 前先收 hash
+
+    var jobs = await db.TaggingJobs.Where(j => ids.Contains(j.PhotoId)).ToListAsync();
+    db.TaggingJobs.RemoveRange(jobs);
+    db.Photos.RemoveRange(orphans);   // 連帶 tracked 的 photo_tag
     await db.SaveChangesAsync();
 
     var thumbsDeleted = 0;
