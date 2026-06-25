@@ -283,6 +283,24 @@ app.MapGet("/api/maintenance/orphan-photos", async (PmDbContext db) =>
 })
     .WithTags("Maintenance");
 
+// 維護:硬刪孤兒 photo —— cascade 帶走 location/photo_tag/tagging_job;縮圖另刪(先取 hash 再刪 DB)。
+app.MapDelete("/api/maintenance/orphan-photos", async (PmDbContext db, IThumbnailService thumbs) =>
+{
+    var orphans = await db.Photos.Where(p => !p.Locations.Any()).ToListAsync();
+    var hashes = orphans.Select(p => p.FileHash).ToList();
+    db.Photos.RemoveRange(orphans);
+    await db.SaveChangesAsync();
+
+    var thumbsDeleted = 0;
+    foreach (var hash in hashes)
+    {
+        var path = thumbs.PathFor(hash);
+        if (File.Exists(path)) { File.Delete(path); thumbsDeleted++; }
+    }
+    return Results.Ok(new { purged = orphans.Count, thumbsDeleted });
+})
+    .WithTags("Maintenance");
+
 // 寫 manual tag(upsert tag,新增 photo_tag source='manual';已存在則 idempotent)
 app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db, TagService tags) =>
 {

@@ -67,6 +67,68 @@ public class OrphanCleanupApiTests : IDisposable
 
     private sealed record OrphanPreview(int Count, long[] Ids);
 
+    [Fact]
+    public async Task Purge_deletes_orphans_cascade_and_thumb_but_keeps_located()
+    {
+        // 孤兒帶 photo_tag + tagging_job + 縮圖檔
+        long orphanId; string orphanHash;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var ctx = scope.ServiceProvider.GetRequiredService<PmDbContext>();
+            var p = new Photo { FileHash = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"), ImportedAt = DateTimeOffset.UtcNow };
+            ctx.Photos.Add(p);
+            await ctx.SaveChangesAsync();
+            orphanId = p.Id; orphanHash = p.FileHash;
+            var tag = new Tag { Name = "x", Kind = "manual" };
+            ctx.Tags.Add(tag);
+            await ctx.SaveChangesAsync();
+            ctx.PhotoTags.Add(new PhotoTag { PhotoId = p.Id, TagId = tag.Id, Source = "manual" });
+            ctx.TaggingJobs.Add(new TaggingJob { PhotoId = p.Id, State = "pending", EnqueuedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow });
+            await ctx.SaveChangesAsync();
+
+            // 造一個縮圖檔
+            var thumbs = scope.ServiceProvider.GetRequiredService<Pm.Scanner.IThumbnailService>();
+            var tp = thumbs.PathFor(orphanHash);
+            Directory.CreateDirectory(Path.GetDirectoryName(tp)!);
+            await File.WriteAllTextAsync(tp, "fake");
+        }
+        var locatedId = await SeedWithLocationAsync();   // 不該被刪
+        var client = _factory.CreateClient();
+
+        var resp = await client.DeleteAsync("/api/maintenance/orphan-photos");
+        var res = await resp.Content.ReadFromJsonAsync<OrphanPurge>();
+
+        Assert.NotNull(res);
+        Assert.Equal(1, res!.Purged);
+        Assert.Equal(1, res.ThumbsDeleted);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var ctx = scope.ServiceProvider.GetRequiredService<PmDbContext>();
+            Assert.False(ctx.Photos.Any(p => p.Id == orphanId));               // 孤兒消失
+            Assert.True(ctx.Photos.Any(p => p.Id == locatedId));               // 正常的留著
+            Assert.False(ctx.PhotoTags.Any(pt => pt.PhotoId == orphanId));     // cascade
+            Assert.False(ctx.TaggingJobs.Any(j => j.PhotoId == orphanId));     // cascade
+            var thumbs = scope.ServiceProvider.GetRequiredService<Pm.Scanner.IThumbnailService>();
+            Assert.False(File.Exists(thumbs.PathFor(orphanHash)));             // 縮圖刪除
+        }
+    }
+
+    [Fact]
+    public async Task Purge_with_no_orphans_is_idempotent()
+    {
+        await SeedWithLocationAsync();
+        var client = _factory.CreateClient();
+
+        var resp = await client.DeleteAsync("/api/maintenance/orphan-photos");
+        var res = await resp.Content.ReadFromJsonAsync<OrphanPurge>();
+
+        Assert.NotNull(res);
+        Assert.Equal(0, res!.Purged);
+        Assert.Equal(0, res.ThumbsDeleted);
+    }
+
+    private sealed record OrphanPurge(int Purged, int ThumbsDeleted);
+
     public void Dispose()
     {
         _factory.Dispose();
