@@ -71,6 +71,23 @@ using (var scope = app.Services.CreateScope())
     db.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
 }
 
+// 啟動偵測:孤兒 photo(零 location)只 log 數量、永不自動刪(清理走 /api/maintenance/orphan-photos)。
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
+        var orphanCount = db.Photos.Count(p => !p.Locations.Any());
+        if (orphanCount > 0)
+            app.Logger.LogInformation(
+                "啟動偵測:孤兒 photo {Count} 筆(零 location;可經 DELETE /api/maintenance/orphan-photos 清理)", orphanCount);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "孤兒 photo 啟動偵測失敗(不影響啟動)");
+    }
+}
+
 // 由 .NET serve Angular 靜態檔(ng build 輸出至 wwwroot),同源、免 CORS
 app.UseDefaultFiles();
 app.UseStaticFiles();
