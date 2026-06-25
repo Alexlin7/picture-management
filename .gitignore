@@ -32,6 +32,10 @@ src/Pm.Api/thumbs/
 src/Pm.Api/models/
 /models/
 
+# 應用程式 log(rolling file,衍生,勿入庫)
+src/Pm.Api/logs/
+/logs/
+
 # subagent-driven-development 進度 ledger(scratch,勿入庫)
 /.superpowers/
 
