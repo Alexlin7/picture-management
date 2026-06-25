@@ -2,13 +2,13 @@
 
 設計文件(design / 決策記錄)。與 `plans/` 不同:**spec 完成後保留**(是設計與決策的長期記錄),不移除;只把過時的「狀態」行更新成已實作。
 
-**最後整理:2026-06-24。**
+**最後整理:2026-06-25。**
 
 ## 新接手讀順序
 
 1. 根目錄 `README.md`(現況/啟動)、`CLAUDE.md` / `agent.md`(鐵則)。
 2. `2026-06-21-picture-management-design.md` — 主設計與決策日誌。
-3. `2026-06-22-remaining-work-handoff.md` — 當前 backlog 與接手順序(**最後更新 2026-06-24**)。
+3. `2026-06-22-remaining-work-handoff.md` — 當前 backlog 與接手順序(**最後更新 2026-06-25**)。
 4. 動 UI 前:`2026-06-24-frontend-design-guidelines.md`。
 
 ## 基礎 / 常讀
@@ -24,18 +24,23 @@
 - `2026-06-23-scanner-tagging-refactor-design.md` — 掃描重構 + tagging 解耦 §B ✅(Slice 1a–4)。
 - `2026-06-23-tag-display-v1-dataprep.md` — 顯示層 v1 資料準備 + Slice A/B ✅。
 - `2026-06-24-ui-style-system-design.md` — UI 樣式系統地基(Spec 1)✅。
-- `2026-06-24-gallery-topbar-ux-design.md` — 頂端操作 UX(Spec 3)✅(① 搜尋 ② 掃描鈕移除 ③ 收藏搜尋套用 ④ requeue 入口;by-query requeue scope deferred)。
-- `2026-06-24-async-scan-design.md` — async scan + scan-status 輪詢 + SQLite busy_timeout 硬化 ✅(待補:孤兒 photo 清理、per-root rebuild-thumbs)。
-- `2026-06-24-thumb-placeholder-and-autoscan-design.md` — 縮圖佔位(skeleton/重試/佔位)+ 新增來源自動掃描 ✅(gallery/reconcile/inspector 共用 `app-thumb`)。
+- `2026-06-24-gallery-topbar-ux-design.md` — 頂端操作 UX(Spec 3)✅。
+- `2026-06-24-async-scan-design.md` — async scan + scan-status 輪詢 + SQLite busy_timeout 硬化 ✅。
+- `2026-06-24-thumb-placeholder-and-autoscan-design.md` — 縮圖佔位 + 新增來源自動掃描 ✅。
+- `2026-06-25-logging-and-app-data-dir-design.md` — Serilog rolling file + app data dir 收斂 ✅(log 級別後續再硬化:EF SQL 已壓 Warning,2026-06-25)。
+- `2026-06-25-orphan-photo-cleanup-design.md` — 孤兒 photo 維護端點 + 啟動只 log ✅。
+- `2026-06-25-tag-copyright-axis-design.md` — 作品軸(WD14 copyright 拆分 + tag_relation + facet 側欄)✅。
+- `2026-06-25-folder-browse-dimension-design.md` — **資料夾路徑維度瀏覽 `/browse`(即時樹 + 麵包屑 + 子夾下鑽 + 遞迴圖牆 + 夾內疊 tag)✅(PR #5,2026-06-25)**。
 
 ## 評估 / 參考(非待辦)
 
-- `2026-06-23-ml-layer-architecture-assessment.md` — `Pm.Ml` 推論層盤點,為 CLIP / GPU 自動偵測(Phase 2)鋪路;決定哪些現在抽、哪些等真實形狀再抽。
+- `2026-06-23-ml-layer-architecture-assessment.md` — `Pm.Ml` 推論層盤點,為 CLIP / GPU 自動偵測(Phase 2)鋪路。
+- `2026-06-25-second-tagger-cl-tagger-evaluation.md` — cl_tagger_v2 當第二 tagger(開關)評估;**deferred、低優先**。結論:非抽換 WD14、是新增 tagger 的中等重構(需抽 `ITagger` + pre/post/loader);動工前先確認授權(禁再配布)/速度/品質。
 
 ## 待決策(review,等使用者拍板)
 
-- `2026-06-25-tag-sidebar-and-import-confirm-review.md` — 左側 tag 側欄 UX 優化(分區收折 / top-N / 過濾 / 虛擬捲動)+ 匯入確認定位釐清(A 資料夾→tag / B 自訂預設 tag / C 兩者)。決定方向後各自再走 brainstorming → spec → plan。
+- `2026-06-25-tag-sidebar-and-import-confirm-review.md` — 左側 tag facet 側欄 UX(① 分區整段收折 **已實作**;top-N / 側欄過濾 / 虛擬捲動 待)+ 匯入確認定位(② 資料夾維度已由 `/browse` folder-browse 回應;import-confirm 多 root 選擇器 / 自訂常用 tag preset 待決)。
 
 ## 待實作設計
 
-目前無待實作 spec。backlog 項目(見 handoff)在被接手時,先 `brainstorming` → 新 spec → `plans/` 的 plan,再實作。
+目前無待實作 spec。backlog 項目(見 handoff)被接手時,先 `brainstorming` → 新 spec → `plans/` 的 plan,再實作。

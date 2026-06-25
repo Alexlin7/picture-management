@@ -8,7 +8,7 @@
 
 完整設計見 `docs/superpowers/specs/2026-06-21-picture-management-design.md`。現況、啟動方式與功能狀態見 `README.md`。
 
-狀態(2026-06-24):Phase 1 核心已可端對端運作;後端掃描/對帳/查詢/路徑到 tag/saved search/facet/軟硬刪/manual tag/標籤庫端點皆完成且有測試;前端各頁已接真實 API。WD14 自動標籤端到端就緒(opt-in),DirectML 已實機驗證;CUDA/Windows ML 後端僅骨架。Phase 2(CLIP 語意搜尋)未開始。
+狀態(2026-06-25):Phase 1 核心已可端對端運作;後端端點皆完成且有測試;前端各頁已接真實 API。WD14 自動標籤端到端就緒(opt-in),DirectML 已實機驗證;CUDA/Windows ML 後端僅骨架;Phase 2(CLIP 語意搜尋)未開始。近期已落地:async scan + SQLite 硬化、作品軸(WD14 copyright 拆分 + facet「作品→角色」DAG 樹)、logging + app data dir(log 級別走 appsettings、EF SQL 壓 Warning)、孤兒 photo 清理、資料夾路徑維度瀏覽 `/browse`(與 by-tag 搜尋並列的第二維度)。已知限制:AVIF 未支援解碼(ImageSharp 3.x;會被索引但無縮圖/自動標)。當前 backlog 見 `docs/superpowers/specs/2026-06-22-remaining-work-handoff.md`。
 
 近期重要設計文件:
 - `docs/superpowers/specs/2026-06-22-tag-display-layer-design.md`:WD14 tag 顯示層。

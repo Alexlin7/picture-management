@@ -9,11 +9,12 @@
 
 ---
 
-## 目前狀態（2026-06-24）
+## 目前狀態（2026-06-25）
 
 **Phase 1 核心可端對端運作**：掃描就地索引 → SHA-256 身分 → 縮圖 → 布林查詢 → Angular 相簿，
-前端各畫面**已接真實 API**（非 mock），單一 .NET 程序同時 serve API 與前端。近期進入 UI/UX 進化階段
-（tag 顯示層、樣式系統地基、頂端操作重構）。
+前端各畫面**已接真實 API**（非 mock），單一 .NET 程序同時 serve API 與前端。近期完成 UI/UX 與資料層多項：
+tag 顯示層、樣式系統、頂端操作重構、async scan、**作品軸**、logging 收斂、孤兒清理，以及**資料夾路徑維度瀏覽 `/browse`**
+（與 by-tag 搜尋並列的第二個檢視維度）。
 
 - ✅ 後端 scan / 對帳 / 查詢 / 路徑→tag / saved search / facet 樹 / 軟硬刪 / manual tag 端點（皆有測試）
 - ✅ 標籤庫端點：列表（含使用數）/ 改名 / 合併 / 刪除，正規化 + **全 Unicode 不分大小寫去重**（`name_ci` 鍵 + 唯一索引，非 ASCII 角色/作品名也去重）（`TagService`）
@@ -23,7 +24,13 @@
 - ✅ **WD14 tag 顯示層 v1**：英文 raw tag → 中文顯示名（`displayOf`）+ 角色解析（`parseCharacter`，作品內嵌於 `name_(work)`）；檢視器依 group 分區 + 來源徽章（path/manual/wd14 + confidence）+ per-photo 重標。**純前端 display model，不改 SQLite canonical**（`core/tag-display.ts`，TDD，`ng test` 綠）
 - ✅ **UI 樣式系統地基（Spec 1）**：Tailwind v4 `@theme` 擴充（success/warning 語意色、focus ring、shadow elevation、motion token）+ 全域 `:focus-visible` ＋ `prefers-reduced-motion` ＋ `.btn` 三態 / `.btn-danger` / `.input` / `.skeleton` primitive（純加法，`ng build`/`ng test` 綠）
 - ✅ **Gallery 頂端操作 UX 重構（Spec 3，大致完成）**：搜尋改「下拉驅動 substring 探索」（打片段挑既有標、AND 隱含、點 chip 切排除、精準 Enter、查無此標、已選標不重複）；刪冗餘掃描鈕（②）；儲存搜尋存+套用接線（③）；toolbar「重標失敗」批次 requeue（④，error+retry 非破壞）。**剩**：Task 6 中文顯示名反查（打「微笑」找 smile，待使用者實測回饋後做）、破壞性「重標全部」deferred
+- ✅ **async scan + SQLite 硬化、縮圖佔位 + 新增來源自動掃描**：`POST /api/roots/{id}/scan` 回 202 + scan-status 輪詢；每連線 `busy_timeout`；共用 `<app-thumb>`（skeleton + 退避重試 + 佔位）
+- ✅ **作品軸（copyright axis）**：WD14 character 標自動拆出作品（copyright）+ `tag_relation` 邊 + facet 側欄「作品 → 角色」DAG 樹（搜尋作品經 closure 命中子角色）
+- ✅ **logging + app data dir**：Serilog rolling file 落 `%LOCALAPPDATA%`（dev 維持相對）；log 級別走 `appsettings:Logging:LogLevel`（EF SQL 壓 Warning，免被每 4s 的 tagging 輪詢 SQL 灌爆）
+- ✅ **孤兒 photo 清理**：維護端點 + 啟動只 log 數量 + 全 app FK cascade
+- ✅ **資料夾路徑維度 `/browse`**：即時資料夾樹（讀 `rel_path` 不落表）+ 麵包屑 + 主區子夾晶片下鑽 + 遞迴圖牆 + 夾內疊 tag 自動完成；與 by-tag 搜尋並列、互不干擾（PR #5）
 - 🚧 推論後端：CPU / DirectML 可用；CUDA、Windows ML 僅骨架（見 `src/Pm.Ml`）
+- ⚠️ **AVIF 未支援**：`.avif` 會被掃描索引但 ImageSharp 3.x 不解碼 → 無縮圖/尺寸/自動標（見 handoff backlog）
 - 🔲 Phase 2（CLIP 語意搜尋）未開始
 
 詳細逐項見下方 [功能狀態](#功能狀態)。

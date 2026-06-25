@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **完整設計與所有決策理由在 `docs/superpowers/specs/2026-06-21-picture-management-design.md` —— 動手前先讀它。** 本檔只摘大方向與不可違反的鐵則。UI/UX 見該文件 §6 與可點 mockup `docs/mockups/ui-preview.html`(瀏覽器開,`?view=` / `?only=inspector` 可切換截圖)。
 
-**狀態(2026-06-24):Phase 1 核心可端對端運作;進入 UI/UX 進化階段** —— 後端掃描/對帳/查詢/路徑→tag/saved search/facet/軟硬刪/manual tag/標籤庫端點皆完成且有測試;前端各頁已接真實 API(非 mock);單一 .NET 程序 serve API + 前端。**WD14 自動標籤端到端就緒(opt-in)**,已在真實圖庫以 DirectML 實機驗證;CUDA/Windows ML 推論後端僅骨架(本 build 僅 cpu/directml);Phase 2(CLIP 語意搜尋)未開始。**WD14 tag 顯示層 v1 已實作**(中文顯示名 + 角色解析 + 檢視器分區/徽章/per-photo 重標,純前端);**UI 樣式系統地基(Spec 1)已實作**(`@theme` token + a11y/motion + primitive 三態)。**現況、啟動方式、WD14 實作細節與逐項功能狀態見根目錄 [`README.md`](README.md)。設計 spec(讀順序):tag 顯示層 `2026-06-22-tag-display-layer-design.md`、樣式系統 `2026-06-24-ui-style-system-design.md`、頂端操作 UX 重構 `2026-06-24-gallery-topbar-ux-design.md`(Spec 3,設計定稿待實作)。**
+**狀態(2026-06-25):Phase 1 核心可端對端運作;持續 UI/UX 與資料層演進** —— 後端掃描/對帳/查詢/路徑→tag/saved search/facet/軟硬刪/manual tag/標籤庫端點皆完成且有測試;前端各頁已接真實 API(非 mock);單一 .NET 程序 serve API + 前端。**WD14 自動標籤端到端就緒(opt-in)**,已在真實圖庫以 DirectML 實機驗證;CUDA/Windows ML 推論後端僅骨架(本 build 僅 cpu/directml);Phase 2(CLIP 語意搜尋)未開始。近期已落地:**WD14 tag 顯示層 v1**、**UI 樣式系統地基(Spec 1)**、**gallery 頂端操作 UX(Spec 3)**、**async scan + SQLite 硬化**、**作品軸(WD14 copyright 拆分 + facet「作品→角色」DAG 樹)**、**logging + app data dir(log 級別走 appsettings,EF SQL 壓 Warning)**、**孤兒 photo 清理**、**資料夾路徑維度瀏覽 `/browse`(與 by-tag 搜尋並列的第二維度;即時樹 + 麵包屑 + 子夾下鑽 + 夾內疊 tag)**。已知限制:**AVIF 未支援解碼**(ImageSharp 3.x;會被索引但無縮圖/尺寸/自動標)。**現況、啟動方式、逐項功能狀態見根目錄 [`README.md`](README.md);當前 backlog 與接手順序見 `docs/superpowers/specs/2026-06-22-remaining-work-handoff.md`、設計索引見 `docs/superpowers/specs/README.md`。**
 
 ## 架構大方向
 
