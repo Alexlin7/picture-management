@@ -109,7 +109,9 @@ public class FolderScopeQueryTests : IDisposable
         Assert.Equal(2, tags.Count);
         Assert.Equal("smile", tags[0].Name);    // count desc:smile=2 在前
         Assert.Equal(2, tags[0].Count);
+        Assert.Equal("general", tags[0].Kind);  // Kind 應正確傳遞
         Assert.Equal("dress", tags[1].Name);    // dress=1(只算夾內 a)
         Assert.Equal(1, tags[1].Count);
+        Assert.Equal("general", tags[1].Kind);  // Kind 應正確傳遞
     }
 }

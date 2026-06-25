@@ -77,11 +77,15 @@ public sealed class FolderTreeService(PmDbContext db)
             .Select(g => new { TagId = g.Key, Count = g.Select(x => x.PhotoId).Distinct().Count() })
             .ToListAsync(ct);
 
-        var meta = (await db.Tags.Select(t => new { t.Id, t.Name, t.Kind }).ToListAsync(ct))
+        // 只查 counts 涉及的 tagId,避免把整張 tag 表載進記憶體(WD14 可能產生上萬 tag)
+        var tagIds = counts.Select(c => c.TagId).ToList();
+        var meta = (await db.Tags
+                .Where(t => tagIds.Contains(t.Id))
+                .Select(t => new { t.Id, t.Name, t.Kind })
+                .ToListAsync(ct))
             .ToDictionary(t => t.Id);
 
         return counts
-            .Where(c => meta.ContainsKey(c.TagId))
             .Select(c => new FolderTag(meta[c.TagId].Name, meta[c.TagId].Kind, c.Count))
             .OrderByDescending(t => t.Count).ThenBy(t => t.Name)
             .ToList();
