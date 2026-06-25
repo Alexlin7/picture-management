@@ -56,13 +56,13 @@ public class FacetTreeApiTests : IDisposable
             db.LibraryRoots.Add(root);
             db.SaveChanges();
 
-            var character = new Tag { Name = "character", Kind = "general" };
+            var character = new Tag { Name = "character", Kind = "copyright" }; // copyright => 進 Tree 軸
             var hoshimachi = new Tag { Name = "hoshimachi_suisei", Kind = "character" };
             var copyA = new Tag { Name = "hololive", Kind = "copyright" };
             var copyB = new Tag { Name = "vtuber", Kind = "copyright" };
             var general = new Tag { Name = "1girl", Kind = "general" };
             var meta = new Tag { Name = "2024", Kind = "meta" };
-            var lonely = new Tag { Name = "orphan", Kind = "general" };
+            var lonely = new Tag { Name = "orphan", Kind = "character" }; // character => 無 parent/child 時進 Rootless
             db.Tags.AddRange(character, hoshimachi, copyA, copyB, general, meta, lonely);
             db.SaveChanges();
 
