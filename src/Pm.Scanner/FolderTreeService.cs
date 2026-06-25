@@ -18,15 +18,14 @@ public sealed class FolderTreeService(PmDbContext db)
     public async Task<List<FolderRoot>> BuildRootsAsync(CancellationToken ct = default)
     {
         var roots = await db.LibraryRoots.Select(r => new { r.Id, r.Name }).ToListAsync(ct);
-        var result = new List<FolderRoot>();
-        foreach (var r in roots)
-        {
-            var count = await db.PhotoLocations
-                .Where(l => l.LibraryRootId == r.Id && l.Status == "present")
-                .Select(l => l.PhotoId).Distinct().CountAsync(ct);
-            result.Add(new FolderRoot(r.Id, r.Name, count));
-        }
-        return result;
+        var counts = await db.PhotoLocations
+            .Where(l => l.Status == "present")
+            .GroupBy(l => l.LibraryRootId)
+            .Select(g => new { RootId = g.Key, Count = g.Select(l => l.PhotoId).Distinct().Count() })
+            .ToDictionaryAsync(x => x.RootId, x => x.Count, ct);
+        return roots
+            .Select(r => new FolderRoot(r.Id, r.Name, counts.GetValueOrDefault(r.Id, 0)))
+            .ToList();
     }
 
     public async Task<FolderNode?> BuildTreeAsync(long rootId, CancellationToken ct = default)
@@ -77,6 +76,7 @@ public sealed class FolderTreeService(PmDbContext db)
             return c;
         }
 
+        /// <summary>後序折疊子樹,彙整 distinct photo 數。root 節點必須以 displayName 呼叫,否則回傳空 Name。</summary>
         public (FolderNode node, HashSet<long> ids) Fold(string? displayName = null)
         {
             var all = new HashSet<long>(PhotoIds);

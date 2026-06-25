@@ -36,13 +36,13 @@ public class FolderBrowseApiTests : IDisposable
     private record RootDto(long Id, string Name, int PhotoCount);
     private record NodeDto(string Name, string RelPath, int PhotoCount, List<NodeDto>? Children);
 
-    private long Seed()
+    private async Task<long> Seed()
     {
         _ = _factory.CreateClient();   // 觸發 Migrate
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
         var root = new LibraryRoot { Name = "圖庫", AbsPath = @"D:\圖庫" };
-        db.LibraryRoots.Add(root); db.SaveChanges();
+        db.LibraryRoots.Add(root); await db.SaveChangesAsync();
 
         void Add(string hash, string rel)
         {
@@ -52,25 +52,39 @@ public class FolderBrowseApiTests : IDisposable
         }
         Add("a", "Pixiv/2024/a.png");
         Add("b", "Pixiv/2024/b.png");
-        db.SaveChanges();
+        await db.SaveChangesAsync();
         return root.Id;
     }
 
     [Fact]
-    public async Task Folder_roots_and_tree_endpoints_return_expected_shape()
+    public async Task FolderRoots_returns_single_root_with_correct_photo_count()
     {
-        var rootId = Seed();
+        _ = await Seed();
         var client = _factory.CreateClient();
 
         var roots = await client.GetFromJsonAsync<List<RootDto>>("/api/folder-roots");
         Assert.Single(roots!);
         Assert.Equal(2, roots![0].PhotoCount);
+    }
+
+    [Fact]
+    public async Task FolderTree_returns_expected_shape()
+    {
+        var rootId = await Seed();
+        var client = _factory.CreateClient();
 
         var tree = await client.GetFromJsonAsync<NodeDto>($"/api/roots/{rootId}/folder-tree");
         Assert.Equal("圖庫", tree!.Name);
         Assert.Equal(2, tree.PhotoCount);
         var pixiv = tree.Children!.Single(c => c.Name == "Pixiv");
         Assert.Equal("Pixiv/2024", pixiv.Children!.Single().RelPath);
+    }
+
+    [Fact]
+    public async Task FolderTree_returns_404_for_unknown_root()
+    {
+        _ = await Seed();
+        var client = _factory.CreateClient();
 
         var missing = await client.GetAsync("/api/roots/99999/folder-tree");
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);

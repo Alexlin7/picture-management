@@ -121,4 +121,31 @@ public class FolderTreeTests : IDisposable
         Assert.Equal(2, roots.Single(r => r.Name == "A").PhotoCount);
         Assert.Equal(1, roots.Single(r => r.Name == "B").PhotoCount);
     }
+
+    [Fact]
+    public async Task BuildRoots_includes_root_with_zero_present_photos()
+    {
+        // 防回歸:含 present photo 的 root 與完全無 present photo 的 root,兩者都應出現在結果中。
+        await using (var ctx = NewContext())
+        {
+            var r1 = new LibraryRoot { Name = "有圖", AbsPath = @"D:\has" };
+            var r2 = new LibraryRoot { Name = "空的", AbsPath = @"D:\empty" };
+            ctx.LibraryRoots.AddRange(r1, r2); await ctx.SaveChangesAsync();
+
+            // r1 有一張 present 圖
+            await AddPhoto(ctx, r1, "a", "a.png");
+            // r2 只有一張 archived 圖(不算 present)
+            await AddPhoto(ctx, r2, "b", "b.png", status: "archived");
+        }
+
+        await using var ctx2 = NewContext();
+        var roots = await new FolderTreeService(ctx2).BuildRootsAsync();
+
+        // 必須包含全部 root,包含沒有 present photo 的那個
+        Assert.Equal(2, roots.Count);
+        var empty = roots.Single(r => r.Name == "空的");
+        Assert.Equal(0, empty.PhotoCount);
+        var hasPhoto = roots.Single(r => r.Name == "有圖");
+        Assert.Equal(1, hasPhoto.PhotoCount);
+    }
 }
