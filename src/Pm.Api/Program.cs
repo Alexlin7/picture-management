@@ -379,6 +379,17 @@ app.MapPost("/api/tags/{id:long}/merge/{targetId:long}", async (long id, long ta
     await tags.MergeAsync(id, targetId) ? Results.Ok() : Results.NotFound())
     .WithTags("Tags");
 
+// 維護:對所有現有 character tag 補拆作品 + 寫 tag_relation 邊(冪等,可重跑)。
+app.MapPost("/api/maintenance/copyright-axis/rebuild", async (PmDbContext db, CopyrightAxisService axis) =>
+{
+    var characters = await db.Tags.Where(t => t.Kind == "character").ToListAsync();
+    var edgesCreated = 0;
+    foreach (var c in characters)
+        if (await axis.SeedFromCharacterAsync(c)) edgesCreated++;
+    return Results.Ok(new { scanned = characters.Count, edgesCreated });
+})
+    .WithTags("Maintenance");
+
 // SPA fallback:前端路由不被 API 404 攔截
 app.MapFallbackToFile("index.html");
 
