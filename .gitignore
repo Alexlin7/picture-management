@@ -39,6 +39,9 @@ src/Pm.Api/logs/
 # subagent-driven-development 進度 ledger(scratch,勿入庫)
 /.superpowers/
 
+# 平行開發 git worktree(本機隔離工作區,勿入庫)
+/.worktrees/
+
 # npx skills 安裝物:真實內容在 .agents/skills(入庫)、lock 檔在根(入庫);
 # .claude/skills 是本機 symlink 橋(絕對路徑、core.symlinks=false),屬機器本地物,勿入庫。
 # 新機器 clone 後跑 `npx skills experimental_sync` 重建。
