@@ -66,7 +66,10 @@ public sealed class TagFacetService(PmDbContext db)
                 }
                 if (kids.Count == 0) kids = null;
             }
-            return new FacetNode(t.Name, t.Kind, CountFor(id), MultiFor(id), kids);
+            var count = CountFor(id);
+            if (t.Kind == "copyright" && kids is not null)
+                count = kids.Sum(k => k.Count);   // copyright 直接無圖,以子角色 count 聚合(facet 顯示用近似)
+            return new FacetNode(t.Name, t.Kind, count, MultiFor(id), kids);
         }
 
         // root = 沒有任何 parent 邊的 tag,但有子(會展開成樹);
@@ -78,6 +81,7 @@ public sealed class TagFacetService(PmDbContext db)
         var rootless = new List<FacetNode>();
         foreach (var t in tags)
         {
+            if (t.Kind != "copyright" && t.Kind != "character") continue;   // 樹只收作品/角色;general/meta 各有專屬區
             if (hasParent.Contains(t.Id)) continue;   // 非頂層
             if (hasChild.Contains(t.Id))
                 tree.Add(Build(t.Id, new HashSet<long> { t.Id }));

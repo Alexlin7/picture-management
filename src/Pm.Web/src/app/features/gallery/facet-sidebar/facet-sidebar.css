@@ -104,3 +104,13 @@
 .frow.pickable:hover {
   background: var(--color-raised);
 }
+
+/* 分區標題可點收折 */
+.facet-t.toggleable {
+  cursor: pointer;
+  user-select: none;
+  border-radius: 6px;
+}
+.facet-t.toggleable:hover {
+  background: var(--color-raised);
+}

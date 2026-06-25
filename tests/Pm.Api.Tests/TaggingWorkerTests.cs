@@ -42,6 +42,7 @@ public class TaggingWorkerTests : IDisposable
             {
                 ("1girl", "general", 0.95f),
                 ("hakurei_reimu", "character", 0.91f),
+                ("aris_(blue_archive)", "character", 0.9f),
             });
     }
 
@@ -79,14 +80,22 @@ public class TaggingWorkerTests : IDisposable
         var photoId = await SeedPendingJob();
 
         await using var ctx = NewContext();
-        var ok = await Worker(new FakeTagger()).ProcessNextAsync(ctx, new TagService(ctx), default);
+        var tagSvc = new TagService(ctx);
+        var copyrightAxis = new CopyrightAxisService(ctx, tagSvc, new TagClosureService(ctx));
+        var ok = await Worker(new FakeTagger()).ProcessNextAsync(ctx, tagSvc, copyrightAxis, default);
         Assert.True(ok);
 
         await using var verify = NewContext();
         Assert.Equal("done", (await verify.TaggingJobs.SingleAsync()).State);
-        Assert.Equal(2, await verify.PhotoTags.CountAsync(pt => pt.PhotoId == photoId && pt.Source == "wd14"));
+        Assert.Equal(3, await verify.PhotoTags.CountAsync(pt => pt.PhotoId == photoId && pt.Source == "wd14"));
         var charTag = await verify.Tags.SingleAsync(t => t.Name == "hakurei_reimu");
         Assert.Equal("character", charTag.Kind);
+
+        // 拆作品:character 標 aris_(blue_archive) → 建 copyright tag blue_archive + tag_relation 邊
+        var copyright = await verify.Tags.FirstAsync(t => t.Name == "blue_archive");
+        Assert.Equal("copyright", copyright.Kind);
+        var character = await verify.Tags.FirstAsync(t => t.Name == "aris_(blue_archive)");
+        Assert.True(await verify.TagRelations.AnyAsync(r => r.ParentTagId == copyright.Id && r.ChildTagId == character.Id));
     }
 
     [Fact]
@@ -105,7 +114,8 @@ public class TaggingWorkerTests : IDisposable
         }
 
         await using var ctx = NewContext();
-        await Worker(new FakeTagger()).ProcessNextAsync(ctx, new TagService(ctx), default);   // fake 產 "1girl"
+        var tagSvc2 = new TagService(ctx);
+        await Worker(new FakeTagger()).ProcessNextAsync(ctx, tagSvc2, new CopyrightAxisService(ctx, tagSvc2, new TagClosureService(ctx)), default);   // fake 產 "1girl"
 
         await using var verify = NewContext();
         // 不分大小寫比對下,"1girl" 只能有一顆(不因大小寫不同就建第二顆)。
@@ -119,7 +129,8 @@ public class TaggingWorkerTests : IDisposable
     public async Task No_pending_returns_false()
     {
         await using var ctx = NewContext();
-        Assert.False(await Worker(new FakeTagger()).ProcessNextAsync(ctx, new TagService(ctx), default));
+        var tagSvc3 = new TagService(ctx);
+        Assert.False(await Worker(new FakeTagger()).ProcessNextAsync(ctx, tagSvc3, new CopyrightAxisService(ctx, tagSvc3, new TagClosureService(ctx)), default));
     }
 
     [Fact]
@@ -148,7 +159,8 @@ public class TaggingWorkerTests : IDisposable
         await SeedPendingJob();
 
         await using var ctx = NewContext();
-        await Worker(new ThrowingTagger()).ProcessNextAsync(ctx, new TagService(ctx), default);
+        var tagSvc4 = new TagService(ctx);
+        await Worker(new ThrowingTagger()).ProcessNextAsync(ctx, tagSvc4, new CopyrightAxisService(ctx, tagSvc4, new TagClosureService(ctx)), default);
 
         await using var verify = NewContext();
         var job = await verify.TaggingJobs.SingleAsync();
