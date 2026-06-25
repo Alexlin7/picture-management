@@ -64,6 +64,7 @@ public class CopyrightAxisServiceTests : IDisposable
         var general = await new TagService(ctx).UpsertByNameAsync("blue_archive", "general");
 
         Assert.False(await Svc(ctx).SeedFromCharacterAsync(general));
+        Assert.Equal(0, await ctx.TagRelations.CountAsync());
     }
 
     public void Dispose()
