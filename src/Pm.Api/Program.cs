@@ -275,6 +275,14 @@ app.MapDelete("/api/photos/{id:long}", async (long id, PmDbContext db) =>
 })
     .WithTags("Photos");
 
+// 維護:孤兒 photo(零 location,async scan 舊 bug 殘留)預覽 —— 先看再刪。
+app.MapGet("/api/maintenance/orphan-photos", async (PmDbContext db) =>
+{
+    var ids = await db.Photos.Where(p => !p.Locations.Any()).Select(p => p.Id).ToListAsync();
+    return Results.Ok(new { count = ids.Count, ids });
+})
+    .WithTags("Maintenance");
+
 // 寫 manual tag(upsert tag,新增 photo_tag source='manual';已存在則 idempotent)
 app.MapPost("/api/photos/{id:long}/tags", async (long id, ManualTagDto dto, PmDbContext db, TagService tags) =>
 {
