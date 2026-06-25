@@ -28,6 +28,9 @@
     </div>
   }
 
+  <!-- 夾內再篩 tag 帶 -->
+  <app-inner-tag-filter />
+
   <!-- toolbar:當前夾命中數 -->
   <div class="toolbar"><span class="count">此資料夾含子夾 <b>{{ hitText() }}</b> 張</span></div>
 
@@ -36,7 +39,10 @@
     @if (error()) {
       <div class="empty">載入失敗:{{ error() }}</div>
     } @else if (!loading() && photos().length === 0) {
-      <div class="empty">這個資料夾沒有圖片。{{ subfolders().length ? '點上方子資料夾往下看。' : '' }}</div>
+      <div class="empty">
+        @if (innerCount()) { 此資料夾內沒有符合篩選的圖片。試著移除一些夾內 tag。 }
+        @else { 這個資料夾沒有圖片。{{ subfolders().length ? '點上方子資料夾往下看。' : '' }} }
+      </div>
     }
     <div class="masonry">
       @for (p of photos(); track p.id) {
