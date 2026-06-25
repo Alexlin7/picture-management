@@ -22,14 +22,20 @@ export class InnerTagFilter {
   private loadedKey = '';
 
   // 開啟輸入時載當前夾可用 tag(只在 root/path 變動時重載)。
+  // 競態 guard:先佔住 key,await 後確認仍是同一 key 才寫入;
+  // 快速切夾時舊夾的晚到結果會被丟棄,不會覆蓋新夾資料。
   async ensureLoaded(): Promise<void> {
     const rootId = this.store.currentRootId();
     if (rootId === null) return;
     const key = `${rootId}:${this.store.currentPath()}`;
     if (key === this.loadedKey) return;
-    this.loadedKey = key;
-    try { this.all = await this.api.folderTags(rootId, this.store.currentPath()); }
-    catch { this.all = []; }
+    this.loadedKey = key;            // 先佔住 key
+    try {
+      const result = await this.api.folderTags(rootId, this.store.currentPath());
+      if (this.loadedKey === key) this.all = result;   // 切夾後晚到的舊結果丟棄
+    } catch {
+      if (this.loadedKey === key) this.all = [];
+    }
   }
 
   async onType(v: string): Promise<void> {
