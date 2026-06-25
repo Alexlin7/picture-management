@@ -48,6 +48,7 @@ builder.Services.AddScoped<PathTagService>();
 builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
+builder.Services.AddScoped<FolderTreeService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<CopyrightAxisService>();
 builder.Services.AddScoped<TaggingScheduler>();
@@ -245,6 +246,16 @@ app.MapDelete("/api/saved-searches/{id:long}", async (long id, PmDbContext db) =
     return Results.NoContent();
 })
     .WithTags("SavedSearches");
+
+// 資料夾瀏覽維度:所有 root 摘要(頂層並列)
+app.MapGet("/api/folder-roots", async (FolderTreeService svc) =>
+    Results.Ok(await svc.BuildRootsAsync()))
+    .WithTags("Browse");
+
+// 某 root 的即時資料夾樹(遞迴 distinct present photo 計數)
+app.MapGet("/api/roots/{id:long}/folder-tree", async (long id, FolderTreeService svc) =>
+    await svc.BuildTreeAsync(id) is { } tree ? Results.Ok(tree) : Results.NotFound())
+    .WithTags("Browse");
 
 // 側欄 facet 樹(餵 FacetSidebar)
 app.MapGet("/api/tags/tree", async (TagFacetService svc) =>
