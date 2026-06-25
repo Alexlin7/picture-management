@@ -7,7 +7,9 @@ public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
 {
     public async Task<PhotoPage> SearchAsync(
         IEnumerable<string> all, IEnumerable<string> none,
-        long? afterId, int pageSize, CancellationToken ct = default)
+        long? afterId, int pageSize,
+        long? rootId = null, string? pathPrefix = null,
+        CancellationToken ct = default)
     {
         pageSize = Math.Clamp(pageSize, 1, 500);
 
@@ -28,6 +30,16 @@ public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
         }
 
         var q = db.Photos.Where(p => p.Locations.Any(l => l.Status == "present"));
+
+        // 資料夾範圍過濾:限縮到指定 root 的子樹(StartsWith prefix+"/" 避免兄弟前綴誤中)
+        if (rootId is not null)
+        {
+            var prefix = pathPrefix ?? "";
+            q = q.Where(p => p.Locations.Any(l =>
+                l.Status == "present"
+                && l.LibraryRootId == rootId
+                && (prefix == "" || l.RelPath.StartsWith(prefix + "/"))));
+        }
         foreach (var group in includeGroups)
             q = q.Where(p => p.Tags.Any(t => group.Contains(t.TagId)));
         if (excludeIds.Count > 0)
@@ -46,6 +58,7 @@ public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
 
     public async Task<long> CountAsync(
         IEnumerable<string> all, IEnumerable<string> none,
+        long? rootId = null, string? pathPrefix = null,
         CancellationToken ct = default)
     {
         var includeGroups = new List<List<long>>();
@@ -64,6 +77,16 @@ public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
         }
 
         var q = db.Photos.Where(p => p.Locations.Any(l => l.Status == "present"));
+
+        // 資料夾範圍過濾:限縮到指定 root 的子樹(StartsWith prefix+"/" 避免兄弟前綴誤中)
+        if (rootId is not null)
+        {
+            var prefix = pathPrefix ?? "";
+            q = q.Where(p => p.Locations.Any(l =>
+                l.Status == "present"
+                && l.LibraryRootId == rootId
+                && (prefix == "" || l.RelPath.StartsWith(prefix + "/"))));
+        }
         foreach (var group in includeGroups)
             q = q.Where(p => p.Tags.Any(t => group.Contains(t.TagId)));
         if (excludeIds.Count > 0)

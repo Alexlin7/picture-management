@@ -89,4 +89,34 @@ public class FolderBrowseApiTests : IDisposable
         var missing = await client.GetAsync("/api/roots/99999/folder-tree");
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
+
+    private record FolderTagDto(string Name, string Kind, int Count);
+
+    [Fact]
+    public async Task Folder_tags_and_scoped_search_endpoints_work()
+    {
+        var rootId = await Seed();   // 兩張圖都在 Pixiv/2024,無 tag
+        var client = _factory.CreateClient();
+
+        // 夾內查詢:Pixiv/2024 含 2 張
+        var page = await (await client.PostAsJsonAsync("/api/search",
+            new { rootId, pathPrefix = "Pixiv/2024" }))
+            .Content.ReadFromJsonAsync<Page>();
+        Assert.Equal(2, page!.Items.Count);
+
+        // 夾外前綴:Twitter 無圖
+        var empty = await (await client.PostAsJsonAsync("/api/search/count",
+            new { rootId, pathPrefix = "Twitter" }))
+            .Content.ReadAsStringAsync();
+        Assert.Contains("\"total\":0", empty);
+
+        // folder-tags 端點可呼叫(seed 無 tag → 空陣列)
+        var tags = await client.GetFromJsonAsync<List<FolderTagDto>>(
+            $"/api/browse/folder-tags?rootId={rootId}&path=Pixiv/2024");
+        Assert.NotNull(tags);
+        Assert.Empty(tags!);
+    }
+
+    private record Page(List<PageItem> Items, long? NextCursor);
+    private record PageItem(long Id, string FileHash);
 }

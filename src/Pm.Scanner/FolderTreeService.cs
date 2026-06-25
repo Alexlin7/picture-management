@@ -9,6 +9,9 @@ public sealed record FolderNode(string Name, string RelPath, int PhotoCount, Lis
 /// <summary>root 摘要:供 /browse 頂層並列各來源。</summary>
 public sealed record FolderRoot(long Id, string Name, int PhotoCount);
 
+/// <summary>夾內可用 tag:該路徑前綴範圍內 distinct present photo 的 tag 聚合(count desc)。</summary>
+public sealed record FolderTag(string Name, string Kind, int Count);
+
 /// <summary>
 /// 即時資料夾樹:讀 photo_location.rel_path(只取 present)在記憶體建樹,後序算遞迴 distinct photo 數。
 /// 不落表、不改 schema;反映硬碟當下結構,與 path→tag 維度正交。
@@ -56,6 +59,32 @@ public sealed class FolderTreeService(PmDbContext db)
         }
 
         return root.Fold(rootName).node;
+    }
+
+    public async Task<List<FolderTag>> FolderTagsAsync(long rootId, string? pathPrefix, CancellationToken ct = default)
+    {
+        var prefix = pathPrefix ?? "";
+
+        var photoIds = db.PhotoLocations
+            .Where(l => l.LibraryRootId == rootId && l.Status == "present"
+                && (prefix == "" || l.RelPath.StartsWith(prefix + "/")))
+            .Select(l => l.PhotoId)
+            .Distinct();
+
+        var counts = await db.PhotoTags
+            .Where(pt => photoIds.Contains(pt.PhotoId))
+            .GroupBy(pt => pt.TagId)
+            .Select(g => new { TagId = g.Key, Count = g.Select(x => x.PhotoId).Distinct().Count() })
+            .ToListAsync(ct);
+
+        var meta = (await db.Tags.Select(t => new { t.Id, t.Name, t.Kind }).ToListAsync(ct))
+            .ToDictionary(t => t.Id);
+
+        return counts
+            .Where(c => meta.ContainsKey(c.TagId))
+            .Select(c => new FolderTag(meta[c.TagId].Name, meta[c.TagId].Kind, c.Count))
+            .OrderByDescending(t => t.Count).ThenBy(t => t.Name)
+            .ToList();
     }
 
     /// <summary>建樹用的可變節點;Fold 後序合併子樹 photo id 取 distinct count。</summary>

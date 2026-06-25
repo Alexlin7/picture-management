@@ -182,11 +182,11 @@ app.MapPost("/api/roots/{id:long}/apply-path-tags", async (long id, PathTagServi
     .WithTags("PathTags");
 
 app.MapPost("/api/search", async (SearchDto dto, PhotoQueryService svc) =>
-    Results.Ok(await svc.SearchAsync(dto.All ?? [], dto.None ?? [], dto.AfterId, dto.PageSize ?? 200)))
+    Results.Ok(await svc.SearchAsync(dto.All ?? [], dto.None ?? [], dto.AfterId, dto.PageSize ?? 200, dto.RootId, dto.PathPrefix)))
     .WithTags("Search");
 
 app.MapPost("/api/search/count", async (SearchDto dto, PhotoQueryService svc) =>
-    Results.Ok(new { total = await svc.CountAsync(dto.All ?? [], dto.None ?? []) }))
+    Results.Ok(new { total = await svc.CountAsync(dto.All ?? [], dto.None ?? [], dto.RootId, dto.PathPrefix) }))
     .WithTags("Search");
 
 app.MapGet("/api/photos/{id:long}/thumb", async (long id, PmDbContext db, IThumbnailService thumbs) =>
@@ -255,6 +255,11 @@ app.MapGet("/api/folder-roots", async (FolderTreeService svc) =>
 // 某 root 的即時資料夾樹(遞迴 distinct present photo 計數)
 app.MapGet("/api/roots/{id:long}/folder-tree", async (long id, FolderTreeService svc) =>
     await svc.BuildTreeAsync(id) is { } tree ? Results.Ok(tree) : Results.NotFound())
+    .WithTags("Browse");
+
+// 夾內可用 tag(自動完成用):範圍內 distinct present photo 的 tag 聚合
+app.MapGet("/api/browse/folder-tags", async (long rootId, string? path, FolderTreeService svc) =>
+    Results.Ok(await svc.FolderTagsAsync(rootId, path)))
     .WithTags("Browse");
 
 // 側欄 facet 樹(餵 FacetSidebar)
@@ -510,8 +515,8 @@ static async Task<IResult> OpenThumbAsync(string path)
 public record CreateRootDto(string Name, string AbsPath);
 /// <summary>路徑段→tag 確認規則:指定根目錄、路徑段、動作(map/ignore)與對應標籤名。</summary>
 public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName);
-/// <summary>布林查詢請求:all 取交集、none 排除、keyset 分頁(AfterId + PageSize)。</summary>
-public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
+/// <summary>布林查詢請求:all 取交集、none 排除、keyset 分頁(AfterId + PageSize);RootId+PathPrefix 限縮到某資料夾子樹(瀏覽維度)。</summary>
+public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize, long? RootId, string? PathPrefix);
 /// <summary>儲存搜尋請求:名稱 + 序列化為 JSON 的查詢條件。</summary>
 public record SavedSearchDto(string Name, string QueryJson);
 /// <summary>手動加標請求:標籤名稱與可選分類(kind)。</summary>
