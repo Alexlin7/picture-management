@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>側欄 facet 分流 + 收折 — 對照 mockup</title>
+<style>
+  :root{
+    --canvas:#14161b; --panel:#1b1e25; --raised:#23272f; --hair:#2e333d;
+    --text:#e8eaed; --muted:#959ba7; --faint:#6b7280; --accent:#22d3ee;
+    --t-character:#4ade80; --t-copyright:#c084fc; --t-general:#818cf8; --t-meta:#fbbf24;
+    --display:"Space Grotesk","Noto Sans TC",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--canvas);color:var(--text);
+    font-family:"Noto Sans TC",sans-serif;padding:28px 24px 60px}
+  h1{font-family:var(--display);font-size:18px;font-weight:600;margin:0 0 4px}
+  .lede{color:var(--muted);font-size:13px;margin:0 0 22px;max-width:980px;line-height:1.6}
+  .lede code{font-family:var(--mono);font-size:11.5px;color:var(--text);background:var(--raised);padding:1px 5px;border-radius:4px}
+  .cols{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+  .col{flex:0 0 auto}
+  .col > .cap{display:flex;align-items:center;gap:8px;margin:0 2px 10px;font-family:var(--display);font-weight:600;font-size:14px}
+  .tag-bad{font-family:var(--mono);font-size:10px;color:#fca5a5;border:1px solid rgba(240,97,109,.5);border-radius:4px;padding:1px 6px}
+  .tag-good{font-family:var(--mono);font-size:10px;color:#86efac;border:1px solid rgba(52,211,153,.5);border-radius:4px;padding:1px 6px}
+  .note{color:var(--faint);font-size:11.5px;margin:8px 4px 0;max-width:252px;line-height:1.55}
+
+  /* ---- sidebar 複刻 ---- */
+  .sidebar{width:252px;background:var(--panel);border:1px solid var(--hair);
+    border-radius:10px;padding:14px 12px;overflow:hidden}
+  .side-h{font-family:var(--display);font-weight:600;font-size:14px;margin:2px 2px 12px;
+    display:flex;align-items:center;gap:8px}
+  .side-h .sub{font-family:var(--mono);font-size:10px;color:var(--faint);font-weight:400;margin-left:auto}
+  .facet{margin-bottom:14px}
+  .facet-t{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;
+    color:var(--text);padding:4px 4px;border-radius:6px;cursor:pointer;user-select:none}
+  .facet-t:hover{background:var(--raised)}
+  .facet-t .chev{width:12px;display:inline-grid;place-items:center;color:var(--faint);
+    font-size:8px;transition:transform .15s;flex:none}
+  .facet-t.open .chev{transform:rotate(90deg)}
+  .facet-t .dag{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--faint);
+    border:1px solid var(--hair);border-radius:4px;padding:0 5px}
+  .facet-t .cnt{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--faint)}
+  .facet-t .chev + .lbl{font-weight:600}
+  .rootless-h{margin:8px 2px 4px;color:var(--faint);font-size:11px;font-weight:600}
+
+  .frow{display:flex;align-items:center;gap:7px;padding:3px 4px;border-radius:6px;cursor:pointer;font-size:12px}
+  .frow:hover{background:var(--raised)}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .pad0{padding-left:6px}.pad1{padding-left:22px}.pad2{padding-left:36px}
+  .arrow{width:12px;color:var(--faint);font-size:8px;flex:none;display:inline-grid;place-items:center}
+  .arrow.open{transform:rotate(90deg)}
+  .spacer{width:12px;flex:none}
+  .n{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+  .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .body{margin-top:2px}
+  .collapsed-body{display:none}
+  .legend{margin-top:6px;display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+</style>
+</head>
+<body>
+  <h1>側欄 facet:分流 + 整段收折 — 對照</h1>
+  <p class="lede">
+    根因:後端 <code>TagFacetService</code> 的 tree / rootless 是吃 <code>tag_relation</code> 階層、<b>完全不分 kind</b> 建出來的 →
+    「— 無上層分類 —」變成綠(角色)、藍(屬性)、琥珀(年份)的大雜燴,且屬性 tag 還<b>同時</b>出現在底下的「屬性」區(重複)。
+    右側提案:<b>作品→角色樹只收 copyright + character</b>,屬性只住「屬性」、年份只住「年份」;三個分區標題加 chevron 可<b>整段收折</b>,狀態存 <code>localStorage</code>。
+  </p>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--t-copyright)"></i>作品 copyright</span>
+    <span><i class="dot" style="background:var(--t-character)"></i>角色 character</span>
+    <span><i class="dot" style="background:var(--t-general)"></i>屬性 general</span>
+    <span><i class="dot" style="background:var(--t-meta)"></i>年份 meta</span>
+  </div>
+
+  <div class="cols" style="margin-top:18px">
+
+    <!-- ================= 現況(雜燴) ================= -->
+    <div class="col">
+      <div class="cap"><span class="tag-bad">現況</span> 屬性 / 角色 / 年份 混在 rootless</div>
+      <aside class="sidebar">
+        <div class="side-h">篩選 <span class="sub">12,431 命中</span></div>
+
+        <div class="facet">
+          <div class="facet-t open"><span class="dot" style="background:var(--t-copyright)"></span><span class="lbl">作品 / 企劃 → 角色</span><span class="dag">DAG</span></div>
+          <div class="body">
+            <div class="frow pad0"><span class="arrow open">▶</span><span class="dot" style="background:var(--t-copyright)"></span><span class="nm">蔚藍檔案</span><span class="n">1,204</span></div>
+            <div class="frow pad1"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">阿露</span><span class="n">180</span></div>
+            <div class="frow pad0"><span class="arrow open">▶</span><span class="dot" style="background:var(--t-copyright)"></span><span class="nm">原神</span><span class="n">980</span></div>
+            <div class="frow pad1"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">雷電將軍</span><span class="n">312</span></div>
+            <div class="frow pad1"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">胡桃</span><span class="n">240</span></div>
+
+            <div class="rootless-h">— 無上層分類 —</div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-general)"></span><span class="nm">long_hair</span><span class="n">3,201</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-general)"></span><span class="nm">smile</span><span class="n">2,876</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">某獨立角色</span><span class="n">1,540</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-general)"></span><span class="nm">dress</span><span class="n">1,490</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-meta)"></span><span class="nm">2024</span><span class="n">1,200</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-general)"></span><span class="nm">solo</span><span class="n">980</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">某角色2</span><span class="n">760</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-meta)"></span><span class="nm">2023</span><span class="n">540</span></div>
+          </div>
+        </div>
+
+        <div class="facet">
+          <div class="facet-t open"><span class="dot" style="background:var(--t-general)"></span><span class="lbl">屬性</span></div>
+          <div class="body">
+            <div class="frow pad0"><span class="spacer"></span><span class="nm">long_hair</span><span class="n">3,201</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="nm">smile</span><span class="n">2,876</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="nm">dress</span><span class="n">1,490</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="nm">solo</span><span class="n">980</span></div>
+          </div>
+        </div>
+
+        <div class="facet">
+          <div class="facet-t open"><span class="dot" style="background:var(--t-meta)"></span><span class="lbl">年份</span></div>
+          <div class="body">
+            <div class="frow pad0"><span class="spacer"></span><span class="nm">2024</span><span class="n">1,200</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="nm">2023</span><span class="n">540</span></div>
+          </div>
+        </div>
+      </aside>
+      <p class="note">⚠ rootless 綠/藍/琥珀混雜,只靠顏色分;<code>long_hair</code> / <code>smile</code> / <code>dress</code> / <code>solo</code> 在 rootless 與「屬性」<b>各出現一次</b>。標題列無法收折。</p>
+    </div>
+
+    <!-- ================= 提案(分流 + 收折) ================= -->
+    <div class="col">
+      <div class="cap"><span class="tag-good">提案</span> 分流 · 三區可整段收折</div>
+      <aside class="sidebar">
+        <div class="side-h">篩選 <span class="sub">12,431 命中</span></div>
+
+        <!-- 作品→角色:只收 copyright+character -->
+        <div class="facet">
+          <div class="facet-t open"><span class="chev">▶</span><span class="dot" style="background:var(--t-copyright)"></span><span class="lbl">作品 / 企劃 → 角色</span><span class="dag">DAG</span></div>
+          <div class="body">
+            <div class="frow pad0"><span class="arrow open">▶</span><span class="dot" style="background:var(--t-copyright)"></span><span class="nm">蔚藍檔案</span><span class="n">1,204</span></div>
+            <div class="frow pad1"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">阿露</span><span class="n">180</span></div>
+            <div class="frow pad0"><span class="arrow open">▶</span><span class="dot" style="background:var(--t-copyright)"></span><span class="nm">原神</span><span class="n">980</span></div>
+            <div class="frow pad1"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">雷電將軍</span><span class="n">312</span></div>
+            <div class="frow pad1"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">胡桃</span><span class="n">240</span></div>
+
+            <div class="rootless-h">— 角色(無作品)—</div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">某獨立角色</span><span class="n">1,540</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-character)"></span><span class="nm">某角色2</span><span class="n">760</span></div>
+          </div>
+        </div>
+
+        <!-- 屬性:純 general -->
+        <div class="facet">
+          <div class="facet-t open"><span class="chev">▶</span><span class="dot" style="background:var(--t-general)"></span><span class="lbl">屬性</span><span class="cnt">142</span></div>
+          <div class="body">
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-general)"></span><span class="nm">long_hair</span><span class="n">3,201</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-general)"></span><span class="nm">smile</span><span class="n">2,876</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-general)"></span><span class="nm">dress</span><span class="n">1,490</span></div>
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-general)"></span><span class="nm">solo</span><span class="n">980</span></div>
+          </div>
+        </div>
+
+        <!-- 年份:收折示範 -->
+        <div class="facet">
+          <div class="facet-t"><span class="chev">▶</span><span class="dot" style="background:var(--t-meta)"></span><span class="lbl">年份</span><span class="cnt">收起</span></div>
+          <div class="body collapsed-body">
+            <div class="frow pad0"><span class="spacer"></span><span class="dot" style="background:var(--t-meta)"></span><span class="nm">2024</span><span class="n">1,200</span></div>
+          </div>
+        </div>
+      </aside>
+      <p class="note">✓ 作品→角色樹只剩紫+綠;rootless 改名「角色(無作品)」純綠。屬性純藍、年份琥珀,各歸各區、不重複。三區 chevron 可整段收折(此處「年份」示範收起),狀態存 <code>localStorage</code>,重整保留。</p>
+    </div>
+
+  </div>
+</body>
+</html>
