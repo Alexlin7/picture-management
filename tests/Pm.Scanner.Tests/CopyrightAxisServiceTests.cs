@@ -58,6 +58,24 @@ public class CopyrightAxisServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Cycle_guarded_no_edge_when_copyright_already_descendant_of_character()
+    {
+        using var ctx = NewContext();
+        var tagSvc = new TagService(ctx);
+        var character = await tagSvc.UpsertByNameAsync("aris_(blue_archive)", "character");
+        var copyright = await tagSvc.UpsertByNameAsync("blue_archive", "copyright");
+        // 先建反向邊 character → blue_archive,使 blue_archive 成為 character 的後代;
+        // seed 會想加 blue_archive → character,將成環 → 防環跳過,不加邊。
+        ctx.TagRelations.Add(new TagRelation { ParentTagId = character.Id, ChildTagId = copyright.Id });
+        await ctx.SaveChangesAsync();
+
+        var added = await Svc(ctx).SeedFromCharacterAsync(character);
+
+        Assert.False(added);
+        Assert.Equal(1, await ctx.TagRelations.CountAsync());   // 只剩原本那條反向邊,未加成環邊
+    }
+
+    [Fact]
     public async Task Non_character_kind_ignored()
     {
         using var ctx = NewContext();

@@ -38,6 +38,7 @@ public class CopyrightAxisApiTests : IDisposable
         var client = _factory.CreateClient();
 
         var res = await client.PostAsync("/api/maintenance/copyright-axis/rebuild", null);
+        res.EnsureSuccessStatusCode();
         var body = await res.Content.ReadFromJsonAsync<Rebuild>();
 
         Assert.NotNull(body);
@@ -51,6 +52,7 @@ public class CopyrightAxisApiTests : IDisposable
 
         // 冪等:再跑一次不新增
         var res2 = await client.PostAsync("/api/maintenance/copyright-axis/rebuild", null);
+        res2.EnsureSuccessStatusCode();
         var body2 = await res2.Content.ReadFromJsonAsync<Rebuild>();
         Assert.Equal(0, body2!.EdgesCreated);
     }
