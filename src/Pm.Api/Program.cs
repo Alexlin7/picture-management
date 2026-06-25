@@ -19,18 +19,27 @@ builder.Configuration["Thumbnails:Dir"] = paths.ThumbsDir;
 builder.Configuration["Inference:Wd14:ModelDir"] = paths.ModelDir;
 
 // Serilog:console(dev 看得到)+ rolling file(落 logs/)。
-// 注意:UseSerilog 會繞過 MS Logging:LogLevel 過濾,故 MinimumLevel 必須在此明設;
-// 讀 Logging:LogLevel:Default 當 knob(改 appsettings/env + 重啟即可降級,免重編)。
-builder.Host.UseSerilog((context, logCfg) => logCfg
-    .MinimumLevel.Is(ParseLevel(context.Configuration["Logging:LogLevel:Default"]))
-    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
-    .WriteTo.Console()
-    .WriteTo.File(
-        path: Path.Combine(paths.LogDir, "pm-.log"),
-        rollingInterval: Serilog.RollingInterval.Day,
-        retainedFileCountLimit: 14,
-        fileSizeLimitBytes: 50L * 1024 * 1024,
-        rollOnFileSizeLimit: true));
+// 注意:UseSerilog 會繞過 MS Logging:LogLevel 過濾,故 MinimumLevel 必須在此明設。
+// log 級別全是行為層 knob → 一律走 appsettings 的 Logging:LogLevel(改 json/env + 重啟即生效,免重編、不硬編):
+//   Default → 全域下限;其餘 key(Microsoft.AspNetCore / Microsoft.EntityFrameworkCore…)→ per-category override。
+//   例:把 EF 的 "Executed DbCommand"(Information 級 SQL,tagging_job 每 4s 灌爆 log)壓成 Warning,就在 appsettings 設。
+builder.Host.UseSerilog((context, logCfg) =>
+{
+    logCfg.MinimumLevel.Is(ParseLevel(context.Configuration["Logging:LogLevel:Default"]));
+    foreach (var entry in context.Configuration.GetSection("Logging:LogLevel").GetChildren())
+    {
+        if (entry.Key == "Default") continue;
+        logCfg.MinimumLevel.Override(entry.Key, ParseLevel(entry.Value));
+    }
+    logCfg
+        .WriteTo.Console()
+        .WriteTo.File(
+            path: Path.Combine(paths.LogDir, "pm-.log"),
+            rollingInterval: Serilog.RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            fileSizeLimitBytes: 50L * 1024 * 1024,
+            rollOnFileSizeLimit: true);
+});
 
 builder.Services.AddSingleton(new SqliteBusyTimeoutInterceptor(TimeSpan.FromSeconds(5)));
 builder.Services.AddDbContext<PmDbContext>((sp, opt) =>
