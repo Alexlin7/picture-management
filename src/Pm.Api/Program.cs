@@ -300,19 +300,13 @@ app.MapGet("/api/maintenance/orphan-photos", async (PmDbContext db) =>
 })
     .WithTags("Maintenance");
 
-// 維護:硬刪孤兒 photo —— 端點層自保,不依賴 DB FK cascade(生產連線字串未開 FK)。
-// EF-tracked 刪除:.Include(p.Tags) 讓 change tracker 一併發 photo_tag DELETE;
-// tagging_job 在 Photo 無導航屬性,顯式按 id 刪;location 不必處理(孤兒恆零 location)。
+// 維護:硬刪孤兒 photo —— DB FK cascade 帶走 photo_tag/tagging_job(FK 全 app 強制開,見
+// BuildSqliteConnectionString);location 不必處理(孤兒恆零 location)。縮圖另刪(先取 hash 再刪 DB)。
 app.MapDelete("/api/maintenance/orphan-photos", async (PmDbContext db, IThumbnailService thumbs) =>
 {
-    var orphans = await db.Photos.Where(p => !p.Locations.Any()).OrderBy(p => p.Id)
-        .Include(p => p.Tags).ToListAsync();
-    var ids = orphans.Select(p => p.Id).ToList();
+    var orphans = await db.Photos.Where(p => !p.Locations.Any()).OrderBy(p => p.Id).ToListAsync();
     var hashes = orphans.Select(p => p.FileHash).ToList();   // RemoveRange 前先收 hash
-
-    var jobs = await db.TaggingJobs.Where(j => ids.Contains(j.PhotoId)).ToListAsync();
-    db.TaggingJobs.RemoveRange(jobs);
-    db.Photos.RemoveRange(orphans);   // 連帶 tracked 的 photo_tag
+    db.Photos.RemoveRange(orphans);
     await db.SaveChangesAsync();
 
     var thumbsDeleted = 0;
@@ -450,7 +444,11 @@ static string BuildSqliteConnectionString(string? configured)
     var cs = string.IsNullOrWhiteSpace(configured) ? "Data Source=pm.sqlite" : configured;
     var builder = new SqliteConnectionStringBuilder(cs)
     {
-        DefaultTimeout = 5
+        DefaultTimeout = 5,
+        // 鐵則:本專案全 app 的硬刪都靠 DB FK ON DELETE CASCADE(photo→location/photo_tag/tagging_job、
+        // tag→photo_tag/tag_relation)。SQLite 因歷史相容預設 foreign_keys=OFF 且為連線層 runtime 設定,
+        // 故必須在每條連線強制開啟 —— 此處是唯一真相源(含測試,測試連線字串也流經本函式)。
+        ForeignKeys = true
     };
     return builder.ToString();
 }
