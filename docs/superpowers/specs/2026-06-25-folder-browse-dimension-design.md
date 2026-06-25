@@ -118,6 +118,7 @@ GET /api/browse/folder-tags?rootId=&path=
 ## 七、固定決策(實作時不要回頭推翻)
 
 - 即時樹讀 `rel_path`,**不落表、不改 schema**;path tag 不動。
+- **多 root(確定)**:進 `/browse` 頂層**並排列出所有 root 為第一層節點**(各帶 photoCount);點某 root 展其樹、麵包屑以該 root 名起頭。`BrowseStore.currentRootId` 隨之切換,範圍查詢一律帶 `rootId`。
 - 遞迴顯示與計數(含子夾);計數 = distinct present photo。
 - 側欄樹淺(1–2 層),深層靠主區子夾晶片下鑽。
 - 夾內 tag 扁平、只列範圍內存在者(非完整 tag 樹)。
@@ -126,8 +127,8 @@ GET /api/browse/folder-tags?rootId=&path=
 
 ## 八、開放項 / deferred
 
-- **多 root 呈現**:頂層列所有 root 為第一層節點 vs 先選 root 再進樹 — 切片 5 定;先支援多 root 頂層並列。
 - 夾內 tag 若扁平清單不夠(夾內 tag 暴多)再考慮分組/樹(D5 已留伏筆)。
 - 圖牆真窗格化(virtual scroll)沿用 backlog,本功能不另做。
 - 「在資料夾樹節點上右鍵 → 把此夾設為 path tag 規則」之類的 tag/folder 互通,deferred。
 - 排序(名稱/數量/時間)、每夾縮圖預覽,nice-to-have。
+- **「在檔案總管開啟原檔位置」(deferred,可選加值)**:圖牆/inspector 加按鈕,後端用 `LibraryRoot.AbsPath + RelPath` 即時組絕對路徑、呼叫 `explorer.exe /select,"path"`(開總管選中檔,唯讀、不執行、不解析 PNG 內容→不踩鐵則 1)。**資安鎖法:只接 `photoId`/`locationId`,後端反查 DB 自組路徑,絕不接受前端傳路徑字串(防 path injection);僅桌面模式提供,headless/NAS 不開。** 圖牆是縮圖(`<app-thumb>`,依 hash 快取),原圖一律不直接拉。此功能性質偏 inspector 通用(搜尋維度亦可用),非資料夾維度核心,故 deferred。
