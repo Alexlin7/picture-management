@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { PmApi, type PhotoListItem, type FolderNode, type FolderRoot } from '@core/api/pm-api';
 import { type TagKind } from '@core/tag-color';
-import { breadcrumbFromPath, findNode, subfoldersOf } from './browse-tree';
+import { breadcrumbFromPath, subfoldersOf } from './browse-tree';
 
 // 夾內疊 tag token(沿用 gallery 的 text/kind 形狀;text 無 '-' 前綴 = include)。
 export interface InnerToken { text: string; kind: TagKind; }
@@ -34,11 +34,6 @@ export class BrowseStore {
   readonly subfolders = computed(() => {
     const t = this._tree();
     return t ? subfoldersOf(t, this._path()) : [];
-  });
-  readonly currentCount = computed(() => {
-    const t = this._tree();
-    const n = t ? findNode(t, this._path()) : null;
-    return n?.photoCount ?? 0;
   });
 
   // ---- 夾內疊 tag ----
