@@ -4,8 +4,13 @@
     <div class="crumbs">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
       @for (c of breadcrumb(); track c.relPath; let last = $last) {
-        <span class="c" [class.cur]="last" (click)="enter(c.relPath)">{{ c.name }}</span>
-        @if (!last) { <span class="sep">›</span> }
+        @if (last) {
+          <!-- 當前節點:不可點、無 hover -->
+          <span class="c cur">{{ c.name }}</span>
+        } @else {
+          <span class="c" (click)="enter(c.relPath)">{{ c.name }}</span>
+          <span class="sep">›</span>
+        }
       }
     </div>
   </div>

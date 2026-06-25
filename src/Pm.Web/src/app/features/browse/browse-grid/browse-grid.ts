@@ -16,7 +16,6 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
   readonly subfolders = this.store.subfolders;
   readonly photos = this.store.photos;
   readonly hitCount = this.store.hitCount;
-  readonly currentCount = this.store.currentCount;
   readonly loading = this.store.loading;
   readonly error = this.store.error;
   readonly hasMore = this.store.hasMore;
