@@ -8,6 +8,15 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 執行期落點集中解析:dev 維持相對(現狀不動),打包 exe 落 %LOCALAPPDATA%。
+// 解析後把絕對路徑寫回既有 config key,讓下方既有 wiring 不動就吃到絕對路徑。
+var paths = StoragePaths.Resolve(builder.Environment, builder.Configuration);
+Directory.CreateDirectory(paths.BaseDir);   // SQLite 不自建父目錄
+Directory.CreateDirectory(paths.LogDir);
+builder.Configuration["ConnectionStrings:Pm"] = paths.SqliteDataSource;
+builder.Configuration["Thumbnails:Dir"] = paths.ThumbsDir;
+builder.Configuration["Inference:Wd14:ModelDir"] = paths.ModelDir;
+
 builder.Services.AddSingleton(new SqliteBusyTimeoutInterceptor(TimeSpan.FromSeconds(5)));
 builder.Services.AddDbContext<PmDbContext>((sp, opt) =>
     opt.UseSqlite(BuildSqliteConnectionString(builder.Configuration.GetConnectionString("Pm")))
