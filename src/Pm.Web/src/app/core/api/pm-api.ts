@@ -31,7 +31,7 @@ export interface ScanStatus {
   error?: string | null;
 }
 export interface PendingSegment { segment: string; count: number; samplePath: string; suggestedAction: string; }
-export interface SearchReq { all?: string[]; none?: string[]; afterId?: number | null; pageSize?: number; }
+export interface SearchReq { all?: string[]; none?: string[]; afterId?: number | null; pageSize?: number; rootId?: number; pathPrefix?: string; }
 export interface SavedSearchRow { id: number; name: string; queryJson: string; createdAt: string; }
 export interface TagTreeNode { name: string; kind: string; count: number; multi?: boolean; children?: TagTreeNode[] | null; }
 export interface TagTree {
@@ -39,6 +39,9 @@ export interface TagTree {
   general: [string, number][]; meta: [string, number][];
 }
 export interface TagListRow { id: number; name: string; kind: string; count: number; }
+export interface FolderNode { name: string; relPath: string; photoCount: number; children?: FolderNode[] | null; }
+export interface FolderRoot { id: number; name: string; photoCount: number; }
+export interface FolderTag { name: string; kind: string; count: number; }
 
 @Injectable({ providedIn: 'root' })
 export class PmApi {
@@ -90,6 +93,19 @@ export class PmApi {
 
   tagTree(): Promise<TagTree> {
     return firstValueFrom(this.http.get<TagTree>('/api/tags/tree'));
+  }
+
+  // ---- 資料夾瀏覽維度 ----
+  folderRoots(): Promise<FolderRoot[]> {
+    return firstValueFrom(this.http.get<FolderRoot[]>('/api/folder-roots'));
+  }
+  folderTree(rootId: number): Promise<FolderNode> {
+    return firstValueFrom(this.http.get<FolderNode>(`/api/roots/${rootId}/folder-tree`));
+  }
+  folderTags(rootId: number, path: string): Promise<FolderTag[]> {
+    let params = new HttpParams().set('rootId', String(rootId));
+    if (path) params = params.set('path', path);
+    return firstValueFrom(this.http.get<FolderTag[]>('/api/browse/folder-tags', { params }));
   }
 
   archivePhoto(id: number): Promise<{ archived: number }> {

@@ -31,6 +31,10 @@ export const routes: Routes = [
         path: 'tags',
         loadComponent: () => import('./features/tags/tag-manager/tag-manager').then((m) => m.TagManager),
       },
+      {
+        path: 'browse',
+        loadComponent: () => import('./features/browse/browse-view/browse-view').then((m) => m.BrowseView),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

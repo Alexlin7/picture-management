@@ -19,18 +19,27 @@ builder.Configuration["Thumbnails:Dir"] = paths.ThumbsDir;
 builder.Configuration["Inference:Wd14:ModelDir"] = paths.ModelDir;
 
 // Serilog:console(dev 看得到)+ rolling file(落 logs/)。
-// 注意:UseSerilog 會繞過 MS Logging:LogLevel 過濾,故 MinimumLevel 必須在此明設;
-// 讀 Logging:LogLevel:Default 當 knob(改 appsettings/env + 重啟即可降級,免重編)。
-builder.Host.UseSerilog((context, logCfg) => logCfg
-    .MinimumLevel.Is(ParseLevel(context.Configuration["Logging:LogLevel:Default"]))
-    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
-    .WriteTo.Console()
-    .WriteTo.File(
-        path: Path.Combine(paths.LogDir, "pm-.log"),
-        rollingInterval: Serilog.RollingInterval.Day,
-        retainedFileCountLimit: 14,
-        fileSizeLimitBytes: 50L * 1024 * 1024,
-        rollOnFileSizeLimit: true));
+// 注意:UseSerilog 會繞過 MS Logging:LogLevel 過濾,故 MinimumLevel 必須在此明設。
+// log 級別全是行為層 knob → 一律走 appsettings 的 Logging:LogLevel(改 json/env + 重啟即生效,免重編、不硬編):
+//   Default → 全域下限;其餘 key(Microsoft.AspNetCore / Microsoft.EntityFrameworkCore…)→ per-category override。
+//   例:把 EF 的 "Executed DbCommand"(Information 級 SQL,tagging_job 每 4s 灌爆 log)壓成 Warning,就在 appsettings 設。
+builder.Host.UseSerilog((context, logCfg) =>
+{
+    logCfg.MinimumLevel.Is(ParseLevel(context.Configuration["Logging:LogLevel:Default"]));
+    foreach (var entry in context.Configuration.GetSection("Logging:LogLevel").GetChildren())
+    {
+        if (entry.Key == "Default") continue;
+        logCfg.MinimumLevel.Override(entry.Key, ParseLevel(entry.Value));
+    }
+    logCfg
+        .WriteTo.Console()
+        .WriteTo.File(
+            path: Path.Combine(paths.LogDir, "pm-.log"),
+            rollingInterval: Serilog.RollingInterval.Day,
+            retainedFileCountLimit: 14,
+            fileSizeLimitBytes: 50L * 1024 * 1024,
+            rollOnFileSizeLimit: true);
+});
 
 builder.Services.AddSingleton(new SqliteBusyTimeoutInterceptor(TimeSpan.FromSeconds(5)));
 builder.Services.AddDbContext<PmDbContext>((sp, opt) =>
@@ -48,6 +57,7 @@ builder.Services.AddScoped<PathTagService>();
 builder.Services.AddScoped<TagClosureService>();
 builder.Services.AddScoped<PhotoQueryService>();
 builder.Services.AddScoped<TagFacetService>();
+builder.Services.AddScoped<FolderTreeService>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<CopyrightAxisService>();
 builder.Services.AddScoped<TaggingScheduler>();
@@ -181,11 +191,11 @@ app.MapPost("/api/roots/{id:long}/apply-path-tags", async (long id, PathTagServi
     .WithTags("PathTags");
 
 app.MapPost("/api/search", async (SearchDto dto, PhotoQueryService svc) =>
-    Results.Ok(await svc.SearchAsync(dto.All ?? [], dto.None ?? [], dto.AfterId, dto.PageSize ?? 200)))
+    Results.Ok(await svc.SearchAsync(dto.All ?? [], dto.None ?? [], dto.AfterId, dto.PageSize ?? 200, dto.RootId, dto.PathPrefix)))
     .WithTags("Search");
 
 app.MapPost("/api/search/count", async (SearchDto dto, PhotoQueryService svc) =>
-    Results.Ok(new { total = await svc.CountAsync(dto.All ?? [], dto.None ?? []) }))
+    Results.Ok(new { total = await svc.CountAsync(dto.All ?? [], dto.None ?? [], dto.RootId, dto.PathPrefix) }))
     .WithTags("Search");
 
 app.MapGet("/api/photos/{id:long}/thumb", async (long id, PmDbContext db, IThumbnailService thumbs) =>
@@ -245,6 +255,21 @@ app.MapDelete("/api/saved-searches/{id:long}", async (long id, PmDbContext db) =
     return Results.NoContent();
 })
     .WithTags("SavedSearches");
+
+// 資料夾瀏覽維度:所有 root 摘要(頂層並列)
+app.MapGet("/api/folder-roots", async (FolderTreeService svc) =>
+    Results.Ok(await svc.BuildRootsAsync()))
+    .WithTags("Browse");
+
+// 某 root 的即時資料夾樹(遞迴 distinct present photo 計數)
+app.MapGet("/api/roots/{id:long}/folder-tree", async (long id, FolderTreeService svc) =>
+    await svc.BuildTreeAsync(id) is { } tree ? Results.Ok(tree) : Results.NotFound())
+    .WithTags("Browse");
+
+// 夾內可用 tag(自動完成用):範圍內 distinct present photo 的 tag 聚合
+app.MapGet("/api/browse/folder-tags", async (long rootId, string? path, FolderTreeService svc) =>
+    Results.Ok(await svc.FolderTagsAsync(rootId, path)))
+    .WithTags("Browse");
 
 // 側欄 facet 樹(餵 FacetSidebar)
 app.MapGet("/api/tags/tree", async (TagFacetService svc) =>
@@ -499,8 +524,8 @@ static async Task<IResult> OpenThumbAsync(string path)
 public record CreateRootDto(string Name, string AbsPath);
 /// <summary>路徑段→tag 確認規則:指定根目錄、路徑段、動作(map/ignore)與對應標籤名。</summary>
 public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName);
-/// <summary>布林查詢請求:all 取交集、none 排除、keyset 分頁(AfterId + PageSize)。</summary>
-public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize);
+/// <summary>布林查詢請求:all 取交集、none 排除、keyset 分頁(AfterId + PageSize);RootId+PathPrefix 限縮到某資料夾子樹(瀏覽維度)。</summary>
+public record SearchDto(string[]? All, string[]? None, long? AfterId, int? PageSize, long? RootId, string? PathPrefix);
 /// <summary>儲存搜尋請求:名稱 + 序列化為 JSON 的查詢條件。</summary>
 public record SavedSearchDto(string Name, string QueryJson);
 /// <summary>手動加標請求:標籤名稱與可選分類(kind)。</summary>
