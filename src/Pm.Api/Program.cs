@@ -5,6 +5,7 @@ using Pm.Data;
 using Pm.Data.Entities;
 using Pm.Scanner;
 using Scalar.AspNetCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,20 @@ Directory.CreateDirectory(paths.LogDir);
 builder.Configuration["ConnectionStrings:Pm"] = paths.SqliteDataSource;
 builder.Configuration["Thumbnails:Dir"] = paths.ThumbsDir;
 builder.Configuration["Inference:Wd14:ModelDir"] = paths.ModelDir;
+
+// Serilog:console(dev 看得到)+ rolling file(落 logs/)。
+// 注意:UseSerilog 會繞過 MS Logging:LogLevel 過濾,故 MinimumLevel 必須在此明設;
+// 讀 Logging:LogLevel:Default 當 knob(改 appsettings/env + 重啟即可降級,免重編)。
+builder.Host.UseSerilog((context, logCfg) => logCfg
+    .MinimumLevel.Is(ParseLevel(context.Configuration["Logging:LogLevel:Default"]))
+    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: Path.Combine(paths.LogDir, "pm-.log"),
+        rollingInterval: Serilog.RollingInterval.Day,
+        retainedFileCountLimit: 14,
+        fileSizeLimitBytes: 50L * 1024 * 1024,
+        rollOnFileSizeLimit: true));
 
 builder.Services.AddSingleton(new SqliteBusyTimeoutInterceptor(TimeSpan.FromSeconds(5)));
 builder.Services.AddDbContext<PmDbContext>((sp, opt) =>
@@ -367,6 +382,18 @@ app.MapPost("/api/tags/{id:long}/merge/{targetId:long}", async (long id, long ta
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+// MS Logging level 字串 → Serilog level;解析失敗預設 Information。
+static Serilog.Events.LogEventLevel ParseLevel(string? level) => level switch
+{
+    "Trace" => Serilog.Events.LogEventLevel.Verbose,
+    "Debug" => Serilog.Events.LogEventLevel.Debug,
+    "Information" => Serilog.Events.LogEventLevel.Information,
+    "Warning" => Serilog.Events.LogEventLevel.Warning,
+    "Error" => Serilog.Events.LogEventLevel.Error,
+    "Critical" => Serilog.Events.LogEventLevel.Fatal,
+    _ => Serilog.Events.LogEventLevel.Information,
+};
 
 static string BuildSqliteConnectionString(string? configured)
 {
