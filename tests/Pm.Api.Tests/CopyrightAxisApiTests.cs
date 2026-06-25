@@ -55,6 +55,55 @@ public class CopyrightAxisApiTests : IDisposable
         Assert.Equal(0, body2!.EdgesCreated);
     }
 
+    [Fact]
+    public async Task Search_by_copyright_matches_child_character_photos()
+    {
+        long photoId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var ctx = scope.ServiceProvider.GetRequiredService<PmDbContext>();
+            var tags = scope.ServiceProvider.GetRequiredService<TagService>();
+            var axis = scope.ServiceProvider.GetRequiredService<CopyrightAxisService>();
+
+            var root = new Pm.Data.Entities.LibraryRoot { Name = "r", AbsPath = @"C:\x" };
+            ctx.LibraryRoots.Add(root);
+            await ctx.SaveChangesAsync();
+
+            var photo = new Pm.Data.Entities.Photo { FileHash = new string('b', 64), ImportedAt = DateTimeOffset.UtcNow };
+            ctx.Photos.Add(photo);
+            await ctx.SaveChangesAsync();
+            photoId = photo.Id;
+
+            ctx.PhotoLocations.Add(new Pm.Data.Entities.PhotoLocation
+            {
+                PhotoId = photo.Id,
+                LibraryRootId = root.Id,
+                RelPath = "a.png",
+                Status = "present",
+                FirstSeenAt = DateTimeOffset.UtcNow,
+                LastSeenAt = DateTimeOffset.UtcNow
+            });
+
+            var character = await tags.UpsertByNameAsync("aris_(blue_archive)", "character");
+            ctx.PhotoTags.Add(new Pm.Data.Entities.PhotoTag { PhotoId = photo.Id, TagId = character.Id, Source = "wd14" });
+            await ctx.SaveChangesAsync();
+
+            await axis.SeedFromCharacterAsync(character);   // 建 blue_archive + 邊
+        }
+
+        var client = _factory.CreateClient();
+
+        // 搜 "blue_archive"(copyright 父標),應命中只掛子角色標的 photo(closure 展開)。
+        var resp = await client.PostAsJsonAsync("/api/search", new { all = new[] { "blue_archive" } });
+        resp.EnsureSuccessStatusCode();
+        var page = await resp.Content.ReadFromJsonAsync<SearchPage>();
+
+        Assert.NotNull(page);
+        Assert.Contains(page!.Items, item => item.Id == photoId);
+    }
+
+    private sealed record SearchItem(long Id, string FileHash);
+    private sealed record SearchPage(List<SearchItem> Items, long? NextCursor);
     private sealed record Rebuild(int Scanned, int EdgesCreated);
 
     public void Dispose()
