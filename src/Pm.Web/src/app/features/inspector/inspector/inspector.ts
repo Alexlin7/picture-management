@@ -5,7 +5,7 @@ import {
   type TagKind,
   type TagListRow,
 } from '../inspector.store';
-import { KIND_LABEL, tagColor } from '@core/tag-color';
+import { KIND_LABEL, tagColor, hexToRgba } from '@core/tag-color';
 import { groupTags, type DisplayTag } from '@core/tag-display';
 import { Thumb } from '@core/ui/thumb';
 
@@ -77,11 +77,8 @@ export class Inspector implements OnDestroy {
     return p ? p.fileHash.slice(0, 8) : '';
   });
 
-  // hex → rgba helper(半透明底色 / 邊框用)
-  rgba(hex: string, a: number): string {
-    const n = parseInt(hex.slice(1), 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
-  }
+  // hex → rgba(共用 @core/tag-color;template 沿用此方法)
+  rgba(hex: string, a: number): string { return hexToRgba(hex, a); }
 
   pct(c: number): number {
     return Math.round(c * 100);
