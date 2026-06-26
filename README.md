@@ -101,7 +101,15 @@ dotnet run --project src/Pm.Api
 ```powershell
 dotnet test                       # 後端全測試
 cd src/Pm.Web ; npm test          # 前端
+cd src/Pm.Web ; npm run e2e       # 瀏覽器 e2e（需先起 app;見 e2e/browse-smoke.mjs）
 ```
+
+### 發版（自包含單檔 exe）
+```powershell
+cd src/Pm.Web ; npx ng build                              # 前端 → wwwroot
+dotnet publish src/Pm.Api -p:PublishProfile=win-x64       # → publish/（exe ~75MB + wwwroot）
+```
+免裝 runtime、雙擊即跑。**完整部署/設定/散布方式見 [`docs/deployment.md`](docs/deployment.md)。**
 
 ---
 
@@ -138,7 +146,6 @@ cd src/Pm.Web ; npm test          # 前端
 ### 🔲 尚未實作 / 待驗
 - **WD14 失敗 job 無自動重試**：`TaggingWorker` 失敗只標 `error` ＋ `Attempts++`，不自動重排（之後可加退避重試）。註：崩潰卡在 `running` 的 job 啟動時**會**自動回收重排（與此不同）
 - CUDA / Windows ML 推論後端（`Pm.Ml` 僅骨架；本 build 僅 cpu/directml，選到 cuda/winml 會明確報錯；Windows ML 為 Phase 2 待啟用）
-- 單檔自包含 exe 交付（`dotnet publish PublishSingleFile`）設定與驗證
 
 ### 🚧 Phase 2（規劃）
 - CLIP image embedding 語意搜尋（sqlite-vec 或遷 Postgres+pgvector）
