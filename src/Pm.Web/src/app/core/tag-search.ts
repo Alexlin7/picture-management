@@ -55,6 +55,19 @@ export function decodeTokens(q: string): { text: string; kind: 'general' }[] {
     .map((text) => ({ text, kind: 'general' as const }));
 }
 
+// token 文字 → all / none:去 '-' 前綴、trim、略過空字。gallery 頂欄與 browse 夾內疊 tag 共用。
+export function splitTokens(tokens: readonly { text: string }[]): { all: string[]; none: string[] } {
+  const all: string[] = [];
+  const none: string[] = [];
+  for (const t of tokens) {
+    const raw = t.text.trim();
+    if (!raw) continue;
+    if (raw.startsWith('-')) none.push(raw.slice(1));
+    else all.push(raw);
+  }
+  return { all, none };
+}
+
 // 中文/顯示名反查:回傳「顯示 label 含此片段」的 canonical 英文 tag 名。
 // 僅覆蓋 curated 顯示名(表情等);空片段或無命中 → []。
 export function reverseDisplayLookup(term: string): string[] {

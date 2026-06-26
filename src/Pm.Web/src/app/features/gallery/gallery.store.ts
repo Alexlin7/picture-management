@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal, DestroyRef } from '@angular/core'
 import { Router } from '@angular/router';
 import { PmApi, type PhotoListItem } from '@core/api/pm-api';
 import { type TagKind } from '@core/tag-color';
-import { toggleExclude, encodeTokens, decodeTokens } from '@core/tag-search';
+import { toggleExclude, encodeTokens, decodeTokens, splitTokens } from '@core/tag-search';
 
 // 相簿資料來源 store:元件與 API 之間的唯一接縫。
 // 資料一律來自 @core/api/pm-api 的 PmApi;元件只讀 store 的 signal。
@@ -23,19 +23,6 @@ export interface FacetNode {
 }
 
 const PAGE_SIZE = 60;
-
-// 把 token 文字切成 all / none(去掉 '-' 前綴)。
-function splitTokens(tokens: readonly SearchToken[]): { all: string[]; none: string[] } {
-  const all: string[] = [];
-  const none: string[] = [];
-  for (const t of tokens) {
-    const raw = t.text.trim();
-    if (!raw) continue;
-    if (raw.startsWith('-')) none.push(raw.slice(1));
-    else all.push(raw);
-  }
-  return { all, none };
-}
 
 // TagTreeNode(count)→ FacetNode(n)遞迴映射。
 function mapNode(n: { name: string; kind: string; count: number; multi?: boolean; children?: unknown }): FacetNode {

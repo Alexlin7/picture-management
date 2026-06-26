@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
-import { tagColor, DANGER } from '@core/tag-color';
+import { tagColor, DANGER, hexToRgba } from '@core/tag-color';
 import { PmApi, type PhotoListItem, type TagListRow } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
 import { normalizeTagQuery, exactMatch, excludeSelected } from '@core/tag-search';
@@ -206,12 +206,6 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
     if (this.acDebounce) { clearTimeout(this.acDebounce); this.acDebounce = null; }
   }
 
-  // hex → rgba helper(半透明底色)
-  rgba(hex: string, a: number): string {
-    const n = parseInt(hex.slice(1), 16);
-    const r = (n >> 16) & 255;
-    const g = (n >> 8) & 255;
-    const b = n & 255;
-    return `rgba(${r},${g},${b},${a})`;
-  }
+  // hex → rgba(共用 @core/tag-color;template 沿用此方法)
+  rgba(hex: string, a: number): string { return hexToRgba(hex, a); }
 }

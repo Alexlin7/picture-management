@@ -148,4 +148,38 @@ public class FolderTreeTests : IDisposable
         var hasPhoto = roots.Single(r => r.Name == "有圖");
         Assert.Equal(1, hasPhoto.PhotoCount);
     }
+
+    [Fact]
+    public async Task FolderTags_skips_dangling_photo_tag_without_throwing()
+    {
+        // 防禦回歸:模擬歷史 FK-off 遺留的懸空 photo_tag(tag_id 指向不存在的 tag)。
+        // FolderTagsAsync 應略過該列而非丟 KeyNotFoundException(對齊 BuildRootsAsync 的防禦寫法)。
+        long rootId, photoId;
+        await using (var ctx = NewContext())
+        {
+            var r = new LibraryRoot { Name = "r", AbsPath = @"D:\r" };
+            ctx.LibraryRoots.Add(r); await ctx.SaveChangesAsync(); rootId = r.Id;
+            var t = new Tag { Name = "smile", Kind = "general" };
+            ctx.Tags.Add(t); await ctx.SaveChangesAsync();
+
+            var photo = new Photo { FileHash = "a".PadRight(64, '0'), FileSize = 1 };
+            photo.Locations.Add(new PhotoLocation { LibraryRoot = r, RelPath = "Pixiv/2024/a.png", Status = "present" });
+            photo.Tags.Add(new PhotoTag { TagId = t.Id, Source = "manual" });
+            ctx.Photos.Add(photo); await ctx.SaveChangesAsync();
+            photoId = photo.Id;
+
+            // 關連線層 FK,直插一筆指向不存在 tag 的 photo_tag(正常 FK-on 路徑插不進來)
+            await ctx.Database.OpenConnectionAsync();
+            await ctx.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=OFF");
+            await ctx.Database.ExecuteSqlAsync(
+                $"INSERT INTO photo_tag (photo_id, tag_id, source) VALUES ({photoId}, {999999}, {"manual"})");
+            await ctx.Database.CloseConnectionAsync();
+        }
+
+        await using var ctx2 = NewContext();
+        var tags = await new FolderTreeService(ctx2).FolderTagsAsync(rootId, "Pixiv/2024");
+
+        var only = Assert.Single(tags);   // 懸空列被略過,只剩正常 tag
+        Assert.Equal("smile", only.Name);
+    }
 }

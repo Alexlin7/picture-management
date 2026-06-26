@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ManageStore, type ImportRowView, type TagKind } from '../manage.store';
-import { TAG_COLOR, KIND_LABEL } from '@core/tag-color';
+import { TAG_COLOR, KIND_LABEL, hexToRgba } from '@core/tag-color';
 
 // 契約(route /import):匯入確認 —— 路徑段 → tag 確認表。
 // 資料一律來自 ManageStore(PmApi.pendingSegments);套用走 applyRule + applyPathTags。
@@ -13,11 +13,8 @@ import { TAG_COLOR, KIND_LABEL } from '@core/tag-color';
 export class ImportConfirm implements OnInit {
   private readonly store = inject(ManageStore);
 
-  // hex → rgba helper(半透明底色用)
-  protected rgba(hex: string, a: number): string {
-    const n = parseInt(hex.slice(1), 16);
-    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
-  }
+  // hex → rgba(共用 @core/tag-color;template 沿用此方法)
+  protected rgba(hex: string, a: number): string { return hexToRgba(hex, a); }
 
   // 讀 store signal
   protected readonly source = this.store.importSource;

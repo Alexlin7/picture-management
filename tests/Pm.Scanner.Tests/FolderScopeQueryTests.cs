@@ -63,6 +63,33 @@ public class FolderScopeQueryTests : IDisposable
     }
 
     [Fact]
+    public async Task CountAsync_and_SearchAsync_agree_under_same_folder_scope()
+    {
+        // 回歸網:count 與 page 必須用同一份範圍 predicate(防 SearchAsync/CountAsync 抽共用後漂移)。
+        long rootId;
+        await using (var ctx = NewContext())
+        {
+            var r = new LibraryRoot { Name = "r", AbsPath = @"D:\r" };
+            ctx.LibraryRoots.Add(r); await ctx.SaveChangesAsync(); rootId = r.Id;
+
+            await AddPhoto(ctx, r, "a", "Pixiv/2024/a.png");
+            await AddPhoto(ctx, r, "b", "Pixiv/2024/sub/b.png");
+            await AddPhoto(ctx, r, "c", "Pixiv2/c.png");
+            await AddPhoto(ctx, r, "d", "Twitter/d.png");
+        }
+
+        await using var ctx2 = NewContext();
+        var svc = Query(ctx2);
+
+        foreach (var prefix in new string?[] { null, "", "Pixiv", "Pixiv/2024", "Pixiv2", "Twitter", "Nope" })
+        {
+            var count = await svc.CountAsync([], [], rootId, prefix);
+            var page = await svc.SearchAsync([], [], null, 500, rootId, prefix);
+            Assert.Equal(count, page.Items.Count);
+        }
+    }
+
+    [Fact]
     public async Task PathPrefix_combines_with_tag_as_and()
     {
         long rootId, smile;

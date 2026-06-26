@@ -86,6 +86,7 @@ public sealed class FolderTreeService(PmDbContext db)
             .ToDictionary(t => t.Id);
 
         return counts
+            .Where(c => meta.ContainsKey(c.TagId))   // 略過懸空 photo_tag(tag_id 指向不存在的 tag);對齊 BuildRootsAsync 的防禦
             .Select(c => new FolderTag(meta[c.TagId].Name, meta[c.TagId].Kind, c.Count))
             .OrderByDescending(t => t.Count).ThenBy(t => t.Name)
             .ToList();

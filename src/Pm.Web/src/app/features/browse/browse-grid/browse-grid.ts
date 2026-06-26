@@ -37,8 +37,17 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     if (!this.sentinel) return;
     this.io = new IntersectionObserver((es) => {
-      if (es[0]?.isIntersecting && this.hasMore() && !this.loading()) void this.store.loadMore();
+      if (es[0]?.isIntersecting && this.hasMore() && !this.loading()) {
+        // 載完一頁後重新觀察 sentinel:強制 IO 以當前狀態再回呼一次。
+        // 若新頁仍未把 sentinel 推出 rootMargin(短結果集/矮版面),會續載直到填滿或無更多 —— 不再停擺。
+        void this.store.loadMore().then(() => this.rearm());
+      }
     }, { rootMargin: '600px' });
+    this.io.observe(this.sentinel.nativeElement);
+  }
+  private rearm(): void {
+    if (!this.io || !this.sentinel) return;
+    this.io.unobserve(this.sentinel.nativeElement);
     this.io.observe(this.sentinel.nativeElement);
   }
   ngOnDestroy(): void { this.io?.disconnect(); }

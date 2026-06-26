@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { BrowseStore, type InnerToken } from '../browse.store';
 import { PmApi, type FolderTag } from '@core/api/pm-api';
-import { tagColor, type TagKind } from '@core/tag-color';
+import { tagColor, hexToRgba, type TagKind } from '@core/tag-color';
 
 // 夾內疊 tag:+tag 自動完成只列「當前資料夾範圍內實際存在」的 tag(打字即時過濾),選了 = 範圍 AND tag。
 @Component({
@@ -34,7 +34,8 @@ export class InnerTagFilter {
       const result = await this.api.folderTags(rootId, this.store.currentPath());
       if (this.loadedKey === key) this.all = result;   // 切夾後晚到的舊結果丟棄
     } catch {
-      if (this.loadedKey === key) this.all = [];
+      // 失敗 → 清空並釋放 key,讓同一夾下次輸入能重試(否則該夾自動完成會永久空白)。
+      if (this.loadedKey === key) { this.all = []; this.loadedKey = ''; }
     }
   }
 
@@ -67,10 +68,6 @@ export class InnerTagFilter {
 
   tokenStyle(t: InnerToken): Record<string, string> {
     const c = this.kindColor(t.kind);
-    return { color: c, background: this.rgba(c, 0.12), 'border-color': this.rgba(c, 0.34) };
-  }
-  private rgba(hex: string, a: number): string {
-    const n = parseInt(hex.slice(1), 16);
-    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+    return { color: c, background: hexToRgba(c, 0.12), 'border-color': hexToRgba(c, 0.34) };
   }
 }

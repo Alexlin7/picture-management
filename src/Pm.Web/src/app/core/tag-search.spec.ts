@@ -1,4 +1,4 @@
-import { normalizeTagQuery, toggleExclude, exactMatch, reverseDisplayLookup, excludeSelected, encodeTokens, decodeTokens } from './tag-search';
+import { normalizeTagQuery, toggleExclude, exactMatch, reverseDisplayLookup, excludeSelected, encodeTokens, decodeTokens, splitTokens } from './tag-search';
 import type { TagListRow } from '@core/api/pm-api';
 
 describe('normalizeTagQuery', () => {
@@ -96,5 +96,17 @@ describe('encodeTokens / decodeTokens', () => {
   it('空/壞值 → 空陣列', () => {
     expect(decodeTokens('')).toEqual([]);
     expect(decodeTokens(',,,')).toEqual([]);
+  });
+});
+
+describe('splitTokens', () => {
+  it('依 - 前綴切 all / none(去前綴、trim、略過空字)', () => {
+    const tokens = [
+      { text: 'smile', kind: 'general' as const },
+      { text: '-monochrome', kind: 'general' as const },
+      { text: '  ', kind: 'general' as const },
+      { text: ' dress ', kind: 'general' as const },
+    ];
+    expect(splitTokens(tokens)).toEqual({ all: ['smile', 'dress'], none: ['monochrome'] });
   });
 });
