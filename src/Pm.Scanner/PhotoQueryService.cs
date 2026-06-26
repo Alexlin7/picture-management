@@ -1,10 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using Pm.Data;
+using Pm.Data.Entities;
 
 namespace Pm.Scanner;
 
 public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
 {
+    // 資料夾範圍過濾:限縮到指定 root 的子樹(StartsWith prefix+"/" 避免兄弟前綴誤中);rootId null = 不限縮。
+    // SearchAsync 與 CountAsync 共用同一份,確保 count 與 page 永遠對齊。
+    private static IQueryable<Photo> ApplyFolderScope(IQueryable<Photo> q, long? rootId, string? pathPrefix)
+    {
+        if (rootId is null) return q;
+        var prefix = pathPrefix ?? "";
+        return q.Where(p => p.Locations.Any(l =>
+            l.Status == "present"
+            && l.LibraryRootId == rootId
+            && (prefix == "" || l.RelPath.StartsWith(prefix + "/"))));
+    }
+
     public async Task<PhotoPage> SearchAsync(
         IEnumerable<string> all, IEnumerable<string> none,
         long? afterId, int pageSize,
@@ -30,16 +43,7 @@ public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
         }
 
         var q = db.Photos.Where(p => p.Locations.Any(l => l.Status == "present"));
-
-        // 資料夾範圍過濾:限縮到指定 root 的子樹(StartsWith prefix+"/" 避免兄弟前綴誤中)
-        if (rootId is not null)
-        {
-            var prefix = pathPrefix ?? "";
-            q = q.Where(p => p.Locations.Any(l =>
-                l.Status == "present"
-                && l.LibraryRootId == rootId
-                && (prefix == "" || l.RelPath.StartsWith(prefix + "/"))));
-        }
+        q = ApplyFolderScope(q, rootId, pathPrefix);
         foreach (var group in includeGroups)
             q = q.Where(p => p.Tags.Any(t => group.Contains(t.TagId)));
         if (excludeIds.Count > 0)
@@ -77,16 +81,7 @@ public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
         }
 
         var q = db.Photos.Where(p => p.Locations.Any(l => l.Status == "present"));
-
-        // 資料夾範圍過濾:限縮到指定 root 的子樹(StartsWith prefix+"/" 避免兄弟前綴誤中)
-        if (rootId is not null)
-        {
-            var prefix = pathPrefix ?? "";
-            q = q.Where(p => p.Locations.Any(l =>
-                l.Status == "present"
-                && l.LibraryRootId == rootId
-                && (prefix == "" || l.RelPath.StartsWith(prefix + "/"))));
-        }
+        q = ApplyFolderScope(q, rootId, pathPrefix);
         foreach (var group in includeGroups)
             q = q.Where(p => p.Tags.Any(t => group.Contains(t.TagId)));
         if (excludeIds.Count > 0)
