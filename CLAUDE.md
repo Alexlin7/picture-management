@@ -39,7 +39,7 @@ Angular SPA(ng build 靜態檔)──REST(localhost)──> 單一 .NET 程序
 7. **ML 不另開程序、不引 broker**:`tagging_job` 表當**程序內** DB-backed 佇列。若日後真要 Python,以**無狀態 sidecar**(POST 回 API、不直連 SQLite)接回,別讓兩程序搶寫 SQLite。
 8. **單機單人:API 只 bind `localhost`,不做帳號/認證系統。** 一旦改 bind 離 localhost(NAS/多人),認證即從可選變必須。
 9. **路徑→tag 是「匯入後確認」**,確認結果存 `path_tag_rule`(每段只確認一次)。不要改成全自動硬塞。
-10. **此專案一定要開 SQLite FK cascade。** 全 app 的硬刪(`photo` purge → `photo_location`/`photo_tag`/`tagging_job`;`tag` 刪除/合併 → `photo_tag`/`tag_relation`)都倚賴 DB 層 `ON DELETE CASCADE`,程式碼**不逐表手動刪**。但 SQLite 因歷史相容預設 `foreign_keys=OFF`、且為**連線層 runtime 設定**(不存 DB 檔),故必須在每條連線強制開 —— 唯一真相源是 `Program.cs` 的 `BuildSqliteConnectionString`(`ForeignKeys = true`),測試連線字串亦流經此函式。**絕不關閉**:一旦 FK off,所有硬刪會留下指向不存在父列的懸空子列。新刪除路徑沿用 cascade,不要回頭手刻子表刪除。
+10. **此專案一定要開 SQLite FK cascade。** 全 app 的硬刪(`photo` purge → `photo_location`/`photo_tag`/`tagging_job`;`tag` 刪除/合併 → `photo_tag`/`tag_relation`)都倚賴 DB 層 `ON DELETE CASCADE`,程式碼**不逐表手動刪**。但 SQLite 因歷史相容預設 `foreign_keys=OFF`、且為**連線層 runtime 設定**(不存 DB 檔),故必須在每條連線強制開 —— 唯一真相源是 `Configuration/SqliteSetup.cs` 的 `SqliteSetup.BuildConnectionString`(`ForeignKeys = true`),測試連線字串亦流經此函式(見 `SqliteSetupTests`)。**絕不關閉**:一旦 FK off,所有硬刪會留下指向不存在父列的懸空子列。新刪除路徑沿用 cascade,不要回頭手刻子表刪除。
 
 ## 工具鏈(已確認可用,2026-06-21)
 
