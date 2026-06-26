@@ -39,6 +39,9 @@ testem.log
 /typings
 __screenshots__/
 
+# e2e 產生的截圖(腳本本身有版控,輸出不進版控)
+e2e/shots/
+
 # System files
 .DS_Store
 Thumbs.db
