@@ -220,6 +220,13 @@
   min-height: 0;
 }
 
+/* masonry 容器邊距(ResizeObserver 用 contentRect.width,padding 不干擾欄寬計算) */
+app-masonry {
+  display: block;
+  padding: 16px 18px;
+  box-sizing: border-box;
+}
+
 /* 空 / 載入 / 錯誤狀態 */
 .empty {
   padding: 28px 18px;
@@ -233,38 +240,7 @@
   padding: 8px 18px 24px;
 }
 
-/* gallery 圖牆:CSS columns masonry。
-   注意:class 名不可用 .grid(會撞 Tailwind 的 .grid utility = display:grid,
-   會把 column-count 整個蓋掉)。 */
-.masonry {
-  column-count: 4;
-  column-gap: 12px;
-  padding: 16px 18px;
-}
-@media (max-width: 1500px) {
-  .masonry {
-    column-count: 3;
-  }
-}
-
-.masonry.dense {
-  column-count: 5;
-}
-.masonry.large {
-  column-count: 2;
-}
-@media (max-width: 1500px) {
-  .masonry.dense {
-    column-count: 4;
-  }
-  .masonry.large {
-    column-count: 2;
-  }
-}
-
 .tile {
-  break-inside: avoid;
-  margin-bottom: 12px;
   border-radius: var(--radius-card);
   overflow: hidden;
   position: relative;

@@ -90,13 +90,13 @@
     } @else if (!loading() && photos().length === 0) {
       <div class="empty">沒有符合的圖片</div>
     }
-    <div class="masonry" [class.dense]="viewMode() === 'dense'" [class.large]="viewMode() === 'large'">
-      @for (p of photos(); track p.id) {
+    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="minColWidth()" [gap]="gap">
+      <ng-template let-p>
         <div class="tile" [class.sel]="selectedId() === p.id" (click)="pick(p)">
           <app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" />
         </div>
-      }
-    </div>
+      </ng-template>
+    </app-masonry>
     @if (loading()) {
       <div class="empty">載入中…</div>
     }

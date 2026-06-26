@@ -7,11 +7,13 @@ import { displayOf } from '@core/tag-display';
 import { ToastService } from '@core/ui/toast';
 import { ConfirmService } from '@core/ui/confirm';
 import { Thumb } from '@core/ui/thumb';
+import { Masonry } from '../../../core/ui/masonry';
+import { MIN_COL_WIDTH, MASONRY_GAP } from '../../../core/layout-breakpoints';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
   selector: 'app-photo-grid',
-  imports: [Thumb],
+  imports: [Thumb, Masonry],
   templateUrl: './photo-grid.html',
   styleUrl: './photo-grid.css',
 })
@@ -38,6 +40,17 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
 
   // 兩段式檢視切換:dense=小圖密集 / large=大圖(純視覺本地狀態)
   readonly viewMode = signal<'dense' | 'large'>('dense');
+
+  // masonry 所需
+  readonly gap = MASONRY_GAP;
+  aspectNum = (p: unknown): number => {
+    const photo = p as PhotoListItem;
+    return photo.width && photo.height ? photo.width / photo.height : 1;
+  };
+  minColWidth(): number {
+    const m = this.viewMode();
+    return m === 'dense' ? MIN_COL_WIDTH.dense : m === 'large' ? MIN_COL_WIDTH.large : MIN_COL_WIDTH.standard;
+  }
 
   // 千分位
   readonly hitCountText = computed(() => this.hitCount().toLocaleString('en-US'));
