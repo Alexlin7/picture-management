@@ -42,10 +42,13 @@ import { shouldAutoCollapse, FACET_COLLAPSE } from '../../../core/layout-breakpo
         }
       }
 
-      /* 中間圖牆欄:相對定位以容納邊緣 toggle 鈕。 */
+      /* 中間圖牆欄:相對定位以容納邊緣 toggle 鈕。
+         min-height:0 + height:100% 讓 grid item 被限制在列高,內層 .view 才能取得有界高度而可捲。 */
       .center-stage {
         position: relative;
         min-width: 0;
+        min-height: 0;
+        height: 100%;
       }
 
       /* 側欄收合/展開箭頭。 */

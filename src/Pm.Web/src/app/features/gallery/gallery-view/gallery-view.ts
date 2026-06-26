@@ -51,10 +51,14 @@ import { shouldAutoCollapse, INSPECTOR_COLLAPSE, FACET_COLLAPSE } from '../../..
         }
       }
 
-      /* 中間圖牆欄:相對定位以容納邊緣 toggle 鈕。 */
+      /* 中間圖牆欄:相對定位以容納邊緣 toggle 鈕。
+         min-height:0 壓掉 grid item 預設 min-height:auto,height:100% 撐滿列高 ——
+         否則內容(masonry)會把 grid item 撐高,photo-grid 的 .view 失去有界高度而不再捲。 */
       .center-stage {
         position: relative;
         min-width: 0;
+        min-height: 0;
+        height: 100%;
       }
 
       /* 側欄收合/展開箭頭(et-left=facet 邊緣;et-right=inspector 邊緣)。 */
