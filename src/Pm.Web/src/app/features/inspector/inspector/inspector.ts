@@ -211,4 +211,22 @@ export class Inspector implements OnDestroy {
       this.retagging.set(false);
     }
   }
+
+  // 單張重新處理(動作層):重新解碼 + 補 metadata + 強制重產縮圖 + refresh WD14。
+  // decoded=false 時顯示錯誤訊息(損毀或格式不支援)。
+  readonly reprocessing = signal(false);
+  readonly reprocessMsg = signal('');
+
+  async reprocess(): Promise<void> {
+    const id = this.photoId();
+    if (id == null || this.reprocessing()) return;
+    this.reprocessing.set(true);
+    this.reprocessMsg.set('');
+    try {
+      const r = await this.store.reprocess(id);
+      if (!r.decoded) this.reprocessMsg.set('無法解碼這張圖 —— 可能損毀或格式不支援');
+    } finally {
+      this.reprocessing.set(false);
+    }
+  }
 }
