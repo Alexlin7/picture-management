@@ -1,4 +1,5 @@
 using Microsoft.ML.OnnxRuntime.Tensors;
+using Pm.Imaging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -10,7 +11,10 @@ public static class Wd14Preprocess
     // WD14:方形白底 padding → resize size² → BGR、0–255 float、NHWC [1,size,size,3]。
     public static DenseTensor<float> ToTensor(string absPath, int size = 448)
     {
-        using var img = Image.Load<Rgb24>(absPath);
+        // HEIF 家族(avif/heic/heif)ImageSharp 不解,繞道 Magick.NET;其餘走 ImageSharp。
+        using var img = ImageDecoder.IsHeifFamily(absPath)
+            ? ImageDecoder.LoadRgb24(absPath)
+            : Image.Load<Rgb24>(absPath);
 
         var side = Math.Max(img.Width, img.Height);
         using var canvas = new Image<Rgb24>(side, side, new Rgb24(255, 255, 255));

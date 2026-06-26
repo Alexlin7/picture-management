@@ -42,4 +42,26 @@ public class ThumbnailServiceTests : IDisposable
         Assert.Equal(512, info.Width);    // 長邊縮到 512
         Assert.Equal(384, info.Height);   // 比例保持(1024:768 → 512:384)
     }
+
+    [Fact]
+    public async Task Generates_webp_from_avif()
+    {
+        // ImageSharp 不解 AVIF;此測試確認 ThumbnailService 已繞道 Magick.NET(ImageDecoder)。
+        // 未接橋接時 Image.LoadAsync(avif) 會丟例外 → 縮圖產不出來。
+        var src = Path.Combine(_dir, "src.avif");
+        Directory.CreateDirectory(_dir);
+        using (var mi = new ImageMagick.MagickImage(ImageMagick.MagickColors.Teal, 1024u, 768u))
+            mi.Write(src, ImageMagick.MagickFormat.Avif);
+
+        var svc = new ThumbnailService(new ThumbnailOptions { Dir = _dir, MaxEdge = 512 });
+        var hash = "avif" + new string('0', 60);
+        var outPath = await svc.GenerateAsync(src, hash);
+
+        Assert.NotNull(outPath);
+        Assert.True(File.Exists(outPath));
+
+        var info = Image.Identify(outPath!);
+        Assert.Equal(512, info.Width);
+        Assert.Equal(384, info.Height);
+    }
 }

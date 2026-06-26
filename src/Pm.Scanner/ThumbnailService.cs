@@ -1,3 +1,4 @@
+using Pm.Imaging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
@@ -16,7 +17,10 @@ public sealed class ThumbnailService(ThumbnailOptions options) : IThumbnailServi
 
         try
         {
-            using var img = await Image.LoadAsync(absPath, ct);   // 只讀原圖
+            // HEIF 家族(avif/heic/heif)ImageSharp 不解,繞道 Magick.NET;其餘走 ImageSharp。只讀原圖。
+            using var img = ImageDecoder.IsHeifFamily(absPath)
+                ? ImageDecoder.LoadRgba32(absPath)
+                : await Image.LoadAsync(absPath, ct);
             img.Mutate(x => x.Resize(new ResizeOptions
             {
                 Mode = ResizeMode.Max,                            // 保持比例,長邊不超過 MaxEdge

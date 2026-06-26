@@ -7,7 +7,7 @@
 ## 當前 backlog(尚未做,依建議順序)
 
 1. **掃描器 / ML 後續**
-   - **AVIF 解碼支援(新,2026-06-25 發現)**:`.avif` 在掃描白名單(`LibraryScanner.cs`)會被當圖建 photo + 算 hash,但 **ImageSharp 3.x 不支援 AVIF 解碼** → 縮圖、metadata(mime/尺寸)、WD14 前處理全失敗(photo 半殘:查得到 hash 但無縮圖/無尺寸/無自動標)。解法:加 avif 解碼(`Magick.NET` / `SkiaSharp` / libheif binding),或從白名單拿掉 `.avif`。avif 只會變多,建議真正支援。
+   - ~~**AVIF 解碼支援**~~ ✅ **已完成(2026-06-26)**:新增 `Pm.Imaging` 橋接,HEIF 家族(avif/heic/heif)繞道 **Magick.NET-Q8(libheif)** 解碼成像素再包回 ImageSharp,縮圖/metadata/WD14 全正常;白名單補 `.heic/.heif`。註:Magick-Q8 有 HEIF 解碼但無 HEIC 編碼(x265 授權),本專案只需解碼故無影響。
    - GPU 廠牌自動偵測(目前 `InferenceBackendSelector` auto 傳 `gpuVendor=null`,固定 DirectML)。
    - `Pm.Ml` 整理為 CLIP 鋪路(`2026-06-23-ml-layer-architecture-assessment.md`)。
    - **第二 tagger(cl_tagger_v2)當開關**:deferred、低優先,評估見 `2026-06-25-second-tagger-cl-tagger-evaluation.md`(非抽換、是新增;需抽 `ITagger`;先確認授權/速度/品質)。
