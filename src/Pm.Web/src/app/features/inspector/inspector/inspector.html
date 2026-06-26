@@ -5,6 +5,7 @@
       class="pimg"
       [photoId]="p.id"
       [aspectRatio]="p.width && p.height ? p.width + '/' + p.height : '1/1'"
+      [version]="reprocessVersion()"
     />
     <div class="grad"></div>
   </div>
