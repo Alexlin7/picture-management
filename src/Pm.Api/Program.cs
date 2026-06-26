@@ -25,11 +25,12 @@ builder.Configuration["Inference:Wd14:ModelDir"] = paths.ModelDir;
 //   例:把 EF 的 "Executed DbCommand"(Information 級 SQL,tagging_job 每 4s 灌爆 log)壓成 Warning,就在 appsettings 設。
 builder.Host.UseSerilog((context, logCfg) =>
 {
-    logCfg.MinimumLevel.Is(ParseLevel(context.Configuration["Logging:LogLevel:Default"]));
+    logCfg.MinimumLevel.Is(LogLevels.Parse(context.Configuration["Logging:LogLevel:Default"]) ?? Serilog.Events.LogEventLevel.Information);
     foreach (var entry in context.Configuration.GetSection("Logging:LogLevel").GetChildren())
     {
         if (entry.Key == "Default") continue;
-        logCfg.MinimumLevel.Override(entry.Key, ParseLevel(entry.Value));
+        var lvl = LogLevels.Parse(entry.Value);
+        if (lvl is not null) logCfg.MinimumLevel.Override(entry.Key, lvl.Value);   // 無法解析 → 跳過,不靜默放寬為 Information
     }
     logCfg
         .WriteTo.Console()
@@ -464,17 +465,7 @@ app.MapFallbackToFile("index.html");
 
 app.Run();
 
-// MS Logging level 字串 → Serilog level;解析失敗預設 Information。
-static Serilog.Events.LogEventLevel ParseLevel(string? level) => level switch
-{
-    "Trace" => Serilog.Events.LogEventLevel.Verbose,
-    "Debug" => Serilog.Events.LogEventLevel.Debug,
-    "Information" => Serilog.Events.LogEventLevel.Information,
-    "Warning" => Serilog.Events.LogEventLevel.Warning,
-    "Error" => Serilog.Events.LogEventLevel.Error,
-    "Critical" => Serilog.Events.LogEventLevel.Fatal,
-    _ => Serilog.Events.LogEventLevel.Information,
-};
+// log 級別字串解析移至可測的 Pm.Api.LogLevels.Parse(見 LogLevels.cs / LogLevelsTests)。
 
 static string BuildSqliteConnectionString(string? configured)
 {
