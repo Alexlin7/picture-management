@@ -5,11 +5,17 @@ using Pm.Data.Entities;
 namespace Pm.Scanner;
 
 public sealed class LibraryScanner(
-    PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs)
+    PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs,
+    IImageReprocessor reprocessor)
 {
-    // 便利建構子:既有呼叫端(只給 db+hasher)沿用預設 reader/thumb。
+    // 便利建構子:既有呼叫端(只給 db+hasher)沿用預設 reader/thumb/reprocessor。
     public LibraryScanner(PmDbContext db, IFileHasher hasher)
-        : this(db, hasher, new ExifImageMetadataReader(), new ThumbnailService(new ThumbnailOptions())) { }
+        : this(db, hasher, new ExifImageMetadataReader(), new ThumbnailService(new ThumbnailOptions()),
+               new ImageReprocessor(new ExifImageMetadataReader(), new ThumbnailService(new ThumbnailOptions()))) { }
+
+    // 便利建構子:提供自訂 meta/thumbs 但不傳 reprocessor(測試與舊呼叫端相容)→ reprocessor 沿用相同 meta/thumbs。
+    public LibraryScanner(PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs)
+        : this(db, hasher, meta, thumbs, new ImageReprocessor(meta, thumbs)) { }
 
     private static readonly HashSet<string> ImageExts = new(StringComparer.OrdinalIgnoreCase)
     {

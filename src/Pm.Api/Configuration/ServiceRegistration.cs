@@ -16,6 +16,7 @@ public static class ServiceRegistration
         services.AddScoped<IFileHasher, Sha256FileHasher>();
         services.AddScoped<IImageMetadataReader, ExifImageMetadataReader>();
         services.AddScoped<IThumbnailService, ThumbnailService>();
+        services.AddScoped<IImageReprocessor, ImageReprocessor>();
         services.AddScoped<LibraryScanner>();
         services.AddScoped<PathTagService>();
         services.AddScoped<TagClosureService>();
