@@ -1,7 +1,7 @@
 using System.Text.Json;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
-using SixLabors.ImageSharp;
+using Pm.Imaging;
 
 namespace Pm.Scanner;
 
@@ -12,15 +12,15 @@ public sealed class ExifImageMetadataReader : IImageMetadataReader
         int? width = null, height = null;
         string? mime = null;
 
-        // 尺寸 / MIME(ImageSharp)
+        // 尺寸 / MIME:引擎選擇由 Pm.Imaging facade 內部決定(HEIF→Magick、其餘→ImageSharp)。
         try
         {
-            var info = Image.Identify(absPath);
+            var info = ImageLoader.Identify(absPath);
             width = info.Width;
             height = info.Height;
-            mime = info.Metadata.DecodedImageFormat?.DefaultMimeType;
+            mime = info.Mime;
         }
-        catch { /* 非 ImageSharp 可解碼的圖 */ }
+        catch { /* 非可解碼的圖 */ }
 
         DateTimeOffset? takenAt = null;
         string? cameraModel = null;

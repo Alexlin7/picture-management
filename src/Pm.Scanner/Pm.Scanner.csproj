@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pm.Data\Pm.Data.csproj" />
+    <ProjectReference Include="..\Pm.Imaging\Pm.Imaging.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,3 +1,4 @@
+using Pm.Imaging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
@@ -16,7 +17,7 @@ public sealed class ThumbnailService(ThumbnailOptions options) : IThumbnailServi
 
         try
         {
-            using var img = await Image.LoadAsync(absPath, ct);   // 只讀原圖
+            using var img = await ImageLoader.LoadAsync(absPath, ct);   // 引擎選擇由 Pm.Imaging 內政決定,只讀原圖
             img.Mutate(x => x.Resize(new ResizeOptions
             {
                 Mode = ResizeMode.Max,                            // 保持比例,長邊不超過 MaxEdge

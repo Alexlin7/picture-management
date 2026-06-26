@@ -55,6 +55,23 @@ public class MetadataReaderTests
     }
 
     [Fact]
+    public void Reads_dimensions_and_mime_for_avif()
+    {
+        // ImageSharp 不解 AVIF;確認 metadata reader 已繞道 Magick.NET 讀 header(尺寸/mime)。
+        var path = Temp(".avif");
+        using (var mi = new ImageMagick.MagickImage(ImageMagick.MagickColors.Purple, 640u, 480u))
+            mi.Write(path, ImageMagick.MagickFormat.Avif);
+        try
+        {
+            var meta = new ExifImageMetadataReader().Read(path);
+            Assert.Equal(640, meta.Width);
+            Assert.Equal(480, meta.Height);
+            Assert.Equal("image/avif", meta.Mime);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public async Task Non_image_returns_all_null_without_throwing()
     {
         var path = Temp(".png");
