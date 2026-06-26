@@ -7,6 +7,20 @@
   overflow-y: auto;
   background: var(--color-panel);
   border-left: 1px solid var(--color-hair);
+  transition: width 0.15s ease;
+}
+
+/* 收合狀態:由 gallery-view 透過 [class.collapsed] 控制。 */
+:host.collapsed {
+  width: 0;
+  overflow: hidden;
+  border-left: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    transition: none;
+  }
 }
 
 /* ---------- 空狀態 ---------- */
