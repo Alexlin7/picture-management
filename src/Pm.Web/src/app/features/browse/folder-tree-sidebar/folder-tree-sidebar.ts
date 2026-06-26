@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { BrowseStore } from '../browse.store';
 import type { FolderNode, FolderRoot } from '@core/api/pm-api';
 
@@ -15,6 +15,9 @@ export class FolderTreeSidebar {
   readonly tree = this.store.tree;
   readonly currentRootId = this.store.currentRootId;
   readonly currentPath = this.store.currentPath;
+
+  /** 由 browse-view 傳入;true = 側欄寬收合至 0。 */
+  collapsed = input(false);
 
   readonly fmt = (n: number): string => n.toLocaleString('en-US');
 
