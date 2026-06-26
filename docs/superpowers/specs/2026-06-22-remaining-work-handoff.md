@@ -2,7 +2,7 @@
 
 用途:給下一個 agent session 快速接手。已完成細節不要在這裡展開;現況看 `README.md`,鐵則看 `CLAUDE.md` / `agent.md`,完整背景看 `2026-06-21-picture-management-design.md`。
 
-**最後更新:2026-06-25**(作品軸、logging + app data dir、孤兒清理、資料夾瀏覽維度 `/browse` 落地後)。
+**最後更新:2026-06-26**(PR #5 review 後續修復 F1–F10 全清、瀏覽器 e2e infra、win-x64 自包含單檔 publish 實測就緒後)。
 
 ## 當前 backlog(尚未做,依建議順序)
 
@@ -29,8 +29,8 @@
    - a11y 尚未完整檢視(鍵盤操作、ARIA、焦點環)。
 
 4. **交付與 Phase 2**
-   - 單檔 self-contained publish 尚待驗證(連帶 app data dir 落點;logging 已落 `%LOCALAPPDATA%`)。
    - CUDA / Windows ML backend 仍是骨架(本 build 僅 cpu/directml)。
+   - GitHub Release 自動散布(tag → CI build zip → release asset)尚未設定,骨架見 `docs/deployment.md` §9。
    - CLIP 語意搜尋未開始(Phase 2)。
 
 ## 已完成,不要重做
@@ -44,6 +44,9 @@
 - **孤兒 photo 清理**(維護端點 + 啟動只 log + 全 app FK cascade)。
 - **作品軸(copyright axis)**(WD14 copyright 拆分 + `tag_relation` + facet 側欄)。
 - **資料夾路徑維度 `/browse`**(即時樹 + 麵包屑 + 子夾下鑽 + 遞迴圖牆 + 夾內疊 tag;PR #5,2026-06-25)。
+- **PR #5 review 後續修復**(2026-06-26):`/code-review high` 10 條 findings F1–F10 全部驗證 + 修復(切夾競態 gen guard、`LogLevels.Parse` fallback 修正、懸空 photo_tag 略過、自動分頁停擺、裸 hex token 化、`splitTokens`/`hexToRgba`/`ApplyFolderScope` 共用抽取);詳見 `2026-06-26-pr5-folder-browse-review-and-test-plan.md`。
+- **瀏覽器層 e2e infra**(Playwright):`src/Pm.Web/e2e/browse-smoke.mjs` + `npm run e2e`(真實 app serve + 瀏覽器層 mock `/api`;驗證捲動補頁、切夾無交叉)。
+- **win-x64 自包含單檔 publish**:`-p:PublishProfile=win-x64`(`Properties/PublishProfiles/win-x64.pubxml`)+ 實跑驗證(serve 前端/API/SQLite 自建/資料落 `%LOCALAPPDATA%`);完整指南 `docs/deployment.md`。
 
 ## 固定決策
 
