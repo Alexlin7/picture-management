@@ -1021,14 +1021,13 @@ import { Masonry } from './masonry';
 class Host { items = [1, 2, 3]; aspect = () => 1; }
 
 describe('app-masonry', () => {
-  it('renders one positioned wrapper per item', () => {
+  it('renders one wrapper per item with projected content', () => {
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
     const cells = fixture.nativeElement.querySelectorAll('.cell');
     expect(cells.length).toBe(3);
     const wrappers = fixture.nativeElement.querySelectorAll('.m-item');
     expect(wrappers.length).toBe(3);
-    expect((wrappers[0] as HTMLElement).style.position).toBe('absolute');
   });
 });
 ```
@@ -1043,8 +1042,7 @@ Expected: FAIL — 元件不存在。
 ```typescript
 // src/Pm.Web/src/app/core/ui/masonry.ts
 import {
-  AfterContentInit, Component, ContentChild, DestroyRef, ElementRef, Input,
-  TemplateRef, computed, inject, signal,
+  Component, ContentChild, DestroyRef, ElementRef, Input, TemplateRef, computed, inject,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { computeMasonryLayout } from '../masonry-layout';
@@ -1058,9 +1056,9 @@ import { useStageWidth } from '../use-stage-width';
     <div class="m-root" [style.height.px]="layout().containerHeight">
       @for (item of items; track $index) {
         <div class="m-item"
-          [style.left.px]="layout().boxes[$index]?.left"
-          [style.top.px]="layout().boxes[$index]?.top"
-          [style.width.px]="layout().boxes[$index]?.width">
+          [style.left.px]="layout().boxes[$index]?.left ?? 0"
+          [style.top.px]="layout().boxes[$index]?.top ?? 0"
+          [style.width.px]="layout().boxes[$index]?.width ?? 0">
           <ng-container *ngTemplateOutlet="tpl; context: { $implicit: item, index: $index }" />
         </div>
       }
@@ -1070,8 +1068,8 @@ import { useStageWidth } from '../use-stage-width';
     .m-item { position: absolute; }
   `],
 })
-export class Masonry implements AfterContentInit {
-  private readonly hostRef = inject(ElementRef<HTMLElement>);
+export class Masonry {
+  private readonly hostRef = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
 
   @Input() items: unknown[] = [];
@@ -1081,23 +1079,15 @@ export class Masonry implements AfterContentInit {
 
   @ContentChild(TemplateRef) tpl!: TemplateRef<unknown>;
 
-  private readonly width = signal(0);
+  // useStageWidth 內掛 ResizeObserver,回唯讀寬度 signal;直接驅動 layout computed(無 rAF 自迴圈)。
+  private readonly width = useStageWidth(this.hostRef, this.destroyRef);
   readonly layout = computed(() =>
     computeMasonryLayout(this.width(), this.items.map((i) => this.aspect(i)), this.minColWidth, this.gap));
   readonly cols = computed(() => this.layout().cols);
-
-  ngAfterContentInit(): void {
-    const w = useStageWidth(this.hostRef, this.destroyRef);
-    // 鏡射到本地 signal,讓 layout computed 連動。
-    queueMicrotask(() => this.width.set(w()));
-    // ResizeObserver 已在 useStageWidth 內;此處再建一個輕量 effect 由 w() 推動。
-    const sync = () => { this.width.set(w()); requestAnimationFrame(sync); };
-    requestAnimationFrame(sync);
-  }
 }
 ```
 
-> 註:測試環境無實際 layout 尺寸,容器寬可能為 0 → `computeMasonryLayout` 回空。為讓單元測試能斷言「每個 item 一個 wrapper」,模板以 `items` 迴圈渲染 wrapper(即使 box 尚未算出,`left/top/width` 綁定為 undefined 不影響 wrapper 數量)。實際定位由 ResizeObserver 量到寬後生效(e2e 覆蓋真實版面)。
+> 註:測試環境(happy-dom)量到的容器寬可能為 0 → `computeMasonryLayout` 回空、box 缺位以 `?? 0` fallback,不影響「每個 item 一個 wrapper」的渲染與斷言。實際定位由 ResizeObserver 量到寬後生效(e2e 覆蓋真實版面)。
 
 - [ ] **Step 4: 跑測試確認通過 + build**
 
