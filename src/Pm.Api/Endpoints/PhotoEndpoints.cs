@@ -92,6 +92,30 @@ public static class PhotoEndpoints
             return Results.NoContent();
         })
             .WithTags("Photos");
+
+        // 單張重新處理:重新解碼 → 補 metadata + 強制重產縮圖 → refresh WD14(清舊 wd14 + 重排)。
+        app.MapPost("/api/photos/{id:long}/reprocess", async (
+            long id, PmDbContext db, IImageReprocessor reprocessor, TaggingScheduler scheduler) =>
+        {
+            var photo = await db.Photos.Include(p => p.Locations).FirstOrDefaultAsync(p => p.Id == id);
+            if (photo is null) return Results.NotFound();
+
+            var loc = photo.Locations.FirstOrDefault(l => l.Status == "present");
+            if (loc is null) return Results.Json(new { error = "no readable location" }, statusCode: 409);
+
+            var root = await db.LibraryRoots.FindAsync(loc.LibraryRootId);
+            if (root is null) return Results.Json(new { error = "root missing" }, statusCode: 409);
+            var absPath = Path.GetFullPath(Path.Combine(root.AbsPath, loc.RelPath.Replace('/', Path.DirectorySeparatorChar)));
+
+            var result = await reprocessor.ReprocessAsync(photo, absPath);
+            await db.SaveChangesAsync();
+
+            if (result.Decoded)
+                await scheduler.ScheduleAsync("refresh", new RequeueScopeDto(PhotoIds: [id]));
+
+            return Results.Ok(new { decoded = result.Decoded, thumbGenerated = result.ThumbGenerated });
+        })
+            .WithTags("Photos");
     }
 
     private static async Task<IResult> OpenThumbAsync(string path)
