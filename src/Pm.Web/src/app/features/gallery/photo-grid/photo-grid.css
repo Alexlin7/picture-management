@@ -23,7 +23,7 @@
   align-items: center;
   gap: 12px;
   padding: 0 18px;
-  background: linear-gradient(180deg, #181b21, #15171c);
+  background: linear-gradient(180deg, var(--color-bar-1), var(--color-bar-2));
 }
 .search {
   flex: 1;
@@ -276,7 +276,7 @@
 .tile:hover {
   transform: translateY(-3px);
   box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.8);
-  border-color: #3b4150;
+  border-color: var(--color-hair-strong);
 }
 .tile.sel {
   border-color: var(--color-accent);

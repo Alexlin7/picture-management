@@ -13,6 +13,9 @@
   --color-raised-2: #2a2f39;
   --color-hair: #2e333d;
   --color-hair-soft: #23272f;
+  --color-hair-strong: #3b4150;   /* 較重的髮絲線:hover 邊框 / 虛線輸入框 */
+  --color-bar-1: #181b21;         /* 頂欄漸層上緣 */
+  --color-bar-2: #15171c;         /* 頂欄漸層下緣 */
   --color-text: #e8eaed;
   --color-muted: #959ba7;
   --color-faint: #6b7280;
