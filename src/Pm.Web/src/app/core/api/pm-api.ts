@@ -129,6 +129,14 @@ export class PmApi {
     );
   }
 
+  // 單張重新處理:重新解碼 → 補 metadata + 強制重產縮圖 → refresh WD14。
+  reprocess(photoId: number): Promise<{ decoded: boolean; thumbGenerated: boolean }> {
+    return firstValueFrom(
+      this.http.post<{ decoded: boolean; thumbGenerated: boolean }>(
+        `/api/photos/${photoId}/reprocess`, null),
+    );
+  }
+
   taggingStats(): Promise<{ pending: number; error: number; running: number }> {
     return firstValueFrom(
       this.http.get<{ pending: number; error: number; running: number }>('/api/tagging/stats'),

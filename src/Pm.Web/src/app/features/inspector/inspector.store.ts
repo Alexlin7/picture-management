@@ -70,6 +70,13 @@ export class InspectorStore {
     if (this.currentId === photoId) await this.refresh();
   }
 
+  // 單張重新處理:重新解碼補 metadata + 強制重產縮圖 + refresh WD14;完成後 refresh detail。
+  async reprocess(photoId: number): Promise<{ decoded: boolean; thumbGenerated: boolean }> {
+    const result = await this.api.reprocess(photoId);
+    if (this.currentId === photoId) await this.refresh();
+    return result;
+  }
+
   // ---- 加標籤 combobox:查既有標籤,避免打出近似重複 ----
   private readonly _suggestions = signal<TagListRow[]>([]);
   readonly suggestions = this._suggestions.asReadonly();
