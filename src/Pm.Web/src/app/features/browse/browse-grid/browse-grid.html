@@ -44,11 +44,11 @@
         @else { 這個資料夾沒有圖片。{{ subfolders().length ? '點上方子資料夾往下看。' : '' }} }
       </div>
     }
-    <div class="masonry">
-      @for (p of photos(); track p.id) {
+    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="stdCol" [gap]="gap">
+      <ng-template let-p>
         <div class="tile" (click)="pick(p)"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
-      }
-    </div>
+      </ng-template>
+    </app-masonry>
     @if (loading()) { <div class="empty">載入中…</div> }
     <div #sentinel class="scroll-sentinel" aria-hidden="true"></div>
   </div>

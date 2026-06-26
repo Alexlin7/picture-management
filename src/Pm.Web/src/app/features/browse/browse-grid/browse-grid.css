@@ -18,8 +18,7 @@
 .toolbar .count b { color: var(--color-text); font-family: var(--font-mono); font-weight: 500; }
 .view { flex: 1; overflow-y: auto; min-height: 0; }
 .empty { padding: 28px 18px; color: var(--color-muted); font-size: 13px; text-align: center; }
-.masonry { column-count: 4; column-gap: 12px; padding: 16px 18px; }
-@media (max-width: 1500px) { .masonry { column-count: 3; } }
-.tile { break-inside: avoid; margin-bottom: 12px; border-radius: var(--radius-card); overflow: hidden; position: relative; cursor: pointer; border: 1px solid var(--color-hair-soft); background: var(--color-raised); transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s; }
+app-masonry { display: block; padding: 16px 18px; box-sizing: border-box; }
+.tile { border-radius: var(--radius-card); overflow: hidden; position: relative; cursor: pointer; border: 1px solid var(--color-hair-soft); background: var(--color-raised); transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s; }
 .tile:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.8); border-color: var(--color-hair-strong); }
 .scroll-sentinel { height: 1px; }
