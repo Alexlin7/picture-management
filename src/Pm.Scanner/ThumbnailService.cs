@@ -17,10 +17,7 @@ public sealed class ThumbnailService(ThumbnailOptions options) : IThumbnailServi
 
         try
         {
-            // HEIF 家族(avif/heic/heif)ImageSharp 不解,繞道 Magick.NET;其餘走 ImageSharp。只讀原圖。
-            using var img = ImageDecoder.IsHeifFamily(absPath)
-                ? ImageDecoder.LoadRgba32(absPath)
-                : await Image.LoadAsync(absPath, ct);
+            using var img = await ImageLoader.LoadAsync(absPath, ct);   // 引擎選擇由 Pm.Imaging 內政決定,只讀原圖
             img.Mutate(x => x.Resize(new ResizeOptions
             {
                 Mode = ResizeMode.Max,                            // 保持比例,長邊不超過 MaxEdge

@@ -2,7 +2,6 @@ using System.Text.Json;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 using Pm.Imaging;
-using SixLabors.ImageSharp;
 
 namespace Pm.Scanner;
 
@@ -13,20 +12,13 @@ public sealed class ExifImageMetadataReader : IImageMetadataReader
         int? width = null, height = null;
         string? mime = null;
 
-        // 尺寸 / MIME:HEIF 家族(avif/heic/heif)走 Magick.NET 只讀 header,其餘走 ImageSharp。
+        // 尺寸 / MIME:引擎選擇由 Pm.Imaging facade 內部決定(HEIF→Magick、其餘→ImageSharp)。
         try
         {
-            if (ImageDecoder.IsHeifFamily(absPath))
-            {
-                (width, height, mime) = ImageDecoder.IdentifyHeif(absPath);
-            }
-            else
-            {
-                var info = Image.Identify(absPath);
-                width = info.Width;
-                height = info.Height;
-                mime = info.Metadata.DecodedImageFormat?.DefaultMimeType;
-            }
+            var info = ImageLoader.Identify(absPath);
+            width = info.Width;
+            height = info.Height;
+            mime = info.Mime;
         }
         catch { /* 非可解碼的圖 */ }
 
