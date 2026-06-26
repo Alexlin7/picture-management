@@ -6,6 +6,14 @@ using Xunit;
 
 namespace Pm.Scanner.Tests;
 
+// IThumbnailService stub:GenerateAsync 一律拋例外(模擬損毀但標頭可讀的圖在全幅 Load 時失敗)。
+file sealed class ThrowingThumbnailService : IThumbnailService
+{
+    public string PathFor(string hash) => string.Empty;
+    public Task<string?> GenerateAsync(string absPath, string hash, CancellationToken ct = default)
+        => throw new InvalidOperationException("simulated GenerateAsync failure");
+}
+
 public class ImageReprocessorTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"pm-rep-{Guid.NewGuid():N}");
@@ -58,5 +66,22 @@ public class ImageReprocessorTests : IDisposable
         Assert.False(result.ThumbGenerated);
         Assert.Null(photo.Width);
         Assert.False(File.Exists(Path.Combine(thumbDir, "cd", "00", photo.FileHash + ".webp")));
+    }
+
+    // I1:GenerateAsync 拋例外時不應往上傳播 —— metadata 已補回應回報 Decoded=true、
+    // ThumbGenerated=false,且 photo.Width 仍被寫入(對齊 spec §6)。
+    [Fact]
+    public async Task GenerateAsync_exception_does_not_propagate_and_metadata_is_written()
+    {
+        var path = WriteRealPng("ok.png", 8, 4);
+        var sut = new ImageReprocessor(new ExifImageMetadataReader(), new ThrowingThumbnailService());
+        var photo = new Photo { FileHash = "ef" + new string('0', 62) };
+
+        var result = await sut.ReprocessAsync(photo, path);   // must NOT throw
+
+        Assert.True(result.Decoded);
+        Assert.False(result.ThumbGenerated);
+        Assert.Equal(8, photo.Width);   // metadata written back despite thumb failure
+        Assert.Equal(4, photo.Height);
     }
 }
