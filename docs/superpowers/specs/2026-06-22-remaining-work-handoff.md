@@ -2,7 +2,7 @@
 
 用途:給下一個 agent session 快速接手。已完成細節不要在這裡展開;現況看 `README.md`,鐵則看 `CLAUDE.md` / `agent.md`,完整背景看 `2026-06-21-picture-management-design.md`。
 
-**最後更新:2026-06-26**(PR #5 review 後續修復 F1–F10 全清、瀏覽器 e2e infra、win-x64 自包含單檔 publish 實測就緒後)。
+**最後更新:2026-06-27**(單張重新處理 + 掃描自動痊癒、前端 RWD 桌面韌性 + 手機 topbar/toolbar、rwd-resize e2e 完成後)。
 
 ## 當前 backlog(尚未做,依建議順序)
 
@@ -25,7 +25,7 @@
    - 批次 requeue「依當前查詢 filter」scope(需後端 by-query scope)。
    - 「重標全部」(破壞性高)deferred,待使用者明示。
    - browse `/browse`:tile 點擊接 inspector(`BrowseStore.select` seam 已留、目前 no-op);大型資料夾樹折疊 / 排序。
-   - 響應式與手機版仍未設計;目前以桌面 workbench 為主。
+   - **整頁手機版**(抽屜式側欄 / 漢堡選單 / 375px mobile-first 重排)仍未做;桌面縮放韌性 + 手機 topbar/toolbar 折行已完成(見 README「前端 RWD」)。
    - a11y 尚未完整檢視(鍵盤操作、ARIA、焦點環)。
 
 4. **交付與 Phase 2**
@@ -45,7 +45,9 @@
 - **作品軸(copyright axis)**(WD14 copyright 拆分 + `tag_relation` + facet 側欄)。
 - **資料夾路徑維度 `/browse`**(即時樹 + 麵包屑 + 子夾下鑽 + 遞迴圖牆 + 夾內疊 tag;PR #5,2026-06-25)。
 - **PR #5 review 後續修復**(2026-06-26):`/code-review high` 10 條 findings F1–F10 全部驗證 + 修復(切夾競態 gen guard、`LogLevels.Parse` fallback 修正、懸空 photo_tag 略過、自動分頁停擺、裸 hex token 化、`splitTokens`/`hexToRgba`/`ApplyFolderScope` 共用抽取);詳見 `2026-06-26-pr5-folder-browse-review-and-test-plan.md`。
-- **瀏覽器層 e2e infra**(Playwright):`src/Pm.Web/e2e/browse-smoke.mjs` + `npm run e2e`(真實 app serve + 瀏覽器層 mock `/api`;驗證捲動補頁、切夾無交叉)。
+- **瀏覽器層 e2e infra**(Playwright):`src/Pm.Web/e2e/browse-smoke.mjs` + `npm run e2e`(真實 app serve + 瀏覽器層 mock `/api`;驗證捲動補頁、切夾無交叉);`rwd-resize-smoke.mjs` + `npm run e2e:rwd`(縮 viewport 斷言無破版 + 欄數遞減,含手機 480/375)。
+- **單張重新處理 + 掃描自動痊癒**(2026-06-27):`POST /api/photos/{id}/reprocess`(重新解碼補 metadata + 強制重產縮圖 + refresh WD14)+ `ImageReprocessor`;重掃自動痊癒 `width=NULL` 半殘圖(AVIF 解碼上線前索引的舊檔);inspector「重新處理」鈕 + 完成後縮圖即 cache-bust 刷新。
+- **前端 RWD**(2026-06-27):共用 `<app-masonry>`(JS 量測欄寬、aspect 驅動、最少 1 欄)+ facet/inspector/資料夾樹側欄可收合(手動 + 依斷點自動)+ 手機 topbar/toolbar(≤640px 折行 + 「⋯ 更多」溢出選單)。
 - **win-x64 自包含單檔 publish**:`-p:PublishProfile=win-x64`(`Properties/PublishProfiles/win-x64.pubxml`)+ 實跑驗證(serve 前端/API/SQLite 自建/資料落 `%LOCALAPPDATA%`);完整指南 `docs/deployment.md`。
 
 ## 固定決策

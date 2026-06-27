@@ -2,7 +2,7 @@
 
 設計文件(design / 決策記錄)。與 `plans/` 不同:**spec 完成後保留**(是設計與決策的長期記錄),不移除;只把過時的「狀態」行更新成已實作。
 
-**最後整理:2026-06-26。**
+**最後整理:2026-06-27。**
 
 ## 新接手讀順序
 
@@ -33,6 +33,8 @@
 - `2026-06-25-tag-copyright-axis-design.md` — 作品軸(WD14 copyright 拆分 + tag_relation + facet 側欄)✅。
 - `2026-06-25-folder-browse-dimension-design.md` — **資料夾路徑維度瀏覽 `/browse`(即時樹 + 麵包屑 + 子夾下鑽 + 遞迴圖牆 + 夾內疊 tag)✅(PR #5,2026-06-25)**。
 - `2026-06-26-pr5-folder-browse-review-and-test-plan.md` — **PR #5 `/code-review high` 的 10 條 findings(F1–F10)落為可追蹤修復項 + 各層測試案例;全部驗證 + 修復 ✅(2026-06-26),並新增 Playwright 瀏覽器層 e2e infra**。
+- `2026-06-26-photo-reprocess-and-scan-heal-design.md` — 單張重新處理(`/api/photos/{id}/reprocess`)+ 重掃自動痊癒 `width=NULL` 半殘圖 ✅(2026-06-27)。
+- `2026-06-26-frontend-rwd-design.md` — 前端 RWD 桌面縮放韌性(masonry JS 量測欄寬 + 側欄/inspector 可收合)✅;手機 topbar/toolbar 折行 + 「⋯ 更多」溢出選單為後續延伸 ✅(2026-06-27,見該文件非目標註)。
 
 ## 評估 / 參考(非待辦)
 

@@ -1,7 +1,7 @@
 # 單張重新處理 + 掃描自動痊癒設計
 
 **日期**:2026-06-26
-**狀態**:設計待實作
+**狀態**:已實作(2026-06-27;`POST /api/photos/{id}/reprocess`、`ImageReprocessor`、重掃自動痊癒 `width=NULL` 半殘圖、inspector「重新處理」鈕 + 縮圖即刷新皆落地)
 **前置**:`feat/avif-decode`(PR #7,已 merge)—— `Pm.Imaging.ImageLoader` facade 讓 metadata reader / 縮圖 / WD14 前處理都能解 AVIF/HEIC/HEIF。
 
 ## 1. 背景與問題
