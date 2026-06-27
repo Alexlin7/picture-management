@@ -189,6 +189,164 @@ tbody tr:hover {
   box-shadow: 0 0 7px -1px currentColor;
 }
 
+/* ---------- 多來源選擇器 ---------- */
+.root-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.root-tab {
+  border: 1px solid var(--color-hair);
+  border-radius: var(--radius-soft);
+  background: var(--color-canvas);
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color 0.14s, color 0.14s;
+}
+.root-tab:hover {
+  border-color: #3b4150;
+  color: var(--color-text);
+}
+.root-tab.active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.root-select {
+  margin-bottom: 14px;
+  max-width: 280px;
+}
+
+/* ---------- 常用 tag preset 面板 ---------- */
+.preset-panel {
+  border: 1px solid var(--color-hair-soft);
+  border-radius: var(--radius-soft);
+  margin-bottom: 18px;
+}
+.preset-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.preset-head .chev {
+  font-size: 8px;
+  color: var(--color-faint);
+  transition: transform 0.15s;
+}
+.preset-head .chev.open {
+  transform: rotate(90deg);
+}
+.preset-n {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-faint);
+  border: 1px solid var(--color-hair);
+  border-radius: 4px;
+  padding: 0 5px;
+}
+.preset-body {
+  padding: 4px 12px 12px;
+  border-top: 1px solid var(--color-hair-soft);
+}
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0;
+}
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-hair);
+  border-radius: 7px;
+  padding: 3px 6px 3px 9px;
+  font-size: 12px;
+  color: var(--color-text);
+}
+.preset-chip .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 7px -1px currentColor;
+}
+.preset-chip .pk {
+  color: var(--color-faint);
+  font-size: 10.5px;
+}
+.preset-chip .px {
+  border: 0;
+  background: transparent;
+  color: var(--color-faint);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.preset-chip .px:hover {
+  color: var(--color-danger, #f0616d);
+}
+.preset-empty {
+  color: var(--color-faint);
+  font-size: 12px;
+}
+.preset-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.preset-add .input {
+  flex: 1;
+  max-width: 220px;
+}
+.preset-kind {
+  flex: none;
+  width: 120px;
+}
+
+/* map 動作:inline 可編輯 tag 名 */
+.pill-edit {
+  padding-right: 4px;
+}
+.tag-name-edit {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  width: 9ch;
+  min-width: 60px;
+  padding: 1px 2px;
+  border-radius: 4px;
+}
+.tag-name-edit:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.preset-chip .pk,
+.cat-item .pk {
+  color: var(--color-faint);
+  font-size: 10.5px;
+}
+
 /* ---------- 底部按鈕列 ---------- */
 .actions-bar {
   margin-top: 18px;

@@ -109,6 +109,58 @@ public class PathTagServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Apply_raw_map_action_is_normalized_and_creates_tag()
+    {
+        // bug 修復:前端送 action='map'(非 'map_to_tag')也要正規化並建 tag。
+        var rootId = await SeedLocations("vspo/a.png");
+
+        await using (var ctx = NewContext())
+            await new PathTagService(ctx).ApplyRuleAsync(rootId, "vspo", "map", tagName: "vspo");
+
+        await using var verify = NewContext();
+        var tag = await verify.Tags.SingleAsync(t => t.Name == "vspo");
+        Assert.Equal(1, await verify.PhotoTags.CountAsync(pt => pt.TagId == tag.Id));
+        Assert.Equal("map_to_tag", (await verify.PathTagRules.SingleAsync()).Action);
+    }
+
+    [Fact]
+    public async Task Apply_map_to_tag_uses_caller_kind()
+    {
+        // bug 修復:前端選的分類(kind)要生效,不再寫死 path。
+        var rootId = await SeedLocations("akira/a.png");
+
+        await using (var ctx = NewContext())
+            await new PathTagService(ctx).ApplyRuleAsync(rootId, "akira", "map", tagName: "akira", kind: "character");
+
+        await using var verify = NewContext();
+        Assert.Equal("character", (await verify.Tags.SingleAsync(t => t.Name == "akira")).Kind);
+    }
+
+    [Fact]
+    public async Task Existing_rules_self_heal_old_map_rule_missing_tag()
+    {
+        // 歷史 bug:action='map' 規則 TagId=null(沒建 tag)。ApplyExistingRulesAsync 應補建並套用。
+        var rootId = await SeedLocations("vspo/a.png");
+        await using (var ctx = NewContext())
+        {
+            ctx.PathTagRules.Add(new PathTagRule { LibraryRootId = rootId, Segment = "vspo", Action = "map", TagId = null });
+            await ctx.SaveChangesAsync();
+        }
+
+        int applied;
+        await using (var ctx = NewContext())
+            applied = await new PathTagService(ctx).ApplyExistingRulesAsync(rootId);
+
+        Assert.Equal(1, applied);
+        await using var verify = NewContext();
+        var rule = await verify.PathTagRules.SingleAsync();
+        Assert.Equal("map_to_tag", rule.Action);   // 動作已正規化
+        Assert.NotNull(rule.TagId);                 // TagId 已回填
+        var tag = await verify.Tags.SingleAsync(t => t.Name == "vspo");
+        Assert.Equal(1, await verify.PhotoTags.CountAsync(pt => pt.TagId == tag.Id));
+    }
+
+    [Fact]
     public async Task Existing_rules_apply_to_newly_added_photos()
     {
         var rootId = await SeedLocations("vspo/a.png");

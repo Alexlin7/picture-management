@@ -74,7 +74,7 @@ export class PmApi {
   pendingSegments(rootId: number): Promise<PendingSegment[]> {
     return firstValueFrom(this.http.get<PendingSegment[]>(`/api/roots/${rootId}/pending-segments`));
   }
-  applyRule(dto: { rootId?: number; segment: string; action: string; tagName?: string }): Promise<unknown> {
+  applyRule(dto: { rootId?: number; segment: string; action: string; tagName?: string; kind?: string }): Promise<unknown> {
     return firstValueFrom(this.http.post('/api/path-rules', dto));
   }
   applyPathTags(rootId: number): Promise<unknown> {
