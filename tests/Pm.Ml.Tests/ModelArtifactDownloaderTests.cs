@@ -4,11 +4,11 @@ using Xunit;
 
 namespace Pm.Ml.Tests;
 
-public class Wd14ModelProviderTests : IDisposable
+public class ModelArtifactDownloaderTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"pm-dl-{Guid.NewGuid():N}");
 
-    public Wd14ModelProviderTests() => Directory.CreateDirectory(_dir);
+    public ModelArtifactDownloaderTests() => Directory.CreateDirectory(_dir);
 
     public void Dispose()
     {
@@ -21,7 +21,7 @@ public class Wd14ModelProviderTests : IDisposable
         var dest = Path.Combine(_dir, "model.onnx");
         var payload = Encoding.UTF8.GetBytes("onnx-bytes");
 
-        await Wd14ModelProvider.DownloadAsync(_ => Task.FromResult<Stream>(new MemoryStream(payload)), dest, default);
+        await ModelArtifactDownloader.DownloadAsync(_ => Task.FromResult<Stream>(new MemoryStream(payload)), dest, default);
 
         Assert.True(File.Exists(dest));
         Assert.Equal(payload, await File.ReadAllBytesAsync(dest));
@@ -35,7 +35,7 @@ public class Wd14ModelProviderTests : IDisposable
 
         // 串流讀到一半就拋(模擬斷線/逾時),dest 不該留半截壞檔。
         await Assert.ThrowsAsync<IOException>(() =>
-            Wd14ModelProvider.DownloadAsync(_ => Task.FromResult<Stream>(new ThrowingStream()), dest, default));
+            ModelArtifactDownloader.DownloadAsync(_ => Task.FromResult<Stream>(new ThrowingStream()), dest, default));
 
         Assert.False(File.Exists(dest));            // 下次 File.Exists==false → 會重抓
         Assert.False(File.Exists(dest + ".part"));  // 半截暫存檔已清掉
