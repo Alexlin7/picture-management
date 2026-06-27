@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { PmApi, type TagListRow } from '@core/api/pm-api';
+import { loadTagsSort, saveTagsSort } from './tags-sort-persist';
 
 export type { TagListRow } from '@core/api/pm-api';
 export type SortKey = 'count' | 'name' | 'kind' | 'recent';
@@ -16,8 +17,9 @@ export class TagsStore {
   private readonly _error = signal<string | null>(null);
   readonly error = this._error.asReadonly();
 
-  readonly sortKey = signal<SortKey>('count');
-  readonly sortDir = signal<SortDir>('desc');
+  private readonly _initSort = loadTagsSort(localStorage);
+  readonly sortKey = signal<SortKey>(this._initSort.key);
+  readonly sortDir = signal<SortDir>(this._initSort.dir);
 
   // 依排序準則重排(前端;'recent' = id 遞增 ≈ 建立順序)。
   readonly tags = computed<TagListRow[]>(() => {
@@ -51,14 +53,20 @@ export class TagsStore {
     }
   }
 
-  // 點欄位標頭:同 key 切升降;不同 key 換準則並套預設方向。
+  // 點欄位標頭:同 key 切升降;不同 key 換準則並套預設方向。改後寫回 localStorage。
   setSort(key: SortKey): void {
+    let nextKey: SortKey;
+    let nextDir: SortDir;
     if (this.sortKey() === key) {
-      this.sortDir.update((d) => (d === 'asc' ? 'desc' : 'asc'));
+      nextKey = key;
+      nextDir = this.sortDir() === 'asc' ? 'desc' : 'asc';
     } else {
-      this.sortKey.set(key);
-      this.sortDir.set(key === 'name' || key === 'kind' ? 'asc' : 'desc');
+      nextKey = key;
+      nextDir = key === 'name' || key === 'kind' ? 'asc' : 'desc';
     }
+    this.sortKey.set(nextKey);
+    this.sortDir.set(nextDir);
+    saveTagsSort(localStorage, nextKey, nextDir);
   }
 
   // 新增純標籤;回 existed(撞既有 CI → 後端回既有,不建新)。

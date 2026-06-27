@@ -3,6 +3,7 @@ import { TagsStore, type TagListRow, type SortKey } from '../tags.store';
 import { tagColor, KIND_LABEL } from '@core/tag-color';
 import { ToastService } from '@core/ui/toast';
 import { ConfirmService } from '@core/ui/confirm';
+import { MergeDialogService } from '@core/ui/merge-dialog';
 
 // 可選 kind(順序固定;label 走 KIND_LABEL)
 const KINDS = ['character', 'copyright', 'general', 'meta', 'path', 'manual'] as const;
@@ -18,6 +19,7 @@ export class TagManager {
   private readonly store = inject(TagsStore);
   private readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
+  private readonly mergeDialog = inject(MergeDialogService);
 
   readonly tags = this.store.tags;
   readonly loading = this.store.loading;
@@ -125,20 +127,16 @@ export class TagManager {
     this.toast.success(`已刪除 ${ids.length} 個標籤`);
   }
 
-  // ---- 合併(恰選 2 個;少併入多,保留使用數多者)----
+  // ---- 合併(恰選 2 個;由對話框讓使用者選保留方向)----
   async mergeSelected(): Promise<void> {
     const ids = [...this.selected()];
     if (ids.length !== 2) return;
     const a = this.tags().find((t) => t.id === ids[0])!;
     const b = this.tags().find((t) => t.id === ids[1])!;
-    const [from, to] = a.count <= b.count ? [a, b] : [b, a];   // 少的當來源被刪
-    const ok = await this.confirm.ask(
-      `把「${from.name}」(${from.count} 張) 併入「${to.name}」(${to.count} 張)?\n「${from.name}」會被刪除,它的圖改掛到「${to.name}」。`,
-      { title: '合併標籤', confirmText: '合併', danger: true },
-    );
-    if (!ok) return;
-    await this.store.merge(from.id, to.id);
+    const dir = await this.mergeDialog.ask(a, b);
+    if (!dir) return;   // 使用者取消
+    await this.store.merge(dir.from.id, dir.to.id);
     this.clearSel();
-    this.toast.success(`已合併到「${to.name}」`);
+    this.toast.success(`已合併到「${dir.to.name}」`);
   }
 }

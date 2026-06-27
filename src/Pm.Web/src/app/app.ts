@@ -2,14 +2,16 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToastHost } from '@core/ui/toast';
 import { ConfirmHost } from '@core/ui/confirm';
+import { MergeDialogHost } from '@core/ui/merge-dialog';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ToastHost, ConfirmHost],
+  imports: [RouterOutlet, ToastHost, ConfirmHost, MergeDialogHost],
   template: `
     <router-outlet />
     <app-toast-host />
     <app-confirm-host />
+    <app-merge-dialog-host />
   `,
 })
 export class App {}
