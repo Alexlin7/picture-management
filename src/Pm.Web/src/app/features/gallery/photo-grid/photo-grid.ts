@@ -53,6 +53,11 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
     this.moreOpen.set(false);
     this.requeueFailed();
   }
+  // 選單內按「重標查詢」:同上,先關選單。
+  moreRequeueQuery(): void {
+    this.moreOpen.set(false);
+    this.requeueByQuery();
+  }
 
   // masonry 所需
   readonly gap = MASONRY_GAP;
@@ -163,6 +168,34 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
         });
       })
       .catch(() => {
+        this.toast.error('重標失敗,請稍後再試');
+      });
+  }
+
+  // 重標「目前查詢」命中的圖:把當前布林查詢(all/none)當 scope 傳後端 query scope。
+  // 同 requeueFailed 為 retry 模式(非破壞)。requeueingQuery 控按鈕 disabled。
+  readonly requeueingQuery = signal(false);
+  requeueByQuery(): void {
+    const { all, none } = this.store.currentQuery();
+    const n = this.hitCount().toLocaleString('en-US');
+    void this.confirm
+      .ask(
+        `將目前查詢命中的 ${n} 張圖重新加入 WD14 自動標籤佇列(retry,非破壞、不清既有 tag)。`,
+        { title: '重標目前查詢的圖片?', confirmText: '重標查詢', cancelText: '取消' },
+      )
+      .then((ok) => {
+        if (!ok) return;
+        this.requeueingQuery.set(true);
+        return this.api
+          .requeue('retry', { query: { all, none } })
+          .then((r) => {
+            const detail = `(共 ${r.matched} 筆,新建 ${r.jobsCreated}、更新 ${r.jobsUpdated} 個 job)`;
+            this.toast.success(`已重排 ${r.matched} 筆 ${detail}`);
+          })
+          .finally(() => this.requeueingQuery.set(false));
+      })
+      .catch(() => {
+        this.requeueingQuery.set(false);
         this.toast.error('重標失敗,請稍後再試');
       });
   }

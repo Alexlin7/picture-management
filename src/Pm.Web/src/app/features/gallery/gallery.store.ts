@@ -82,6 +82,8 @@ export class GalleryStore {
   // ---- 頂欄搜尋 token ----
   private readonly _tokens = signal<SearchToken[]>([]);
   readonly tokens = this._tokens.asReadonly();
+  // 當前布林查詢({all,none});給「依當前查詢 requeue」用,免讓 PhotoGrid 直接碰 splitTokens。
+  readonly currentQuery = computed(() => splitTokens(this._tokens()));
 
   // ---- 側欄 facet ----
   private readonly _tree = signal<FacetNode[]>([]);

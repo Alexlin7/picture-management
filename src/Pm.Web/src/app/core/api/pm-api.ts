@@ -144,10 +144,13 @@ export class PmApi {
   }
 
   // 批次 requeue:維護動作(非破壞)。mode:retry=重排失敗 / refresh=清 wd14 重排 / clear=清不排。
-  // scope 四選一:photoIds/error/root/all。回傳 matched/clearedTags/jobsCreated/jobsUpdated。
+  // scope 五選一:photoIds/error/root/all/query。回傳 matched/clearedTags/jobsCreated/jobsUpdated。
   requeue(
     mode: 'retry' | 'refresh' | 'clear',
-    scope: { photoIds?: number[]; error?: boolean; root?: number; all?: boolean },
+    scope: {
+      photoIds?: number[]; error?: boolean; root?: number; all?: boolean;
+      query?: { all?: string[]; none?: string[]; rootId?: number; pathPrefix?: string };
+    },
   ): Promise<{ matched: number; clearedTags: number; jobsCreated: number; jobsUpdated: number }> {
     return firstValueFrom(
       this.http.post<{ matched: number; clearedTags: number; jobsCreated: number; jobsUpdated: number }>(
