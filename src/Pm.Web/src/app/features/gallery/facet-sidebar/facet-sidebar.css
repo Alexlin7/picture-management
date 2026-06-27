@@ -163,16 +163,7 @@
   font-size: 12px;
 }
 
-/* rootless 虛擬捲動視窗(固定高,CDK 自管內層捲動) */
-.vscroll-viewport {
-  height: min(240px, 40vh);
-  overflow: hidden;
-}
-/* 固定行高對齊 itemSize=28;單行 + 省略號避免換行破壞虛擬捲動量測 */
-.vscroll-viewport .frow {
-  height: 28px;
-  box-sizing: border-box;
-}
+/* 平面清單名稱:單行 + 省略號,避免過長 tag 名換行撐高列 */
 .fname {
   overflow: hidden;
   white-space: nowrap;

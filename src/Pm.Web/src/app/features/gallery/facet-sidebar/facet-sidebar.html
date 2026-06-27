@@ -80,22 +80,25 @@
         </div>
       }
 
-      <!-- 角色(無作品):無後端上限,長清單虛擬捲動 -->
+      <!-- 角色(無作品):top-N + 「顯示更多」(與屬性/年份一致;不另開內捲) -->
       <div class="facet-t rootless-h">— 角色(無作品)—</div>
-      @if (rootlessFiltered().length) {
-        <cdk-virtual-scroll-viewport class="vscroll-viewport" itemSize="28">
-          <div *cdkVirtualFor="let r of rootlessFiltered(); trackBy: trackByName"
-               class="frow pickable" [class.on]="isActive(r.name)" [style.padding-left]="pad(0)" (click)="pick(r)">
-            <span class="tspacer"></span>
-            <span class="dot" [style.color]="color(r.kind)" [style.background]="color(r.kind)"></span>
-            <span class="fname">{{ r.name }}</span>
-            @if (r.multi) {
-              <span class="multi" title="有 2 個上層 (DAG)">↟2</span>
-            }
-            <span class="n">{{ fmt(r.n) }}</span>
-          </div>
-        </cdk-virtual-scroll-viewport>
-      } @else if (q()) {
+      @for (r of rootlessVisible(); track r.name) {
+        <div class="frow pickable" [class.on]="isActive(r.name)" [style.padding-left]="pad(0)" (click)="pick(r)">
+          <span class="tspacer"></span>
+          <span class="dot" [style.color]="color(r.kind)" [style.background]="color(r.kind)"></span>
+          <span class="fname">{{ r.name }}</span>
+          @if (r.multi) {
+            <span class="multi" title="有 2 個上層 (DAG)">↟2</span>
+          }
+          <span class="n">{{ fmt(r.n) }}</span>
+        </div>
+      }
+      @if (!showAllRootless() && rootlessFiltered().length > TOP_N) {
+        <button type="button" class="show-more" (click)="toggleShowAll('rootless')">
+          顯示更多 {{ rootlessFiltered().length - TOP_N }} 個
+        </button>
+      }
+      @if (rootlessFiltered().length === 0 && q()) {
         <div class="empty-hint">查無標籤</div>
       }
     }

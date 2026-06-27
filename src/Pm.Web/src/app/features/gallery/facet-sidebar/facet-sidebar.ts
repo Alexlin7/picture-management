@@ -1,17 +1,16 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
-import { ScrollingModule } from '@angular/cdk/scrolling';
 import { GalleryStore, type FacetNode } from '../gallery.store';
 import { TAG_COLOR } from '@core/tag-color';
 import { loadCollapsed, saveCollapsed, toggleCollapsed, type FacetSection } from './facet-collapse';
 
-// 屬性/年份分區初始顯示筆數;超過則收起並提供「顯示更多」(後端每區上限 30)。
+// 屬性/年份/rootless 分區初始顯示筆數;超過則收起並提供「顯示更多」。
 const TOP_N = 12;
 
 // 契約:相簿左側 facet 側欄(作品/角色 DAG 樹、屬性、年份)。
 // 由 workflow agent 補完內部(templateUrl/styleUrl + 互動)。
 @Component({
   selector: 'app-facet-sidebar',
-  imports: [ScrollingModule],
+  imports: [],
   templateUrl: './facet-sidebar.html',
   styleUrl: './facet-sidebar.css',
 })
@@ -37,8 +36,10 @@ export class FacetSidebar {
   readonly TOP_N = TOP_N;
   readonly showAllGeneral = signal(false);
   readonly showAllMeta = signal(false);
-  toggleShowAll(s: 'general' | 'meta'): void {
-    (s === 'general' ? this.showAllGeneral : this.showAllMeta).update((v) => !v);
+  readonly showAllRootless = signal(false);
+  toggleShowAll(s: 'general' | 'meta' | 'rootless'): void {
+    const sig = s === 'general' ? this.showAllGeneral : s === 'meta' ? this.showAllMeta : this.showAllRootless;
+    sig.update((v) => !v);
   }
 
   readonly generalFiltered = computed(() => {
@@ -61,8 +62,8 @@ export class FacetSidebar {
     const rows = this.store.rootless();
     return q ? rows.filter((r) => r.name.toLowerCase().includes(q)) : rows;
   });
-
-  readonly trackByName = (_: number, r: FacetNode): string => r.name;
+  readonly rootlessVisible = computed(() =>
+    this.showAllRootless() ? this.rootlessFiltered() : this.rootlessFiltered().slice(0, TOP_N));
 
   // kind → 顏色
   readonly color = (kind: string): string => TAG_COLOR[kind] ?? TAG_COLOR['general'];
