@@ -1,5 +1,10 @@
-<aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
+<aside class="sidebar" [class.collapsed]="sidebarCollapsed()" aria-label="篩選面板">
   <div class="side-h">篩選 <span class="sub">{{ fmt(hitCount()) }} 命中</span></div>
+
+  <div class="filter-box">
+    <input class="input filter-input" type="search" placeholder="篩選標籤…"
+           [value]="filterText()" (input)="setFilter($event)" aria-label="篩選標籤清單" />
+  </div>
 
   <!-- 作品/企劃 → 角色 DAG 樹 -->
   <div class="facet">
@@ -17,7 +22,7 @@
       <!-- depth 0 -->
       @for (n0 of tree(); track n0.name) {
         <div class="tnode">
-          <div class="frow pickable" [style.padding-left]="pad(0)" (click)="pick(n0)">
+          <div class="frow pickable" [class.on]="isActive(n0.name)" [style.padding-left]="pad(0)" (click)="pick(n0)">
             @if (hasKids(n0)) {
               <span class="ttoggle" [class.open]="isOpen(n0)" (click)="$event.stopPropagation(); toggle(n0)">▶</span>
             } @else {
@@ -36,7 +41,7 @@
               <!-- depth 1 -->
               @for (n1 of n0.children; track n1.name) {
                 <div class="tnode">
-                  <div class="frow pickable" [style.padding-left]="pad(1)" (click)="pick(n1)">
+                  <div class="frow pickable" [class.on]="isActive(n1.name)" [style.padding-left]="pad(1)" (click)="pick(n1)">
                     @if (hasKids(n1)) {
                       <span class="ttoggle" [class.open]="isOpen(n1)" (click)="$event.stopPropagation(); toggle(n1)">▶</span>
                     } @else {
@@ -55,7 +60,7 @@
                       <!-- depth 2 -->
                       @for (n2 of n1.children; track n2.name) {
                         <div class="tnode">
-                          <div class="frow pickable" [style.padding-left]="pad(2)" (click)="pick(n2)">
+                          <div class="frow pickable" [class.on]="isActive(n2.name)" [style.padding-left]="pad(2)" (click)="pick(n2)">
                             <span class="tspacer"></span>
                             <span class="dot" [style.color]="color(n2.kind)" [style.background]="color(n2.kind)"></span>
                             <span>{{ n2.name }}</span>
@@ -75,20 +80,23 @@
         </div>
       }
 
-      <!-- 角色(無作品) -->
+      <!-- 角色(無作品):無後端上限,長清單虛擬捲動 -->
       <div class="facet-t rootless-h">— 角色(無作品)—</div>
-      @for (r of rootless(); track r.name) {
-        <div class="tnode">
-          <div class="frow pickable" [style.padding-left]="pad(0)" (click)="pick(r)">
+      @if (rootlessFiltered().length) {
+        <cdk-virtual-scroll-viewport class="vscroll-viewport" itemSize="28">
+          <div *cdkVirtualFor="let r of rootlessFiltered(); trackBy: trackByName"
+               class="frow pickable" [class.on]="isActive(r.name)" [style.padding-left]="pad(0)" (click)="pick(r)">
             <span class="tspacer"></span>
             <span class="dot" [style.color]="color(r.kind)" [style.background]="color(r.kind)"></span>
-            <span>{{ r.name }}</span>
+            <span class="fname">{{ r.name }}</span>
             @if (r.multi) {
               <span class="multi" title="有 2 個上層 (DAG)">↟2</span>
             }
             <span class="n">{{ fmt(r.n) }}</span>
           </div>
-        </div>
+        </cdk-virtual-scroll-viewport>
+      } @else if (q()) {
+        <div class="empty-hint">查無標籤</div>
       }
     }
   </div>
@@ -104,12 +112,20 @@
       屬性
     </div>
     @if (!isCollapsed('general')) {
-      @for (row of general(); track row[0]) {
-        <div class="frow pickable" (click)="pickName(row[0], 'general')">
+      @for (row of generalVisible(); track row[0]) {
+        <div class="frow pickable" [class.on]="isActive(row[0])" (click)="pickName(row[0], 'general')">
           <span class="tspacer"></span>
-          <span>{{ row[0] }}</span>
+          <span class="fname">{{ row[0] }}</span>
           <span class="n">{{ fmt(row[1]) }}</span>
         </div>
+      }
+      @if (!showAllGeneral() && generalFiltered().length > TOP_N) {
+        <button type="button" class="show-more" (click)="toggleShowAll('general')">
+          顯示更多 {{ generalFiltered().length - TOP_N }} 個
+        </button>
+      }
+      @if (generalFiltered().length === 0 && q()) {
+        <div class="empty-hint">查無標籤</div>
       }
     }
   </div>
@@ -126,12 +142,20 @@
       年份
     </div>
     @if (!isCollapsed('meta')) {
-      @for (row of meta(); track row[0]) {
-        <div class="frow pickable" (click)="pickName(row[0], 'meta')">
+      @for (row of metaVisible(); track row[0]) {
+        <div class="frow pickable" [class.on]="isActive(row[0])" (click)="pickName(row[0], 'meta')">
           <span class="tspacer"></span>
-          <span>{{ row[0] }}</span>
+          <span class="fname">{{ row[0] }}</span>
           <span class="n">{{ fmt(row[1]) }}</span>
         </div>
+      }
+      @if (!showAllMeta() && metaFiltered().length > TOP_N) {
+        <button type="button" class="show-more" (click)="toggleShowAll('meta')">
+          顯示更多 {{ metaFiltered().length - TOP_N }} 個
+        </button>
+      }
+      @if (metaFiltered().length === 0 && q()) {
+        <div class="empty-hint">查無標籤</div>
       }
     }
   </div>
