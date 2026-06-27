@@ -22,13 +22,13 @@
 - **`IInferenceSessionFactory`**:backend 抽象,CPU/DirectML 各自實作,WinML 骨架已保留介面形狀。CLIP 也能直接用同一支(推論 session 與模型語意無關)。
 - **`Wd14Setup.Available[]` factory 註冊表**:加 backend 只需在陣列加一筆,被選到不存在的 backend 會明確報錯而非默默退化。擴充性好。
 
-## 3. 唯一值得「現在(若 CLIP 近期)」抽的
+## 3. 唯一值得抽的 —— ✅ 已完成(2026-06-27)
 
 `Wd14ModelProvider.DownloadAsync`(原子 `.part` + rename 下載)**完全不是 WD14 專屬** —— CLIP 也要下載模型檔。
 
-- 抽成 `ModelArtifactDownloader.DownloadAsync(openStream, dest, ct)`(~20 行純重構),`Wd14ModelProvider` 與未來 `ClipModelProvider` 都呼叫它。
-- 風險:零(純抽取,行為不變,可 TDD)。
-- **但仍只在 CLIP 排上近期時才做**,否則同樣是預先優化。
+- ✅ 已抽成 `ModelArtifactDownloader.DownloadAsync(openStream, dest, ct)`(純重構、行為不變),`Wd14ModelProvider.EnsureAsync` 改呼叫它;未來 `ClipModelProvider` 同樣復用。
+- 原本已泛用命名 + 泛用測過(測 `.part`/atomic rename/失敗清檔,不碰 WD14),故只是搬到正確命名的家:測試一併移到 `ModelArtifactDownloaderTests`,非新增抽象。
+- 風險:零(全測綠)。§4 其餘整理(base class / 泛型 preprocess / 統一介面)仍 **defer 到 CLIP 真實形狀出來**再評估。
 
 ## 4. 不要現在拉的(會拉錯 / YAGNI)
 
@@ -76,7 +76,7 @@ CLIP 落地 ≈ 一組平行的 `Clip*` 檔 + 復用 session factory + 抽出的
 
 ## 8. 行動順序建議
 
-1. **現在(僅當 CLIP 近期)**:抽 `ModelArtifactDownloader`(20 行,零風險,TDD)。
+1. ~~**現在(僅當 CLIP 近期)**:抽 `ModelArtifactDownloader`~~ ✅ **已完成(2026-06-27)**(純重構、全測綠,見 §3)。
 2. ~~**想要時(獨立小 slice)**:GPU 自動偵測 `IGpuVendorDetector`~~ ❌ **不做(moot,2026-06-27,見 §6)**:廠商 publish 時綁定、Backend 一律明示,auto 分支從未觸發、偵測無消費者。
 3. **延後(YAGNI,等觸發)**:factory base class(等 CUDA/WinML 顯露真實變異)、泛型 preprocess/postprocess(等 CLIP 真實形狀)、模型介面統一(別做 —— 維持平行兄弟)。
 
