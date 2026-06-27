@@ -40,8 +40,7 @@
 
 - `2026-06-23-ml-layer-architecture-assessment.md` — `Pm.Ml` 推論層盤點,為 CLIP / GPU 自動偵測(Phase 2)鋪路。
 - `2026-06-25-second-tagger-cl-tagger-evaluation.md` — cl_tagger_v2 當第二 tagger(開關)評估;**deferred、低優先**。結論:非抽換 WD14、是新增 tagger 的中等重構(需抽 `ITagger` + pre/post/loader);動工前先確認授權(禁再配布)/速度/品質。
-
-## 待決策(review,等使用者拍板)
+- `2026-06-28-nas-multiuser-scaling-roadmap.md` — **前瞻性**:若走 NAS / 對外多人,高併發瓶頸地圖(SQLite 單寫入 / in-proc 推論 / 縮圖 thundering herd / 讀查詢負載)+ 分階段演進路線(觸發條件)。**非 todo**;關鍵 reframe:帳號系統把策展寫入收到 admin → 寫不痛、瓶頸漂到讀/算擴展。integer PK 維持。
 
 - `2026-06-25-tag-sidebar-and-import-confirm-review.md` — 左側 tag facet 側欄 UX(① 分區整段收折 **已實作**;top-N / 側欄過濾 / 虛擬捲動 待)+ 匯入確認定位(② 資料夾維度已由 `/browse` folder-browse 回應;import-confirm 多 root 選擇器 / 自訂常用 tag preset 待決)。
 
