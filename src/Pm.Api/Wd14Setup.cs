@@ -16,8 +16,12 @@ public static class Wd14Setup
         var options = config.GetSection("Inference:Wd14").Get<Wd14Options>() ?? new Wd14Options();
         services.AddSingleton(options);
 
-        // 預設 DirectML(鐵則 6,跨 NV/AMD);無 GPU 可設 Inference:Wd14:Backend=cpu。
-        // GPU 廠牌自動偵測列為日後工作,故 auto 模式暫傳 gpuVendor=null。
+        // Backend 一律由設定明示:appsettings.json 出貨即帶 "directml"(鐵則 6,跨 NV/AMD),
+        // 各機再由 launchSettings 覆寫;無 GPU 可設 Inference:Wd14:Backend=cpu。
+        // 故 Select 永遠走 configured 短路、不觸及 gpuVendor —— runtime GPU 偵測刻意不做(moot):
+        // 廠商於 publish 時由套件綁定(DirectML build 跨全廠商;CUDA 走專屬 publish profile),
+        // runtime 偵測「是哪家顯卡」無消費者(決議與理由見 ml-layer-architecture-assessment §6)。
+        // 傳 null 保留 selector 的 auto seam(Backend 若留空則保守退 CPU),正常路徑不依賴它。
         var backend = InferenceBackendSelector.Select(config["Inference:Wd14:Backend"], gpuVendor: null);
         services.AddSingleton(FactoryFor(backend));
 

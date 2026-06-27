@@ -8,7 +8,7 @@
 
 1. **掃描器 / ML 後續**
    - ~~**AVIF 解碼支援**~~ ✅ **已完成(2026-06-26)**:新增 `Pm.Imaging` 橋接,HEIF 家族(avif/heic/heif)繞道 **Magick.NET-Q8(libheif)** 解碼成像素再包回 ImageSharp,縮圖/metadata/WD14 全正常;白名單補 `.heic/.heif`。註:Magick-Q8 有 HEIF 解碼但無 HEIC 編碼(x265 授權),本專案只需解碼故無影響。
-   - GPU 廠牌自動偵測(目前 `InferenceBackendSelector` auto 傳 `gpuVendor=null`,固定 DirectML)。
+   - ~~GPU 廠牌自動偵測~~ ❌ **不做(moot,2026-06-27)**:Backend 一律由設定明示(appsettings 出貨帶 `directml`、各機 launchSettings 覆寫),`Select` 永遠走 configured 短路、不觸及 `gpuVendor`;且廠商於 publish 時由套件綁定(DirectML build 跨全廠商、CUDA 走專屬 profile),runtime 偵測廠商無消費者。決議與理由見 `2026-06-23-ml-layer-architecture-assessment.md` §6/§8 與 `Wd14Setup` 註解。
    - `Pm.Ml` 整理為 CLIP 鋪路(`2026-06-23-ml-layer-architecture-assessment.md`)。
    - **第二 tagger(cl_tagger_v2)當開關**:deferred、低優先,評估見 `2026-06-25-second-tagger-cl-tagger-evaluation.md`(非抽換、是新增;需抽 `ITagger`;先確認授權/速度/品質)。
    - per-root「重產縮圖」維護入口(重掃已補缺縮圖,獨立 rebuild-thumbs 屬 nice-to-have)。
