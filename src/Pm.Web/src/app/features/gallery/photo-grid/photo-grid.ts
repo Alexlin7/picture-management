@@ -41,6 +41,19 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
   // 兩段式檢視切換:dense=小圖密集 / large=大圖(純視覺本地狀態)
   readonly viewMode = signal<'dense' | 'large'>('dense');
 
+  // 窄寬(手機)toolbar 溢出選單「⋯ 更多」開合:收次要操作(模型佇列狀態 + 重標失敗),
+  // 桌面 inline 顯示故此選單僅 @media 窄寬出現。點外部關閉走透明 backdrop,不掛 document listener。
+  readonly moreOpen = signal(false);
+  toggleMore(ev: Event): void {
+    ev.stopPropagation();
+    this.moreOpen.update((v) => !v);
+  }
+  // 選單內按「重標失敗」:先關選單再走原 confirm 流程,避免 confirm 對話框後選單仍開著。
+  moreRequeue(): void {
+    this.moreOpen.set(false);
+    this.requeueFailed();
+  }
+
   // masonry 所需
   readonly gap = MASONRY_GAP;
   aspectNum = (p: unknown): number => {
