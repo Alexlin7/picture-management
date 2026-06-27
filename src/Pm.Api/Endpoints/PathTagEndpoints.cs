@@ -12,7 +12,7 @@ public static class PathTagEndpoints
 
         app.MapPost("/api/path-rules", async (PathRuleDto dto, PathTagService svc) =>
         {
-            await svc.ApplyRuleAsync(dto.RootId, dto.Segment, dto.Action, dto.TagName);
+            await svc.ApplyRuleAsync(dto.RootId, dto.Segment, dto.Action, dto.TagName, dto.Kind);
             return Results.Ok();
         })
             .WithTags("PathTags");
@@ -23,5 +23,5 @@ public static class PathTagEndpoints
     }
 }
 
-/// <summary>路徑段→tag 確認規則:指定根目錄、路徑段、動作(map/ignore)與對應標籤名。</summary>
-public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName);
+/// <summary>路徑段→tag 確認規則:指定根目錄、路徑段、動作(map/ignore/year)、對應標籤名與分類(kind)。</summary>
+public record PathRuleDto(long? RootId, string Segment, string Action, string? TagName, string? Kind = null);
