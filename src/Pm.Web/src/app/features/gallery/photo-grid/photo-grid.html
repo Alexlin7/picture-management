@@ -119,13 +119,13 @@
   </div>
 
   <!-- masonry 圖牆 -->
-  <div class="view">
+  <div class="view" #viewEl>
     @if (error()) {
       <div class="empty">載入失敗:{{ error() }}</div>
     } @else if (!loading() && photos().length === 0) {
       <div class="empty">沒有符合的圖片</div>
     }
-    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="minColWidth()" [gap]="gap">
+    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="minColWidth()" [gap]="gap" [scrollEl]="viewEl">
       <ng-template let-p>
         <div class="tile" [class.sel]="selectedId() === p.id" (click)="pick(p)">
           <app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" />

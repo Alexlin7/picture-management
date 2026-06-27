@@ -1,5 +1,5 @@
 // src/Pm.Web/src/app/core/masonry-layout.spec.ts
-import { computeMasonryLayout } from './masonry-layout';
+import { computeMasonryLayout, isBoxInWindow, type MasonryBox } from './masonry-layout';
 
 describe('computeMasonryLayout', () => {
   it('never returns 0 columns for positive width', () => {
@@ -34,5 +34,34 @@ describe('computeMasonryLayout', () => {
 
   it('returns empty layout for non-positive width', () => {
     expect(computeMasonryLayout(0, [1], 180, 12)).toEqual({ cols: 0, colWidth: 0, boxes: [], containerHeight: 0 });
+  });
+});
+
+describe('isBoxInWindow', () => {
+  const box = (top: number, height: number): MasonryBox => ({ left: 0, top, width: 100, height });
+
+  it('includes a box fully inside the viewport', () => {
+    // viewport [0, 500], overscan 0
+    expect(isBoxInWindow(box(100, 50), 0, 500, 0)).toBe(true);
+  });
+
+  it('excludes a box far below the viewport + overscan', () => {
+    // window = [-600, 500+600=1100]; box top 2000 is out
+    expect(isBoxInWindow(box(2000, 50), 0, 500, 600)).toBe(false);
+  });
+
+  it('excludes a box fully scrolled past above the window', () => {
+    // scrollTop 2000 → window [1400, 2600]; box ending at 100 is out
+    expect(isBoxInWindow(box(50, 50), 2000, 500, 600)).toBe(false);
+  });
+
+  it('includes a box within the overscan band just above the viewport', () => {
+    // scrollTop 1000 → window [400, 2100] (overscan 600); box at top 500 included
+    expect(isBoxInWindow(box(500, 50), 1000, 500, 600)).toBe(true);
+  });
+
+  it('includes a box straddling the viewport top edge', () => {
+    // scrollTop 1000, overscan 0 → window [1000, 1500]; box [980, 1030] straddles top
+    expect(isBoxInWindow(box(980, 50), 1000, 500, 0)).toBe(true);
   });
 });

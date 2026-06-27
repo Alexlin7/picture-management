@@ -35,7 +35,7 @@
   <div class="toolbar"><span class="count">此資料夾含子夾 <b>{{ hitText() }}</b> 張</span></div>
 
   <!-- 遞迴圖牆 -->
-  <div class="view">
+  <div class="view" #viewEl>
     @if (error()) {
       <div class="empty">載入失敗:{{ error() }}</div>
     } @else if (!loading() && photos().length === 0) {
@@ -44,7 +44,7 @@
         @else { 這個資料夾沒有圖片。{{ subfolders().length ? '點上方子資料夾往下看。' : '' }} }
       </div>
     }
-    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="stdCol" [gap]="gap">
+    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="stdCol" [gap]="gap" [scrollEl]="viewEl">
       <ng-template let-p>
         <div class="tile" (click)="pick(p)"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
       </ng-template>
