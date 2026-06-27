@@ -65,6 +65,12 @@
       (click)="requeueFailed()"
       title="重標(WD14 自動標籤)≠ 重掃(檔案系統索引)。將所有標註失敗的圖片重新加入佇列。"
     >重標失敗</button>
+    <button
+      class="btn ghost wide-only"
+      (click)="requeueByQuery()"
+      [disabled]="requeueingQuery() || hitCount() === 0"
+      title="把目前查詢命中的圖片重新加入 WD14 自動標籤佇列(retry,非破壞)。"
+    >重標查詢</button>
     <div class="seg">
       <button [class.on]="viewMode() === 'dense'" (click)="viewMode.set('dense')" title="小圖密集">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -112,6 +118,12 @@
               <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
               <path d="M3 3v5h5" />
             </svg>重標失敗
+          </button>
+          <button class="more-row" role="menuitem" (click)="moreRequeueQuery()" [disabled]="requeueingQuery() || hitCount() === 0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>重標查詢
           </button>
         </div>
       }
