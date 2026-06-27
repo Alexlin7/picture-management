@@ -221,24 +221,26 @@ export class ManageStore {
   // 待確認段數(template note 用)。
   readonly importPending = computed(() => this._importRows().length);
 
-  // 載入待確認路徑段:先確保有 roots,取第一個 root 當來源。
-  async loadImport(): Promise<void> {
+  // 載入待確認路徑段:先確保有 roots;rootId 未指定取第一個 root 當來源。
+  async loadImport(rootId?: number): Promise<void> {
     this._importLoading.set(true);
     this._importError.set(null);
     try {
       if (this._roots().length === 0) {
         await this.loadRoots();
       }
-      const first = this._roots()[0];
-      if (!first) {
+      const target = rootId != null
+        ? this._roots().find((r) => r.id === rootId) ?? null
+        : this._roots()[0] ?? null;
+      if (!target) {
         this._importRootId.set(null);
         this._importSource.set('');
         this._importRows.set([]);
         return;
       }
-      this._importRootId.set(first.id);
-      this._importSource.set(first.name);
-      const segs = await this.api.pendingSegments(first.id);
+      this._importRootId.set(target.id);
+      this._importSource.set(target.name);
+      const segs = await this.api.pendingSegments(target.id);
       this._importRows.set(
         segs.map((s: PendingSegment) => {
           const action = normalizeAction(s.suggestedAction);
@@ -260,18 +262,30 @@ export class ManageStore {
     }
   }
 
-  // 切某列分類(本地;送出時帶到 applyRule 的 tagName/kind)。
+  // 切換來源 root:設定並重新載入該 root 的待確認段。
+  async selectImportRoot(id: number): Promise<void> {
+    await this.loadImport(id);
+  }
+
+  // 切某列分類(本地;送出時帶到 applyRule 的 kind)。
   setImportCat(seg: string, cat: TagKind): void {
     this._importRows.update((rs) => rs.map((r) => (r.seg === seg ? { ...r, cat } : r)));
   }
 
-  // 套用某一列規則。
+  // 改某列產生的 tag 名(inline 編輯 / 套 preset 用)。
+  setImportTag(seg: string, tag: string): void {
+    this._importRows.update((rs) => rs.map((r) => (r.seg === seg ? { ...r, tag } : r)));
+  }
+
+  // 套用某一列規則。action 維持前端詞彙(map/ignore/year),後端會正規化;
+  // map 帶上 tagName 與 kind(cat),讓使用者選的分類生效。
   private async applyOne(rootId: number, r: ImportRowView): Promise<void> {
     await this.api.applyRule({
       rootId,
       segment: r.seg,
       action: r.action,
       tagName: r.action === 'map' ? (r.tag ?? r.seg) : undefined,
+      kind: r.action === 'map' ? (r.cat ?? 'general') : undefined,
     });
   }
 
