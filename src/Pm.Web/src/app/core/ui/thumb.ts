@@ -71,6 +71,9 @@ export class Thumb implements OnChanges, OnDestroy {
   @Input({ required: true }) photoId!: number;
   @Input() aspectRatio = '1/1';
   @Input() alt = '';
+  // version:reprocess 後由 inspector 遞增,強制 cache-bust → 重抓新縮圖。
+  // 預設 0(不加 query),其他呼叫端不傳此值亦正常運作。
+  @Input() version = 0;
 
   // 退避序列(ms);耗盡即 broken。初次 + 這 5 次 = 約 10s,覆蓋掃描中縮圖空窗。
   private static readonly RETRY_DELAYS = [400, 800, 1600, 3000, 5000];
@@ -80,13 +83,19 @@ export class Thumb implements OnChanges, OnDestroy {
   // photoId 的 signal 鏡像:src 必須對 photoId 變動有反應(@Input 欄位非 signal,
   // computed 追不到),否則重用實例切圖時 src 停在舊 URL → img 不重載 → 卡 loading。
   private readonly photoIdSig = signal(0);
+  // version 的 signal 鏡像:同理讓 src computed 追蹤。
+  private readonly versionSig = signal(0);
   private timer: ReturnType<typeof setTimeout> | null = null;
 
-  // 目前 src:第一次無 query;重試帶遞增 cache-bust(?r=n)強制 img 重新載入。
+  // 目前 src:重試帶 ?r=n;version>0 時額外帶 &v=n 強制繞過舊縮圖快取。
   readonly src = computed(() => {
     const base = this.api.thumbUrl(this.photoIdSig());
     const a = this.attempt();
-    return a === 0 ? base : `${base}?r=${a}`;
+    const v = this.versionSig();
+    const params: string[] = [];
+    if (a !== 0) params.push(`r=${a}`);
+    if (v !== 0) params.push(`v=${v}`);
+    return params.length ? `${base}?${params.join('&')}` : base;
   });
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -95,6 +104,13 @@ export class Thumb implements OnChanges, OnDestroy {
     if (changes['photoId']) {
       this.clearTimer();
       this.photoIdSig.set(this.photoId); // 驅動 src 重算 → 新圖重載
+      this.attempt.set(0);
+      this.state.set('loading');
+    }
+    // version 遞增(reprocess 完成)→ 重置狀態機並重抓縮圖(以最新 cache-bust src)。
+    if (changes['version'] && !changes['photoId']) {
+      this.clearTimer();
+      this.versionSig.set(this.version);
       this.attempt.set(0);
       this.state.set('loading');
     }

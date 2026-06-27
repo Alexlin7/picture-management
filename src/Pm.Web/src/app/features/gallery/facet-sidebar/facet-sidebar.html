@@ -1,4 +1,4 @@
-<aside class="sidebar">
+<aside class="sidebar" [class.collapsed]="sidebarCollapsed()">
   <div class="side-h">篩選 <span class="sub">{{ fmt(hitCount()) }} 命中</span></div>
 
   <!-- 作品/企劃 → 角色 DAG 樹 -->

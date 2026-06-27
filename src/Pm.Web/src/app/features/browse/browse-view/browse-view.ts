@@ -1,28 +1,104 @@
-import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef, ElementRef, computed, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FolderTreeSidebar } from '../folder-tree-sidebar/folder-tree-sidebar';
 import { BrowseGrid } from '../browse-grid/browse-grid';
 import { BrowseStore } from '../browse.store';
+import { useStageWidth } from '../../../core/use-stage-width';
+import { shouldAutoCollapse, FACET_COLLAPSE } from '../../../core/layout-breakpoints';
 
 // 資料夾瀏覽兩欄:資料夾樹側欄(252)· 圖牆(1fr)。inspector 暫不接(與 gallery 隔離)。
+// 動態欄寬:useStageWidth 量測 host 元素寬度,依門檻自動或手動收合側欄。
 @Component({
   selector: 'app-browse-view',
   imports: [FolderTreeSidebar, BrowseGrid],
   template: `
-    <div class="bview">
-      <app-folder-tree-sidebar />
-      <app-browse-grid />
+    <div class="bview" [style.grid-template-columns]="gridCols()">
+      <app-folder-tree-sidebar [collapsed]="treeCollapsed()" />
+      <div class="center-stage">
+        <button
+          class="edge-toggle et-left"
+          (click)="toggleTree()"
+          [attr.aria-label]="treeCollapsed() ? '展開資料夾樹' : '收合資料夾樹'"
+          [title]="treeCollapsed() ? '展開資料夾樹' : '收合資料夾樹'">
+          <span aria-hidden="true">{{ treeCollapsed() ? '›' : '‹' }}</span>
+        </button>
+        <app-browse-grid />
+      </div>
     </div>
   `,
-  styles: [`
-    .bview { display: grid; grid-template-columns: 252px 1fr; height: 100vh; min-width: 0; }
-  `],
+  styles: [
+    `
+      .bview {
+        display: grid;
+        height: 100vh;
+        min-width: 0;
+        position: relative;
+        transition: grid-template-columns 0.15s ease;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .bview {
+          transition: none;
+        }
+      }
+
+      /* 中間圖牆欄:相對定位以容納邊緣 toggle 鈕。
+         min-height:0 + height:100% 讓 grid item 被限制在列高,內層 .view 才能取得有界高度而可捲。 */
+      .center-stage {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+      }
+
+      /* 側欄收合/展開箭頭。 */
+      .edge-toggle {
+        position: absolute;
+        z-index: 10;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 18px;
+        height: 44px;
+        background: var(--color-panel);
+        border: 1px solid var(--color-hair);
+        color: var(--color-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        padding: 0;
+        transition: background 0.1s, color 0.1s;
+      }
+      .edge-toggle:hover {
+        color: var(--color-text);
+        background: var(--color-raised);
+      }
+      .edge-toggle:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+      }
+      .et-left {
+        left: 0;
+        border-left: none;
+        border-radius: 0 var(--radius-soft) var(--radius-soft) 0;
+      }
+    `,
+  ],
 })
 export class BrowseView implements OnInit {
   readonly store = inject(BrowseStore);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly hostRef = inject(ElementRef<HTMLElement>);
+  private readonly stageWidth = useStageWidth(this.hostRef, this.destroyRef);
+
+  readonly treeUserCollapsed = signal<boolean | null>(null);
+  readonly treeCollapsed = computed(() =>
+    this.treeUserCollapsed() ?? shouldAutoCollapse(this.stageWidth(), FACET_COLLAPSE));
+  readonly gridCols = computed(() => `${this.treeCollapsed() ? '0' : '252px'} 1fr`);
+
+  toggleTree(): void { this.treeUserCollapsed.set(!this.treeCollapsed()); }
 
   ngOnInit(): void {
     void this.store.loadRoots();

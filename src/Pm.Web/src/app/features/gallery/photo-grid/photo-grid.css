@@ -93,7 +93,7 @@
   position: absolute;
   top: calc(100% + 9px);
   left: -8px;
-  min-width: 240px;
+  min-width: min(240px, 100%);
   max-height: 260px;
   overflow-y: auto;
   z-index: 50;
@@ -213,11 +213,97 @@
   height: 15px;
 }
 
+/* ---------- 窄寬溢出選單「⋯ 更多」(桌面隱藏;@media 窄寬才顯示) ---------- */
+.more {
+  display: none;
+  position: relative;
+}
+.more-btn {
+  padding: 5px 7px;
+}
+.more-btn.on {
+  background: var(--color-raised-2);
+  color: var(--color-text);
+}
+/* 透明 backdrop:點選單外即關。fixed 覆蓋全視窗,popup z-index 疊其上。 */
+.more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.more-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 180px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-hair);
+  border-radius: 9px;
+  box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.55);
+  padding: 5px;
+}
+.more-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  font-size: 11.5px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.more-status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-t-meta);
+  flex: none;
+}
+.more-status .num {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-weight: 500;
+}
+.more-sep {
+  height: 1px;
+  background: var(--color-hair-soft);
+  margin: 4px 2px;
+}
+.more-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.more-row:hover {
+  background: var(--color-raised);
+}
+.more-row svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
 /* ---------- 可捲動 grid 容器 ---------- */
 .view {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+}
+
+/* masonry 容器邊距(ResizeObserver 用 contentRect.width,padding 不干擾欄寬計算) */
+app-masonry {
+  display: block;
+  padding: 16px 18px;
+  box-sizing: border-box;
 }
 
 /* 空 / 載入 / 錯誤狀態 */
@@ -233,38 +319,7 @@
   padding: 8px 18px 24px;
 }
 
-/* gallery 圖牆:CSS columns masonry。
-   注意:class 名不可用 .grid(會撞 Tailwind 的 .grid utility = display:grid,
-   會把 column-count 整個蓋掉)。 */
-.masonry {
-  column-count: 4;
-  column-gap: 12px;
-  padding: 16px 18px;
-}
-@media (max-width: 1500px) {
-  .masonry {
-    column-count: 3;
-  }
-}
-
-.masonry.dense {
-  column-count: 5;
-}
-.masonry.large {
-  column-count: 2;
-}
-@media (max-width: 1500px) {
-  .masonry.dense {
-    column-count: 4;
-  }
-  .masonry.large {
-    column-count: 2;
-  }
-}
-
 .tile {
-  break-inside: avoid;
-  margin-bottom: 12px;
   border-radius: var(--radius-card);
   overflow: hidden;
   position: relative;
@@ -393,4 +448,41 @@
 
 .scroll-sentinel {
   height: 1px;
+}
+
+/* ====================================================================
+   窄寬(手機)響應式:topbar / toolbar 不再固定高度單行,避免文字列撐爆破版。
+   - topbar:搜尋框獨佔一行、隱藏冗餘提示、儲存搜尋靠右。
+   - toolbar:採方案 B —— 單行只留「符合·已選 + 檢視切換」,
+     次要操作(模型佇列狀態 + 重標失敗)收進「⋯ 更多」溢出選單。
+   斷點 640px 與 topbar 一致;窄寬時 facet/inspector 已自動收(FACET_COLLAPSE),photo-grid 取得全寬。
+   ==================================================================== */
+@media (max-width: 640px) {
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 56px;
+    row-gap: 8px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .search-hint {
+    display: none;
+  }
+  /* 搜尋框換行後,儲存搜尋鈕靠右獨佔次行右側 */
+  .topbar .btn {
+    margin-left: auto;
+  }
+
+  /* toolbar 方案 B:inline 狀態 + 重標失敗收起,改由「⋯ 更多」呈現 */
+  .toolbar .wide-only {
+    display: none;
+  }
+  .more {
+    display: block;
+  }
 }

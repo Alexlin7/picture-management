@@ -5,11 +5,17 @@ using Pm.Data.Entities;
 namespace Pm.Scanner;
 
 public sealed class LibraryScanner(
-    PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs)
+    PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs,
+    IImageReprocessor reprocessor)
 {
-    // 便利建構子:既有呼叫端(只給 db+hasher)沿用預設 reader/thumb。
+    // 便利建構子:既有呼叫端(只給 db+hasher)沿用預設 reader/thumb/reprocessor。
     public LibraryScanner(PmDbContext db, IFileHasher hasher)
-        : this(db, hasher, new ExifImageMetadataReader(), new ThumbnailService(new ThumbnailOptions())) { }
+        : this(db, hasher, new ExifImageMetadataReader(), new ThumbnailService(new ThumbnailOptions()),
+               new ImageReprocessor(new ExifImageMetadataReader(), new ThumbnailService(new ThumbnailOptions()))) { }
+
+    // 便利建構子:提供自訂 meta/thumbs 但不傳 reprocessor(測試與舊呼叫端相容)→ reprocessor 沿用相同 meta/thumbs。
+    public LibraryScanner(PmDbContext db, IFileHasher hasher, IImageMetadataReader meta, IThumbnailService thumbs)
+        : this(db, hasher, meta, thumbs, new ImageReprocessor(meta, thumbs)) { }
 
     private static readonly HashSet<string> ImageExts = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -26,7 +32,7 @@ public sealed class LibraryScanner(
                    ?? throw new InvalidOperationException($"library_root {rootId} 不存在");
 
         int seen = 0, newPhotos = 0, newLocations = 0, skipped = 0, errors = 0;
-        int thumbsGen = 0, jobsQueued = 0, markedMissing = 0;
+        int thumbsGen = 0, jobsQueued = 0, markedMissing = 0, healed = 0;
 
         // 這輪走訪實際看到的位置(rel_path);對帳時 present 但不在此集合者 → missing。
         var seenPaths = new HashSet<string>();
@@ -70,7 +76,36 @@ public sealed class LibraryScanner(
                 {
                     loc.LastSeenAt = DateTimeOffset.UtcNow;
                     if (locInfo.PhotoWidth is not null)
+                    {
                         thumbsGen += await GenerateThumbIfMissingAsync(file, locInfo.PhotoFileHash, ct);
+                    }
+                    else
+                    {
+                        // 半殘圖(當初解碼失敗)→ 重新處理重建 metadata/縮圖,並(視 enqueueTagging)排 WD14。
+                        // 以 AsNoTracking 讀取,避免 EF nav fixup 透過 Locations 集合連動已追蹤的 loc。
+                        var rawPhoto = await db.Photos
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(p => p.Id == loc.PhotoId, ct);
+                        if (rawPhoto is not null)
+                        {
+                            var r = await reprocessor.ReprocessAsync(rawPhoto, file, ct);
+                            if (r.ThumbGenerated) thumbsGen++;
+                            if (r.Decoded)
+                            {
+                                healed++;
+                                // 解碼成功 → 掛進追蹤器,讓尾端 SaveChangesAsync 持久化解碼後的欄位。
+                                db.Entry(rawPhoto).State = EntityState.Modified;
+                                if (enqueueTagging)
+                                {
+                                    var job = await db.TaggingJobs.FindAsync([rawPhoto.Id], ct);
+                                    if (job is null) db.TaggingJobs.Add(new TaggingJob { PhotoId = rawPhoto.Id });
+                                    else { job.State = "pending"; job.Attempts = 0; job.UpdatedAt = DateTimeOffset.UtcNow; }
+                                    jobsQueued++;
+                                }
+                            }
+                            // 仍無法解碼 → rawPhoto 從未追蹤,不需清理。
+                        }
+                    }
                     skipped++;
                     continue;
                 }
@@ -104,7 +139,7 @@ public sealed class LibraryScanner(
                 .ExecuteUpdateAsync(s => s.SetProperty(l => l.Status, "missing"), ct);
 
         return new ScanResult(seen, newPhotos, newLocations, skipped, errors,
-            thumbsGen, jobsQueued, markedMissing);
+            thumbsGen, jobsQueued, markedMissing, healed);
 
         async Task ProcessPendingAsync()
         {

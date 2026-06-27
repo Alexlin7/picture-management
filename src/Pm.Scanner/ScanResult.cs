@@ -9,4 +9,5 @@ public sealed record ScanResult(
     int Errors,            // 讀取失敗略過
     int ThumbsGenerated,   // 產出的縮圖數
     int JobsQueued,        // 排入 tagging_job 的數量
-    int MarkedMissing);    // 對帳標 missing 的位置數
+    int MarkedMissing,     // 對帳標 missing 的位置數
+    int Healed);           // width=null 半殘圖被重新處理的數量

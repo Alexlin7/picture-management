@@ -211,4 +211,28 @@ export class Inspector implements OnDestroy {
       this.retagging.set(false);
     }
   }
+
+  // 單張重新處理(動作層):重新解碼 + 補 metadata + 強制重產縮圖 + refresh WD14。
+  // decoded=false 時顯示錯誤訊息(損毀或格式不支援)。
+  readonly reprocessing = signal(false);
+  readonly reprocessMsg = signal('');
+  // reprocessVersion:每次重新處理完成後遞增,傳給 app-thumb [version] 作 cache-bust
+  // 讓縮圖立即刷新(繞過 img 快取)—— 不須切走再切回才看到新縮圖。
+  readonly reprocessVersion = signal(0);
+
+  async reprocess(): Promise<void> {
+    const id = this.photoId();
+    if (id == null || this.reprocessing()) return;
+    this.reprocessing.set(true);
+    this.reprocessMsg.set('');
+    try {
+      const r = await this.store.reprocess(id);
+      // 無論 decoded 成功與否皆遞增:API 呼叫本身成功即代表重試完畢;
+      // decoded=false 縮圖也已嘗試更新(可能清除舊破圖),遞增確保 img 重載。
+      this.reprocessVersion.update(v => v + 1);
+      if (!r.decoded) this.reprocessMsg.set('無法解碼這張圖 —— 可能損毀或格式不支援');
+    } finally {
+      this.reprocessing.set(false);
+    }
+  }
 }

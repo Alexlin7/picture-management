@@ -7,11 +7,13 @@ import { displayOf } from '@core/tag-display';
 import { ToastService } from '@core/ui/toast';
 import { ConfirmService } from '@core/ui/confirm';
 import { Thumb } from '@core/ui/thumb';
+import { Masonry } from '../../../core/ui/masonry';
+import { MIN_COL_WIDTH, MASONRY_GAP } from '../../../core/layout-breakpoints';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
   selector: 'app-photo-grid',
-  imports: [Thumb],
+  imports: [Thumb, Masonry],
   templateUrl: './photo-grid.html',
   styleUrl: './photo-grid.css',
 })
@@ -38,6 +40,30 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
 
   // 兩段式檢視切換:dense=小圖密集 / large=大圖(純視覺本地狀態)
   readonly viewMode = signal<'dense' | 'large'>('dense');
+
+  // 窄寬(手機)toolbar 溢出選單「⋯ 更多」開合:收次要操作(模型佇列狀態 + 重標失敗),
+  // 桌面 inline 顯示故此選單僅 @media 窄寬出現。點外部關閉走透明 backdrop,不掛 document listener。
+  readonly moreOpen = signal(false);
+  toggleMore(ev: Event): void {
+    ev.stopPropagation();
+    this.moreOpen.update((v) => !v);
+  }
+  // 選單內按「重標失敗」:先關選單再走原 confirm 流程,避免 confirm 對話框後選單仍開著。
+  moreRequeue(): void {
+    this.moreOpen.set(false);
+    this.requeueFailed();
+  }
+
+  // masonry 所需
+  readonly gap = MASONRY_GAP;
+  aspectNum = (p: unknown): number => {
+    const photo = p as PhotoListItem;
+    return photo.width && photo.height ? photo.width / photo.height : 1;
+  };
+  minColWidth(): number {
+    const m = this.viewMode();
+    return m === 'dense' ? MIN_COL_WIDTH.dense : m === 'large' ? MIN_COL_WIDTH.large : MIN_COL_WIDTH.standard;
+  }
 
   // 千分位
   readonly hitCountText = computed(() => this.hitCount().toLocaleString('en-US'));

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { GalleryStore, type FacetNode } from '../gallery.store';
 import { TAG_COLOR } from '@core/tag-color';
 import { loadCollapsed, saveCollapsed, toggleCollapsed, type FacetSection } from './facet-collapse';
@@ -13,6 +13,9 @@ import { loadCollapsed, saveCollapsed, toggleCollapsed, type FacetSection } from
 })
 export class FacetSidebar {
   private readonly store = inject(GalleryStore);
+
+  /** 由 gallery-view 傳入;true = 側欄寬收合至 0(不與內部分區 collapsed 衝突)。 */
+  sidebarCollapsed = input(false);
 
   // 資料來源:store(來自 PmApi.tagTree())
   readonly tree = this.store.tree;

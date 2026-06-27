@@ -3,11 +3,13 @@ import { BrowseStore } from '../browse.store';
 import { Thumb } from '@core/ui/thumb';
 import { InnerTagFilter } from '../inner-tag-filter/inner-tag-filter';
 import type { PhotoListItem, FolderNode } from '@core/api/pm-api';
+import { Masonry } from '../../../core/ui/masonry';
+import { MIN_COL_WIDTH, MASONRY_GAP } from '../../../core/layout-breakpoints';
 
 // 資料夾瀏覽主區:麵包屑 + 子資料夾晶片(深層下鑽)+ 遞迴圖牆(無限捲)+ 夾內疊 tag 帶。
 @Component({
   selector: 'app-browse-grid',
-  imports: [Thumb, InnerTagFilter],
+  imports: [Thumb, InnerTagFilter, Masonry],
   templateUrl: './browse-grid.html',
   styleUrl: './browse-grid.css',
 })
@@ -26,6 +28,13 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
 
   readonly hitText = computed(() => this.hitCount().toLocaleString('en-US'));
   readonly fmt = (n: number): string => n.toLocaleString('en-US');
+
+  readonly gap = MASONRY_GAP;
+  readonly stdCol = MIN_COL_WIDTH.standard;
+  aspectNum = (p: unknown): number => {
+    const photo = p as PhotoListItem;
+    return photo.width && photo.height ? photo.width / photo.height : 1;
+  };
 
   aspect(p: PhotoListItem): string { return p.width && p.height ? `${p.width}/${p.height}` : '1/1'; }
   enter(relPath: string): void { this.store.enterFolder(relPath); }

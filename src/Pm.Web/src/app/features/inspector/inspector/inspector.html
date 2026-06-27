@@ -5,6 +5,7 @@
       class="pimg"
       [photoId]="p.id"
       [aspectRatio]="p.width && p.height ? p.width + '/' + p.height : '1/1'"
+      [version]="reprocessVersion()"
     />
     <div class="grad"></div>
   </div>
@@ -12,6 +13,17 @@
   <div class="ibody">
     <!-- 名稱:取首個位置的檔名(API 無 title 欄位) -->
     <div class="iname">{{ fileName(p) }}</div>
+
+    <!-- photo 層級動作:重新處理(主)+ 清除自動標(次/destructive)。重標已併入重新處理。 -->
+    <div class="iactions">
+      <button class="act" type="button" [disabled]="reprocessing()" (click)="reprocess()"
+        title="重新解碼這張圖:補尺寸/MIME、重產縮圖、重排 WD14 自動標">
+        {{ reprocessing() ? '處理中…' : '↻ 重新處理' }}
+      </button>
+      <button class="act ghost" type="button" [disabled]="retagging()" (click)="retag('clear')"
+        title="清除這張圖的 WD14 自動標(保留手動／路徑標)">清除自動標</button>
+    </div>
+    @if (reprocessMsg()) { <div class="iactions-msg">{{ reprocessMsg() }}</div> }
 
     <!-- 身分 → 位置簽名 -->
     <div class="isec">
@@ -40,12 +52,7 @@
     <!-- 標籤 lanes:依 displayOf 的 group 分區(character/copyright/expression/general/meta)。
          來源(path/manual/wd14)以每 tag 的徽章顯示;canonical 永遠可見可搜。 -->
     <div class="isec">
-      <div class="isec-h">標籤<span class="line"></span>
-        <button class="mini" type="button" [disabled]="retagging()" (click)="retag('refresh')"
-          title="清除舊的 WD14 自動標並重新標註（需啟用推論才會立即重標）">重標</button>
-        <button class="mini" type="button" [disabled]="retagging()" (click)="retag('clear')"
-          title="清除這張圖的 WD14 自動標（保留手動／路徑標）">清除自動標</button>
-      </div>
+      <div class="isec-h">標籤<span class="line"></span></div>
 
       @for (lane of lanes(); track lane.group) {
         <div class="lane">

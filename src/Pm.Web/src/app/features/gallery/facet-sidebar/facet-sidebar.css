@@ -1,6 +1,7 @@
 /* facet 側欄:252px、滿高、可捲動。對齊 mockup .sidebar / .side-h / 樹相關。 */
 :host {
   display: block;
+  overflow: hidden; /* 收合過渡時防止內容溢出到 grid 欄外 */
 }
 
 .sidebar {
@@ -10,6 +11,21 @@
   border-right: 1px solid var(--color-hair);
   overflow-y: auto;
   padding: 16px 14px;
+  transition: width 0.15s ease;
+}
+
+/* 收合狀態:寬度縮 0,隱藏內容與邊框。 */
+.sidebar.collapsed {
+  width: 0;
+  border-right: none;
+  overflow: hidden;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
 }
 
 /* 標題列 */
