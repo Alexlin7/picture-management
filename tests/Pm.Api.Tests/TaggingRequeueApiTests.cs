@@ -201,6 +201,55 @@ public class TaggingRequeueApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Query_scope_requeues_only_photos_matching_the_boolean_query()
+    {
+        var (_, withTag) = SeedPhoto();
+        var (_, withoutTag) = SeedPhoto();
+        SeedTag(withTag, "blue", "wd14");
+
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/tag/requeue", new
+        {
+            mode = "retry",
+            scope = new { query = new { all = new[] { "blue" }, none = Array.Empty<string>() } }
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<RequeueResult>();
+        Assert.Equal(1, result!.Matched);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
+        Assert.True(await db.TaggingJobs.AnyAsync(j => j.PhotoId == withTag));
+        Assert.False(await db.TaggingJobs.AnyAsync(j => j.PhotoId == withoutTag));
+    }
+
+    [Fact]
+    public async Task Query_scope_with_empty_tokens_matches_all_present_photos()
+    {
+        var (_, a) = SeedPhoto("present");
+        var (_, b) = SeedPhoto("present");
+        var (_, gone) = SeedPhoto("missing");
+
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/tag/requeue", new
+        {
+            mode = "retry",
+            scope = new { query = new { all = Array.Empty<string>(), none = Array.Empty<string>() } }
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<RequeueResult>();
+        Assert.Equal(2, result!.Matched);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<PmDbContext>();
+        Assert.True(await db.TaggingJobs.AnyAsync(j => j.PhotoId == a));
+        Assert.True(await db.TaggingJobs.AnyAsync(j => j.PhotoId == b));
+        Assert.False(await db.TaggingJobs.AnyAsync(j => j.PhotoId == gone));
+    }
+
+    [Fact]
     public async Task Clear_error_scope_returns_bad_request()
     {
         var client = _factory.CreateClient();

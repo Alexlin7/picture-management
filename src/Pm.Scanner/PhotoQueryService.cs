@@ -89,4 +89,37 @@ public sealed class PhotoQueryService(PmDbContext db, TagClosureService closure)
 
         return await q.LongCountAsync(ct);
     }
+
+    // 回傳符合布林查詢的全部 photoId(不分頁),供 TaggingScheduler 的 Query scope 用。
+    // 與 SearchAsync/CountAsync 共用同一 closure + ApplyFolderScope 邏輯;
+    // 空 all/none 等同「全部 present」(語意同 SearchAsync 無 token);未知 include tag → 空清單。
+    public async Task<List<long>> GetAllPhotoIdsAsync(
+        IEnumerable<string> all, IEnumerable<string> none,
+        long? rootId = null, string? pathPrefix = null,
+        CancellationToken ct = default)
+    {
+        var includeGroups = new List<List<long>>();
+        foreach (var name in all.Distinct())
+        {
+            var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == name, ct);
+            if (tag is null) return new List<long>();   // 未知 tag → 無結果
+            includeGroups.Add(await closure.DescendantsAsync(tag.Id, ct));
+        }
+
+        var excludeIds = new List<long>();
+        foreach (var name in none.Distinct())
+        {
+            var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == name, ct);
+            if (tag is not null) excludeIds.AddRange(await closure.DescendantsAsync(tag.Id, ct));
+        }
+
+        var q = db.Photos.Where(p => p.Locations.Any(l => l.Status == "present"));
+        q = ApplyFolderScope(q, rootId, pathPrefix);
+        foreach (var group in includeGroups)
+            q = q.Where(p => p.Tags.Any(t => group.Contains(t.TagId)));
+        if (excludeIds.Count > 0)
+            q = q.Where(p => !p.Tags.Any(t => excludeIds.Contains(t.TagId)));
+
+        return await q.Select(p => p.Id).ToListAsync(ct);
+    }
 }

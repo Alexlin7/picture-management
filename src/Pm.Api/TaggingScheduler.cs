@@ -1,14 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Pm.Data;
 using Pm.Data.Entities;
+using Pm.Scanner;
 
 namespace Pm.Api;
 
 public sealed record RequeueRequestDto(string Mode, RequeueScopeDto Scope);
-public sealed record RequeueScopeDto(long[]? PhotoIds = null, bool? Error = null, long? Root = null, bool? All = null);
+public sealed record SearchQueryScopeDto(string[]? All = null, string[]? None = null, long? RootId = null, string? PathPrefix = null);
+public sealed record RequeueScopeDto(long[]? PhotoIds = null, bool? Error = null, long? Root = null, bool? All = null, SearchQueryScopeDto? Query = null);
 public sealed record TaggingScheduleResult(int Matched, int ClearedTags, int JobsCreated, int JobsUpdated);
 
-public sealed class TaggingScheduler(PmDbContext db)
+public sealed class TaggingScheduler(PmDbContext db, PhotoQueryService queryService)
 {
     private const int ChunkSize = 10_000;
 
@@ -82,7 +84,15 @@ public sealed class TaggingScheduler(PmDbContext db)
                 .ToListAsync(ct);
         }
 
-        throw new ArgumentException("scope must include photoIds, error, root, or all", nameof(scope));
+        if (scope.Query is { } query)
+        {
+            // 空 all/none 等同「全部 present」(語意同 SearchAsync 無 token)。
+            return await queryService.GetAllPhotoIdsAsync(
+                query.All ?? Array.Empty<string>(), query.None ?? Array.Empty<string>(),
+                query.RootId, query.PathPrefix, ct);
+        }
+
+        throw new ArgumentException("scope must include photoIds, error, root, all, or query", nameof(scope));
     }
 
     private static void ValidateSingleScope(RequeueScopeDto scope)
@@ -92,9 +102,10 @@ public sealed class TaggingScheduler(PmDbContext db)
         if (scope.Error == true) count++;
         if (scope.Root is not null) count++;
         if (scope.All == true) count++;
+        if (scope.Query is not null) count++;
 
         if (count != 1)
-            throw new ArgumentException("scope must include exactly one of photoIds, error, root, or all", nameof(scope));
+            throw new ArgumentException("scope must include exactly one of photoIds, error, root, all, or query", nameof(scope));
     }
 
     private async Task<int> ClearWd14TagsAsync(IReadOnlyCollection<long> photoIds, CancellationToken ct)
