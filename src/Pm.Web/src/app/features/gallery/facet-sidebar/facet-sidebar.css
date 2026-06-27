@@ -130,3 +130,51 @@
 .facet-t.toggleable:hover {
   background: var(--color-raised);
 }
+
+/* 頂部過濾框(.input 走全域 primitive,這裡只管外距與字級) */
+.filter-box {
+  margin: 0 2px 14px;
+}
+.filter-input {
+  font-size: 12.5px;
+}
+
+/* 「顯示更多」幽靈按鈕 */
+.show-more {
+  width: 100%;
+  margin-top: 4px;
+  padding: 5px 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-accent);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.show-more:hover {
+  background: var(--color-raised);
+}
+
+/* 查無結果提示 */
+.empty-hint {
+  padding: 6px 8px;
+  color: var(--color-faint);
+  font-size: 12px;
+}
+
+/* rootless 虛擬捲動視窗(固定高,CDK 自管內層捲動) */
+.vscroll-viewport {
+  height: min(240px, 40vh);
+  overflow: hidden;
+}
+/* 固定行高對齊 itemSize=28;單行 + 省略號避免換行破壞虛擬捲動量測 */
+.vscroll-viewport .frow {
+  height: 28px;
+  box-sizing: border-box;
+}
+.fname {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

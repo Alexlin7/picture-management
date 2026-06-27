@@ -1,13 +1,17 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { GalleryStore, type FacetNode } from '../gallery.store';
 import { TAG_COLOR } from '@core/tag-color';
 import { loadCollapsed, saveCollapsed, toggleCollapsed, type FacetSection } from './facet-collapse';
+
+// 屬性/年份分區初始顯示筆數;超過則收起並提供「顯示更多」(後端每區上限 30)。
+const TOP_N = 12;
 
 // 契約:相簿左側 facet 側欄(作品/角色 DAG 樹、屬性、年份)。
 // 由 workflow agent 補完內部(templateUrl/styleUrl + 互動)。
 @Component({
   selector: 'app-facet-sidebar',
-  imports: [],
+  imports: [ScrollingModule],
   templateUrl: './facet-sidebar.html',
   styleUrl: './facet-sidebar.css',
 })
@@ -19,10 +23,46 @@ export class FacetSidebar {
 
   // 資料來源:store(來自 PmApi.tagTree())
   readonly tree = this.store.tree;
-  readonly rootless = this.store.rootless;
-  readonly general = this.store.facetsGeneral;
-  readonly meta = this.store.facetsMeta;
   readonly hitCount = this.store.hitCount;
+
+  // ---- 過濾框 + top-N(屬性/年份/rootless 三個平面清單;DAG 樹不在此 backlog 過濾) ----
+  readonly filterText = signal('');
+  setFilter(e: Event): void { this.filterText.set((e.target as HTMLInputElement).value); }
+  readonly q = computed(() => this.filterText().trim().toLowerCase());
+
+  // 當前搜尋 token 集合,給 .on 高亮用(O(1) 查詢)。
+  private readonly activeSet = computed(() => new Set(this.store.tokens().map((t) => t.text)));
+  readonly isActive = (name: string): boolean => this.activeSet().has(name);
+
+  readonly TOP_N = TOP_N;
+  readonly showAllGeneral = signal(false);
+  readonly showAllMeta = signal(false);
+  toggleShowAll(s: 'general' | 'meta'): void {
+    (s === 'general' ? this.showAllGeneral : this.showAllMeta).update((v) => !v);
+  }
+
+  readonly generalFiltered = computed(() => {
+    const q = this.q();
+    const rows = this.store.facetsGeneral();
+    return q ? rows.filter(([n]) => n.toLowerCase().includes(q)) : rows;
+  });
+  readonly metaFiltered = computed(() => {
+    const q = this.q();
+    const rows = this.store.facetsMeta();
+    return q ? rows.filter(([n]) => n.toLowerCase().includes(q)) : rows;
+  });
+  readonly generalVisible = computed(() =>
+    this.showAllGeneral() ? this.generalFiltered() : this.generalFiltered().slice(0, TOP_N));
+  readonly metaVisible = computed(() =>
+    this.showAllMeta() ? this.metaFiltered() : this.metaFiltered().slice(0, TOP_N));
+
+  readonly rootlessFiltered = computed(() => {
+    const q = this.q();
+    const rows = this.store.rootless();
+    return q ? rows.filter((r) => r.name.toLowerCase().includes(q)) : rows;
+  });
+
+  readonly trackByName = (_: number, r: FacetNode): string => r.name;
 
   // kind → 顏色
   readonly color = (kind: string): string => TAG_COLOR[kind] ?? TAG_COLOR['general'];
