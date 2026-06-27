@@ -82,6 +82,8 @@ await page.route('**/api/**', async (route) => {
     const id = Number(p.match(/photos\/(\d+)/)[1]);
     return route.fulfill({ status: 200, contentType: 'image/svg+xml', body: svgThumb(id) });
   }
+  // GalleryStore(providedIn:root)建構子會輪詢 tagging/stats:回正確形狀避免算成 NaN(此頁不顯示,純求測資誠實)。
+  if (p === '/api/tagging/stats') return json({ pending: 0, error: 0, running: 0 });
   return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
 });
 

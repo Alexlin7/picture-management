@@ -29,12 +29,18 @@ async function mockApi(page) {
     if (p === '/api/search/count') return json({ total: PHOTOS.length });
     if (p === '/api/search') return json({ items: PHOTOS, nextCursor: null });
     if (/^\/api\/photos\/\d+\/thumb$/.test(p)) return route.fulfill({ status: 204 });
-    // 其餘端點(facet、tags、saved-searches…)回空陣列,讓前端不報錯。
+    // 物件型端點要回「正確形狀的空物件」,不能回 []:
+    //   tags/tree → store 取 .tree.map(),回 [] 會 undefined.map 炸成「載入失敗」橫幅;
+    //   tagging/stats → store 取 .pending+.error,回 [] 會算成 NaN 待標。
+    if (p === '/api/tags/tree') return json({ tree: [], rootless: [], general: [], meta: [] });
+    if (p === '/api/tagging/stats') return json({ pending: 0, error: 0, running: 0 });
+    // 其餘陣列型端點(saved-searches…)回空陣列。
     return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
   });
 }
 
-const WIDTHS = [1400, 1100, 820, 720];
+// 補手機寬度(480 / 375):守住 topbar+toolbar 窄寬不破版(方案 B —— 次要操作收「⋯ 更多」)。
+const WIDTHS = [1400, 1100, 820, 720, 480, 375];
 
 (async () => {
   const browser = await chromium.launch();
