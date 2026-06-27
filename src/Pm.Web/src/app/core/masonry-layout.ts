@@ -26,3 +26,12 @@ export function computeMasonryLayout(
   const containerHeight = boxes.length ? tallest - gap : 0;
   return { cols, colWidth, boxes, containerHeight };
 }
+
+/** windowing 判斷:box 是否落在 [scrollTop-overscan, scrollTop+vpHeight+overscan] 視窗內。
+ *  純函式,給 Masonry virtual scroll 過濾用(JSDOM 量不到 DOM,故抽出可單測)。 */
+export function isBoxInWindow(
+  box: MasonryBox, scrollTop: number, vpHeight: number, overscan: number): boolean {
+  const min = scrollTop - overscan;
+  const max = scrollTop + vpHeight + overscan;
+  return box.top + box.height >= min && box.top <= max;
+}
