@@ -46,7 +46,7 @@
     }
     <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="stdCol" [gap]="gap" [scrollEl]="viewEl">
       <ng-template let-p>
-        <div class="tile" (click)="pick(p)"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
+        <div class="tile" [class.sel]="store.selectedId() === p.id" (click)="pick(p)"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
       </ng-template>
     </app-masonry>
     @if (loading()) { <div class="empty">載入中…</div> }

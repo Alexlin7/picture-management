@@ -3,15 +3,16 @@ import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FolderTreeSidebar } from '../folder-tree-sidebar/folder-tree-sidebar';
 import { BrowseGrid } from '../browse-grid/browse-grid';
+import { Inspector } from '@features/inspector/inspector/inspector';
 import { BrowseStore } from '../browse.store';
 import { useStageWidth } from '../../../core/use-stage-width';
-import { shouldAutoCollapse, FACET_COLLAPSE } from '../../../core/layout-breakpoints';
+import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE } from '../../../core/layout-breakpoints';
 
-// 資料夾瀏覽兩欄:資料夾樹側欄(252)· 圖牆(1fr)。inspector 暫不接(與 gallery 隔離)。
+// 資料夾瀏覽三欄:資料夾樹側欄(252)· 圖牆(1fr)· 檢視器(350)。
 // 動態欄寬:useStageWidth 量測 host 元素寬度,依門檻自動或手動收合側欄。
 @Component({
   selector: 'app-browse-view',
-  imports: [FolderTreeSidebar, BrowseGrid],
+  imports: [FolderTreeSidebar, BrowseGrid, Inspector],
   template: `
     <div class="bview" [style.grid-template-columns]="gridCols()">
       <app-folder-tree-sidebar [collapsed]="treeCollapsed()" />
@@ -24,7 +25,15 @@ import { shouldAutoCollapse, FACET_COLLAPSE } from '../../../core/layout-breakpo
           <span aria-hidden="true">{{ treeCollapsed() ? '›' : '‹' }}</span>
         </button>
         <app-browse-grid />
+        <button
+          class="edge-toggle et-right"
+          (click)="toggleInspector()"
+          [attr.aria-label]="inspectorCollapsed() ? '展開檢視器' : '收合檢視器'"
+          [title]="inspectorCollapsed() ? '展開檢視器' : '收合檢視器'">
+          <span aria-hidden="true">{{ inspectorCollapsed() ? '‹' : '›' }}</span>
+        </button>
       </div>
+      <app-inspector [class.collapsed]="inspectorCollapsed()" [photoId]="store.selectedId()" />
     </div>
   `,
   styles: [
@@ -83,6 +92,11 @@ import { shouldAutoCollapse, FACET_COLLAPSE } from '../../../core/layout-breakpo
         border-left: none;
         border-radius: 0 var(--radius-soft) var(--radius-soft) 0;
       }
+      .et-right {
+        right: 0;
+        border-right: none;
+        border-radius: var(--radius-soft) 0 0 var(--radius-soft);
+      }
     `,
   ],
 })
@@ -96,12 +110,22 @@ export class BrowseView implements OnInit {
   readonly treeUserCollapsed = signal<boolean | null>(null);
   readonly treeCollapsed = computed(() =>
     this.treeUserCollapsed() ?? shouldAutoCollapse(this.stageWidth(), FACET_COLLAPSE));
-  readonly gridCols = computed(() => `${this.treeCollapsed() ? '0' : '252px'} 1fr`);
+  readonly inspectorUserCollapsed = signal<boolean | null>(null);
+  readonly inspectorCollapsed = computed(() =>
+    this.inspectorUserCollapsed() ?? shouldAutoCollapse(this.stageWidth(), INSPECTOR_COLLAPSE));
+  readonly gridCols = computed(() => {
+    const t = this.treeCollapsed() ? '0' : '252px';
+    const i = this.inspectorCollapsed() ? '0' : '350px';
+    return `${t} 1fr ${i}`;
+  });
 
   toggleTree(): void { this.treeUserCollapsed.set(!this.treeCollapsed()); }
+  toggleInspector(): void { this.inspectorUserCollapsed.set(!this.inspectorCollapsed()); }
 
   ngOnInit(): void {
     void this.store.loadRoots();
+    // 與 gallery 共用 InspectorStore(root 單例);進入 browse 先清掉前一路由殘留的選取。
+    this.store.select(null);
     // URL(root/path/q)是單一真相:初次 + 每次變動都套用。
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((p) => {
       const root = p['root'] != null ? Number(p['root']) : null;
