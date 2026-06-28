@@ -44,9 +44,10 @@
         @else { 這個資料夾沒有圖片。{{ subfolders().length ? '點上方子資料夾往下看。' : '' }} }
       </div>
     }
-    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="stdCol" [gap]="gap" [scrollEl]="viewEl">
+    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="stdCol" [gap]="gap" [scrollEl]="viewEl"
+      [roving]="true" (activate)="onActivate($event)" (loadMore)="onLoadMore()">
       <ng-template let-p>
-        <div class="tile" [class.sel]="store.selectedId() === p.id" (pmActivate)="pick(p)"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
+        <div class="tile" [class.sel]="store.selectedId() === p.id"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
       </ng-template>
     </app-masonry>
     @if (loading()) { <div class="empty">載入中…</div> }

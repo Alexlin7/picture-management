@@ -57,17 +57,19 @@ try {
   await page.goto(`${BASE}/browse?root=1&path=Pixiv`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.tile', { timeout: 15000 });
 
-  // 1) tile 透過 pmActivate 取得 role=button + tabindex=0
-  if ((await attr('.tile', 'role')) !== 'button') fail('tile 缺 role=button(pmActivate 未生效)');
-  else console.log('OK:tile role=button');
-  if ((await attr('.tile', 'tabindex')) !== '0') fail('tile 缺 tabindex=0');
-  else console.log('OK:tile tabindex=0');
+  // 1) masonry roving:可聚焦格是 .m-item.roving(role=button),整個圖牆只當一個 Tab 停駐點
+  if ((await attr('.m-item.roving', 'role')) !== 'button') fail('m-item 缺 role=button(roving 未生效)');
+  else console.log('OK:m-item.roving role=button');
+  const tabbables = await page.$$eval('.m-item.roving', (els) => els.filter((e) => e.getAttribute('tabindex') === '0').length);
+  if (tabbables !== 1) fail(`roving 應只有 1 個 tabindex=0(got ${tabbables})——否則不是單一 Tab 停駐點`);
+  else console.log('OK:roving 只有 1 個 tabindex=0(其餘 -1)');
 
   // 2) 資料夾列(root-row / indent)鍵盤可達
   if ((await attr('.frow.root-row', 'role')) !== 'button') fail('root-row 缺 role=button');
   else console.log('OK:資料夾 root-row role=button');
 
-  // 3) 麵包屑可點段(非當前)鍵盤可達
+  // 3) 麵包屑可點段(非當前)鍵盤可達(根節點麵包屑等 folder-tree 載入後才出現,故先等)
+  await page.waitForSelector('.crumbs .c:not(.cur)', { timeout: 5000 }).catch(() => {});
   const crumbRole = await attr('.crumbs .c:not(.cur)', 'role');
   if (crumbRole !== 'button') fail(`麵包屑可點段缺 role=button(got ${crumbRole})`);
   else console.log('OK:麵包屑可點段 role=button');
@@ -87,16 +89,34 @@ try {
     console.log('SKIP:無 autocomplete row,略過 token × 檢查');
   }
 
-  // 5) 鍵盤聚焦第一張 tile 後按 Enter → 該 tile 取得 .sel(選取)
-  await page.$eval('.tile', (el) => el.focus());
-  const focused = await page.evaluate(() => document.activeElement?.classList.contains('tile'));
-  if (!focused) fail('tile 無法用 focus() 聚焦(tabindex 失效)');
-  else console.log('OK:tile 可程式聚焦');
+  // 5) roving 方向鍵:聚焦 active 格 → ArrowRight 焦點移到下一格 → Enter 選取
+  await page.$eval('.m-item.roving[tabindex="0"]', (el) => el.focus());
+  const startI = await page.evaluate(() => document.activeElement?.getAttribute('data-i'));
+  if (startI == null) fail('無法聚焦 active m-item');
+  else console.log(`OK:聚焦 active 格 data-i=${startI}`);
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(120);
+  const nextI = await page.evaluate(() => document.activeElement?.getAttribute('data-i'));
+  if (nextI === startI || nextI == null) fail(`ArrowRight 未移動焦點(${startI} → ${nextI})`);
+  else console.log(`OK:ArrowRight 焦點 ${startI} → ${nextI}`);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(200);
   const selExists = await page.$('.tile.sel');
   if (!selExists) fail('Enter 未選取 tile(.sel 未出現)');
-  else console.log('OK:聚焦 tile 按 Enter 觸發選取');
+  else console.log('OK:方向鍵移動後 Enter 觸發選取');
+
+  // 6) 方向鍵一路往下到結尾 → 自動載下一頁(active 的 data-i 能超過第一頁筆數)
+  await page.$eval('.m-item.roving[tabindex="0"]', (el) => el.focus());
+  let maxI = 0, stall = 0;
+  for (let k = 0; k < 200 && stall < 10; k++) {
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(45);
+    const di = Number((await page.evaluate(() => document.activeElement?.getAttribute('data-i'))) ?? -1);
+    if (di > maxI) { maxI = di; stall = 0; } else stall++;
+  }
+  // 第一頁 60 筆(index 0..59);若方向鍵到底有自動補頁,active 應能超過 59。
+  if (maxI > 59) console.log(`OK:方向鍵到底自動載入下一頁(active 抵達 data-i=${maxI} > 第一頁 60)`);
+  else fail(`方向鍵到底未自動載入下一頁(max data-i=${maxI},應 > 59)`);
 } catch (e) {
   fail(e.message);
 } finally {

@@ -141,9 +141,10 @@
     } @else if (!loading() && photos().length === 0) {
       <div class="empty">沒有符合的圖片</div>
     }
-    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="minColWidth()" [gap]="gap" [scrollEl]="viewEl">
+    <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="minColWidth()" [gap]="gap" [scrollEl]="viewEl"
+      [roving]="true" (activate)="onActivate($event)" (loadMore)="onLoadMore()">
       <ng-template let-p>
-        <div class="tile" [class.sel]="selectedId() === p.id" (pmActivate)="pick(p)">
+        <div class="tile" [class.sel]="selectedId() === p.id">
           <app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" />
         </div>
       </ng-template>

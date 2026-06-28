@@ -1,5 +1,5 @@
 // src/Pm.Web/src/app/core/masonry-layout.spec.ts
-import { computeMasonryLayout, isBoxInWindow, type MasonryBox } from './masonry-layout';
+import { computeMasonryLayout, isBoxInWindow, gridNavTarget, type MasonryBox } from './masonry-layout';
 
 describe('computeMasonryLayout', () => {
   it('never returns 0 columns for positive width', () => {
@@ -63,5 +63,46 @@ describe('isBoxInWindow', () => {
   it('includes a box straddling the viewport top edge', () => {
     // scrollTop 1000, overscan 0 → window [1000, 1500]; box [980, 1030] straddles top
     expect(isBoxInWindow(box(980, 50), 1000, 500, 0)).toBe(true);
+  });
+});
+
+describe('gridNavTarget', () => {
+  // 2 欄瀑布流(欄寬 100、gap 10):col0 left=0(center 50),col1 left=110(center 160)
+  //   index 0: col0 top 0   h100
+  //   index 1: col1 top 0   h50
+  //   index 2: col1 top 60  h100
+  //   index 3: col0 top 110 h80
+  const boxes: MasonryBox[] = [
+    { left: 0, top: 0, width: 100, height: 100 },
+    { left: 110, top: 0, width: 100, height: 50 },
+    { left: 110, top: 60, width: 100, height: 100 },
+    { left: 0, top: 110, width: 100, height: 80 },
+  ];
+
+  it('right/left 走閱讀順序前後一格', () => {
+    expect(gridNavTarget(boxes, 0, 'right')).toBe(1);
+    expect(gridNavTarget(boxes, 1, 'left')).toBe(0);
+  });
+
+  it('down 走同欄最近的下一格(依幾何,非 index+cols)', () => {
+    expect(gridNavTarget(boxes, 0, 'down')).toBe(3); // col0:0 → 3
+    expect(gridNavTarget(boxes, 1, 'down')).toBe(2); // col1:1 → 2
+  });
+
+  it('up 走同欄最近的上一格', () => {
+    expect(gridNavTarget(boxes, 3, 'up')).toBe(0); // col0:3 → 0
+    expect(gridNavTarget(boxes, 2, 'up')).toBe(1); // col1:2 → 1
+  });
+
+  it('邊界無處可去時回原 index', () => {
+    expect(gridNavTarget(boxes, 0, 'left')).toBe(0);  // 第一格往左
+    expect(gridNavTarget(boxes, 3, 'right')).toBe(3); // 最後一格往右
+    expect(gridNavTarget(boxes, 0, 'up')).toBe(0);    // col0 最上往上
+    expect(gridNavTarget(boxes, 3, 'down')).toBe(3);  // col0 最下往下
+  });
+
+  it('current 越界回原值', () => {
+    expect(gridNavTarget(boxes, -1, 'right')).toBe(-1);
+    expect(gridNavTarget(boxes, 9, 'down')).toBe(9);
   });
 });
