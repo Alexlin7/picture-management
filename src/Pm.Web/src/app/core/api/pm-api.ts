@@ -57,6 +57,8 @@ export class PmApi {
     return firstValueFrom(this.http.get<PhotoDetail>(`/api/photos/${id}`));
   }
   thumbUrl(id: number): string { return `/api/photos/${id}/thumb`; }
+  // 原圖串流(lightbox 顯示 / 下載);download=true 走 attachment(下載)。
+  fileUrl(id: number, download = false): string { return `/api/photos/${id}/file${download ? '?download=true' : ''}`; }
 
   roots(): Promise<Root[]> { return firstValueFrom(this.http.get<Root[]>('/api/roots')); }
   createRoot(name: string, absPath: string): Promise<Root> {

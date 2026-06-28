@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, OnDestroy, computed, effect, inject, input, output, signal } from '@angular/core';
 import {
   InspectorStore,
   type PhotoDetail,
@@ -25,6 +25,9 @@ export class Inspector implements OnDestroy {
   private readonly store = inject(InspectorStore);
 
   photoId = input<number | null>(null);
+
+  // 「⤢ 放大」→ 由父層(gallery-view / browse-view)以自己的 store 開 lightbox。
+  readonly expand = output<void>();
 
   // store 的非同步狀態(元件只讀)
   readonly photo = this.store.detail;

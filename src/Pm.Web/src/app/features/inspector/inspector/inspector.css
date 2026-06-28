@@ -57,6 +57,30 @@
   inset: 0;
   background: linear-gradient(180deg, transparent 60%, var(--color-panel));
 }
+/* 放大檢視鈕:預覽右上角浮一顆,點開 lightbox 看原圖。 */
+.preview .zoom-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-soft);
+  background: rgba(20, 22, 27, 0.6);
+  border: 1px solid var(--color-hair-strong);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.preview .zoom-btn:hover {
+  background: var(--color-raised-2);
+  border-color: var(--color-accent);
+}
+.preview .zoom-btn svg {
+  width: 17px;
+  height: 17px;
+}
 
 /* ---------- 主體 ---------- */
 .ibody {
