@@ -35,3 +35,32 @@ export function isBoxInWindow(
   const max = scrollTop + vpHeight + overscan;
   return box.top + box.height >= min && box.top <= max;
 }
+
+export type GridNavDir = 'left' | 'right' | 'up' | 'down';
+
+/** roving tabindex 方向鍵導航:依 box 幾何算下一個焦點 index。
+ *  left/right = 閱讀順序前後一格;up/down = 同欄(centerX 接近)最近的上/下一格
+ *  —— 用幾何而非 index±cols,才能正確處理瀑布流的不定高與欄高不齊。
+ *  無處可去(邊界)或 current 越界時回原 index(不動)。 */
+export function gridNavTarget(boxes: MasonryBox[], current: number, dir: GridNavDir): number {
+  if (current < 0 || current >= boxes.length) return current;
+  if (dir === 'left') return current > 0 ? current - 1 : current;
+  if (dir === 'right') return current < boxes.length - 1 ? current + 1 : current;
+
+  const cur = boxes[current];
+  const curCenter = cur.left + cur.width / 2;
+  const tol = cur.width * 0.5; // 同欄容差:中心 x 差 < 半個欄寬視為同欄
+  let best = current;
+  let bestTop = dir === 'down' ? Infinity : -Infinity;
+  for (let i = 0; i < boxes.length; i++) {
+    if (i === current) continue;
+    const b = boxes[i];
+    if (Math.abs(b.left + b.width / 2 - curCenter) > tol) continue; // 非同欄
+    if (dir === 'down') {
+      if (b.top > cur.top && b.top < bestTop) { bestTop = b.top; best = i; }
+    } else {
+      if (b.top < cur.top && b.top > bestTop) { bestTop = b.top; best = i; }
+    }
+  }
+  return best;
+}

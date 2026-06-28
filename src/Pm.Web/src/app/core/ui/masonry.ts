@@ -1,9 +1,9 @@
 // src/Pm.Web/src/app/core/ui/masonry.ts
 import {
-  Component, ContentChild, DestroyRef, ElementRef, TemplateRef, computed, effect, inject, input, signal,
+  Component, ContentChild, DestroyRef, ElementRef, TemplateRef, computed, effect, inject, input, output, signal,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { computeMasonryLayout, isBoxInWindow, type MasonryBox } from '../masonry-layout';
+import { computeMasonryLayout, isBoxInWindow, gridNavTarget, type MasonryBox, type GridNavDir } from '../masonry-layout';
 import { useStageWidth } from '../use-stage-width';
 
 @Component({
@@ -14,6 +14,12 @@ import { useStageWidth } from '../use-stage-width';
     <div class="m-root" [style.height.px]="layout().containerHeight">
       @for (entry of visibleItems(); track entry.i) {
         <div class="m-item"
+          [class.roving]="roving()"
+          [attr.data-i]="entry.i"
+          [attr.role]="roving() ? 'button' : null"
+          [attr.tabindex]="roving() ? (entry.i === activeIndex() ? 0 : -1) : null"
+          (click)="onCellClick(entry.i)"
+          (keydown)="onCellKeydown($event, entry.i)"
           [style.left.px]="entry.box?.left ?? 0"
           [style.top.px]="entry.box?.top ?? 0"
           [style.width.px]="entry.box?.width ?? 0">
@@ -24,6 +30,9 @@ import { useStageWidth } from '../use-stage-width';
   styles: [`
     .m-root { position: relative; width: 100%; }
     .m-item { position: absolute; }
+    /* roving 模式:m-item 即可聚焦格(role=button),焦點環走全域 :focus-visible,
+       對齊 tile 圓角讓 ring 不是直角。 */
+    .m-item.roving { border-radius: var(--radius-card); cursor: pointer; }
   `],
 })
 export class Masonry {
@@ -41,6 +50,15 @@ export class Masonry {
   // 不傳(null)→ fallback 全渲染(保持向後相容 + 測試/SSR 安全)。
   scrollEl = input<HTMLElement | null>(null);
   overscan = input(600); // px,與消費端 IntersectionObserver rootMargin 一致
+
+  // roving tabindex 鍵盤格線導航:啟用後整個圖牆是「單一 Tab 停駐點」,
+  // 進去後方向鍵在 tile 間移動(依版面幾何)、Enter/Space 觸發 activate。
+  // 不啟用(預設)→ m-item 不可聚焦、不攔鍵盤,行為與原本完全相同。
+  roving = input(false);
+  // 使用者「觸發」某格(Enter/Space/click):回拋 item 與 index 給消費端(原本的 pick)。
+  readonly activate = output<{ item: unknown; index: number }>();
+  // 目前焦點格 index(roving 用)。items 變動時 clamp 在合法範圍。
+  readonly activeIndex = signal(0);
 
   @ContentChild(TemplateRef) tpl!: TemplateRef<unknown>;
 
@@ -78,6 +96,63 @@ export class Masonry {
         el.removeEventListener('scroll', onScroll);
         ro.disconnect();
       });
+    });
+
+    // items 變短時把 activeIndex clamp 回合法範圍(避免指向已不存在的格)。
+    effect(() => {
+      const n = this.items().length;
+      if (n > 0 && this.activeIndex() > n - 1) this.activeIndex.set(n - 1);
+    });
+  }
+
+  // ── roving tabindex 鍵盤導航 ──
+  onCellClick(i: number): void {
+    if (!this.roving()) return;            // 非 roving:不攔,維持原行為
+    this.activeIndex.set(i);
+    this.activate.emit({ item: this.items()[i], index: i });
+  }
+
+  onCellKeydown(e: KeyboardEvent, i: number): void {
+    if (!this.roving()) return;
+    const dirs: Record<string, GridNavDir> = {
+      ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+    };
+    if (e.key in dirs) {
+      e.preventDefault();
+      this.moveActive(dirs[e.key]);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this.activate.emit({ item: this.items()[i], index: i });
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      this.setActiveAndFocus(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      this.setActiveAndFocus(this.items().length - 1);
+    }
+  }
+
+  private moveActive(dir: GridNavDir): void {
+    const next = gridNavTarget(this.layout().boxes, this.activeIndex(), dir);
+    if (next !== this.activeIndex()) this.setActiveAndFocus(next);
+  }
+
+  // 設定焦點格 + 必要時捲入視窗(windowing 才會 render 它)+ 下一幀聚焦該格。
+  private setActiveAndFocus(i: number): void {
+    if (i < 0 || i >= this.items().length) return;
+    this.activeIndex.set(i);
+    const box = this.layout().boxes[i];
+    const el = this.scrollEl();
+    if (el && box) {
+      const top = box.top;
+      const bottom = box.top + box.height;
+      if (top < el.scrollTop) el.scrollTop = top - 12;
+      else if (bottom > el.scrollTop + el.clientHeight) el.scrollTop = bottom - el.clientHeight + 12;
+      this.scrollTop.set(el.scrollTop);   // 同步驅動 windowing 重算,確保目標格被渲染
+    }
+    requestAnimationFrame(() => {
+      const cell = this.hostRef.nativeElement.querySelector(`.m-item[data-i="${i}"]`) as HTMLElement | null;
+      cell?.focus();
     });
   }
 }

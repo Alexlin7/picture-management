@@ -7,14 +7,13 @@ import { displayOf } from '@core/tag-display';
 import { ToastService } from '@core/ui/toast';
 import { ConfirmService } from '@core/ui/confirm';
 import { Thumb } from '@core/ui/thumb';
-import { Activate } from '@core/a11y/activate';
 import { Masonry } from '../../../core/ui/masonry';
 import { MIN_COL_WIDTH, MASONRY_GAP } from '../../../core/layout-breakpoints';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
   selector: 'app-photo-grid',
-  imports: [Thumb, Masonry, Activate],
+  imports: [Thumb, Masonry],
   templateUrl: './photo-grid.html',
   styleUrl: './photo-grid.css',
 })
@@ -116,6 +115,11 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
   // 點 tile → 寫入 store 選取
   pick(p: PhotoListItem): void {
     this.store.select(p.id);
+  }
+
+  // masonry roving 導航:click / Enter / Space 觸發 → 選取該圖。
+  onActivate(e: { item: unknown; index: number }): void {
+    this.pick(e.item as PhotoListItem);
   }
 
   // 無限捲哨兵:接近底部時自動載下一頁(rootMargin 提前預抓)。

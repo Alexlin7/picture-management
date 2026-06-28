@@ -41,6 +41,8 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
   enter(relPath: string): void { this.store.enterFolder(relPath); }
   enterChild(c: FolderNode): void { this.store.enterFolder(c.relPath); }
   pick(p: PhotoListItem): void { this.store.select(p.id); }
+  // masonry roving 導航:click / Enter / Space 觸發 → 選取該圖。
+  onActivate(e: { item: unknown; index: number }): void { this.pick(e.item as PhotoListItem); }
 
   @ViewChild('sentinel') private sentinel?: ElementRef<HTMLElement>;
   private io?: IntersectionObserver;
