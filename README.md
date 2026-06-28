@@ -140,3 +140,9 @@ src/
 tests/          與 src 一一對應的測試專案
 docs/           design/(設計 spec)、deployment.md、mockups/
 ```
+
+---
+
+## 授權
+
+[MIT](LICENSE) © 2026 alexlin7
