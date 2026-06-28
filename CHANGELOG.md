@@ -1,0 +1,26 @@
+# Changelog
+
+本專案所有重要變更記錄於此。格式依循 [Keep a Changelog](https://keepachangelog.com/zh-TW/),版本遵循 [SemVer](https://semver.org/lang/zh-TW/)。
+
+## [Unreleased]
+
+## [0.1.0] - 2026-06-28
+
+首個公開版本。Phase 1 核心功能完整,以 win-x64 自包含單檔 exe 交付。
+
+### 新增
+- 就地掃描索引:SHA-256 身分 / 位置兩層分離、搬移偵測、512px webp 縮圖、EXIF。
+- 布林多軸查詢(AND / 排除)+ DAG 標籤閉包 + facet 樹。
+- 路徑→tag 匯入後確認規則。
+- 資料夾路徑維度瀏覽 `/browse`(即時樹 + 麵包屑 + 下鑽 + 遞迴圖牆)。
+- WD14 自動標籤(opt-in,ONNX in-proc,預設 DirectML);tag 顯示層(中文顯示名 + 角色解析 + 來源徽章)。
+- 作品軸(copyright 拆分 + facet「作品→角色」DAG 樹)。
+- 標籤庫管理(列表 / 改名 / 合併 / 刪除,全 Unicode 不分大小寫去重)。
+- 軟刪 + 同 hash 自動復原;孤兒 photo 清理;單張重新處理 + 掃描自動痊癒。
+- AVIF / HEIC / HEIF 解碼支援。
+- 前端 RWD:桌面縮放韌性 + 側欄收合 + 完整手機版抽屜式側板;a11y(鍵盤導航 / focus ring / ARIA)。
+- 大圖檢視 lightbox。
+- GitHub Release 自動散布 workflow(打 `v*` tag → 測試 → build → win-x64 單檔 zip)。
+
+[Unreleased]: https://github.com/Alexlin7/picture-management/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Alexlin7/picture-management/releases/tag/v0.1.0
