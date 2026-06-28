@@ -1,0 +1,75 @@
+name: Release
+
+# 打版本 tag(vX.Y.Z)→ 自動驗證(前端/後端測試)→ 前端 build → 自包含單檔 win-x64 publish
+# → 整個 publish 夾打包成 zip → 建立 GitHub Release 並上傳 zip 當 asset。
+# 手動發版步驟與產物說明見 docs/deployment.md;本 workflow 是該文件 §9 的自動化實作。
+#
+# 用法:
+#   git tag v0.1.0 && git push origin v0.1.0
+# 之後到 repo 的 Releases 頁即可下載 sus-picture-management-v0.1.0-win-x64.zip。
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # 建立 Release / 上傳 asset 需要寫入權限
+
+jobs:
+  release:
+    # win-x64 自包含 + 原生 DirectML(Windows-only)需在 Windows runner 上 publish。
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # SDK 版本依 repo 根的 global.json(10.0.301,rollForward latestPatch)。
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: src/Pm.Web/package-lock.json
+
+      # ---- 前端:依賴 → 測試 → build(產靜態檔到 src/Pm.Api/wwwroot,publish 會一起打包)----
+      - name: 前端依賴(npm ci)
+        working-directory: src/Pm.Web
+        run: npm ci
+
+      - name: 前端測試(vitest + jsdom,免瀏覽器)
+        working-directory: src/Pm.Web
+        run: npx ng test --watch=false
+
+      - name: 前端 build
+        working-directory: src/Pm.Web
+        run: npx ng build
+
+      # ---- 後端:測試 → 自包含單檔 publish ----
+      - name: 後端測試
+        run: dotnet test --configuration Release
+
+      - name: 自包含單檔 publish(win-x64)
+        run: dotnet publish src/Pm.Api -p:PublishProfile=win-x64
+
+      # ---- 打包整個 publish 夾(Pm.Api.exe + wwwroot + appsettings.json)成 zip ----
+      # 註:single-file 的 wwwroot 在 exe 旁邊不在 exe 內,故交付單位是整個 publish 夾(見 deployment.md §3)。
+      - name: 打包 zip
+        shell: pwsh
+        run: |
+          $zip = "sus-picture-management-${{ github.ref_name }}-win-x64.zip"
+          Compress-Archive -Path "src/Pm.Api/bin/Release/net10.0/publish/*" -DestinationPath $zip
+          "ASSET=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: 建立 GitHub Release + 上傳 asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
