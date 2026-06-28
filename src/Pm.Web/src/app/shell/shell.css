@@ -3,7 +3,7 @@
 }
 .app {
   display: grid;
-  grid-template-columns: 58px 1fr;
+  grid-template-columns: var(--rail-width) 1fr;
   height: 100vh;
 }
 /* 跳到主內容:平時移出畫面,鍵盤 Tab 聚焦才現身(a11y skip-link)。 */

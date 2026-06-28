@@ -121,6 +121,7 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE, MOBILE } from '
       :host ::ng-deep app-drawer-panel app-folder-tree-sidebar .sidebar {
         width: 100%;
         height: 100%;
+        border-right: none; /* 抽屜 panel 自帶 border-right,去掉側欄重複的 hairline */
       }
       :host ::ng-deep app-drawer-panel app-inspector {
         width: 100%;
