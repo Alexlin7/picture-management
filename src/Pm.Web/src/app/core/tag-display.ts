@@ -1,6 +1,6 @@
 // WD14 tag 顯示層(v1)— 純函式,無副作用,gallery / inspector 共用。
-// 設計:docs/superpowers/specs/2026-06-22-tag-display-layer-design.md §④(已鎖定)
-//       資料:docs/superpowers/specs/2026-06-23-tag-display-v1-dataprep.md
+// 設計:docs/design/2026-06-22-tag-display-layer-design.md §④(已鎖定)
+//       資料:docs/design/2026-06-23-tag-display-v1-dataprep.md
 // 鐵則:canonical(tag.name)是唯一真相,照存照搜;本層只做顯示裝飾與重新分組,
 //       不改資料、不影響查詢。對照表查不到一律優雅退回(底線轉空白)。
 

@@ -1,6 +1,6 @@
 # ③g 完整手機版 — 抽屜式側板設計
 
-**狀態:已實作(2026-06-28),見 `docs/superpowers/plans/2026-06-28-mobile-drawers.md`。** 對應 backlog `2026-06-22-remaining-work-handoff.md` 的 ③g。
+**狀態:已實作(2026-06-28)。**
 取代先前撤掉的「窄寬 inspector 覆蓋層」半成品(那版 close X 浮在內容上、疊住 ⤢ 放大鈕 —— 本設計以「抽屜自帶 header 關閉鈕」根治)。
 
 可點 mockup:`docs/mockups/mobile-drawers-preview.html`(瀏覽器開,下方有狀態切換鈕)。

@@ -1,7 +1,7 @@
 namespace Pm.Ml;
 
 // 模型檔下載 helper —— backend/模型無關。WD14 與未來 CLIP 等都共用。
-// 設計理由見 docs/superpowers/specs/2026-06-23-ml-layer-architecture-assessment.md §3。
+// 設計理由見 docs/design/2026-06-23-ml-layer-architecture-assessment.md §3。
 public static class ModelArtifactDownloader
 {
     // 下到 dest + ".part" 暫存檔,複製完成後才 atomic rename 成 dest。

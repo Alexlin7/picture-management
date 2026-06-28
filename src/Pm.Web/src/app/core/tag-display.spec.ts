@@ -8,8 +8,8 @@ import {
 } from './tag-display';
 
 // 對照 specs:
-//   docs/superpowers/specs/2026-06-22-tag-display-layer-design.md §④ + 測試考量
-//   docs/superpowers/specs/2026-06-23-tag-display-v1-dataprep.md(44 筆真實語料)
+//   docs/design/2026-06-22-tag-display-layer-design.md §④ + 測試考量
+//   docs/design/2026-06-23-tag-display-v1-dataprep.md(44 筆真實語料)
 // 不變式:canonical 照存照搜,顯示層只裝飾;parseCharacter 回 RAW(底線保留),
 //         spaces() 由 displayOf 套用。
 

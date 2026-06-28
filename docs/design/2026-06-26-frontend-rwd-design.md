@@ -15,7 +15,7 @@
 ### 非目標(YAGNI)
 - **不做整頁手機版重排**(漢堡選單、抽屜式側欄、375px mobile-first 整頁重構)。使用者情境以桌面調整視窗為主。
   - **例外(2026-06-27 延伸,已完成):** gallery 頂部 `topbar` / `toolbar` 已補手機尺寸支援 —— 斷點 640px:topbar 折行 + 隱藏冗餘提示,toolbar 採「⋯ 更多」溢出選單收次要操作(模型佇列狀態 + 重標失敗);`rwd-resize-smoke.mjs` 補 480/375 寬度回歸。此為點狀修復,非整頁 mobile-first;抽屜式側欄、漢堡選單仍維持非目標。
-- **不做 virtual scroll / 窗格化**。那是 `2026-06-22-remaining-work-handoff.md` 既有的獨立 backlog;本次只保證不破版 + 自適應。無限捲動沿用現有 IntersectionObserver。
+- **不做 virtual scroll / 窗格化**(獨立 backlog,本次範圍外);本次只保證不破版 + 自適應。無限捲動沿用現有 IntersectionObserver。
 - **不做 overlay peek**(收合側欄後懸浮預覽)。要看側欄就展開或拉寬視窗。
 
 ## 2. 根本改變:排版改由 JS 量測驅動

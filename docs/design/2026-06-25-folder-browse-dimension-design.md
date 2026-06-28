@@ -5,7 +5,7 @@
 - 範圍:新增「照資料夾分類瀏覽」維度,與既有「by tag 搜尋」並列,成為圖庫的第二個檢視入口。
 - 方法:brainstorming(一問一答收斂)+ 資料層實地探索 + ui-ux-pro-max 規則 + frontend-design 視覺判斷 + 可點 mockup 三輪迭代。
 - Mockup:`docs/mockups/folder-dimension-design.html`(瀏覽器開,3 分頁:雙維度總覽 / 資料夾瀏覽完整互動 / path→tag 對照)。
-- 關聯:`2026-06-21-picture-management-design.md`(§5.4 路徑→tag、鐵則 1/2/4/9)、`2026-06-25-tag-sidebar-and-import-confirm-review.md`(本設計回應其中「資料夾維度」分岔)、`2026-06-24-frontend-design-guidelines.md`(樣式落點)。
+- 關聯:`2026-06-21-picture-management-design.md`(§5.4 路徑→tag、鐵則 1/2/4/9)、左側 tag facet 側欄 UX 檢討(本設計回應其中「資料夾維度」分岔)、`2026-06-24-frontend-design-guidelines.md`(樣式落點)。
 
 ---
 

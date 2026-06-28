@@ -6,9 +6,9 @@
 
 **與既有文件的關係:**
 
-- **`docs/superpowers/specs/2026-06-24-ui-style-system-design.md`(Spec 1,樣式系統地基)** 是 **token / primitive 的實作地基** —— `@theme` 有哪些 token、全域 `@layer components` 有哪些 primitive、命名與落腳檔案。本文是其**上層的設計準則**:Spec 1 提供「有哪些零件」,本文規定「什麼情境用哪個、不准怎麼用」。兩者衝突時,以本文的準則為意圖、以 Spec 1 為實作真相,並回頭修正不一致的一方。
+- **`docs/design/2026-06-24-ui-style-system-design.md`(Spec 1,樣式系統地基)** 是 **token / primitive 的實作地基** —— `@theme` 有哪些 token、全域 `@layer components` 有哪些 primitive、命名與落腳檔案。本文是其**上層的設計準則**:Spec 1 提供「有哪些零件」,本文規定「什麼情境用哪個、不准怎麼用」。兩者衝突時,以本文的準則為意圖、以 Spec 1 為實作真相,並回頭修正不一致的一方。
 - **`CLAUDE.md`** 已有前端慣例摘要(繁中溝通、token 分層、元件樣式隔離、commit 前驗證)。本文不重複,只在必要處引用。
-- **`docs/superpowers/specs/2026-06-21-picture-management-design.md` §6** 與 mockup `docs/mockups/ui-preview.html` 是 UI/UX 的原始設計意圖來源。
+- **`docs/design/2026-06-21-picture-management-design.md` §6** 與 mockup `docs/mockups/ui-preview.html` 是 UI/UX 的原始設計意圖來源。
 
 **範圍邊界:** 本文談前端視覺與互動準則,不涉後端、資料模型、ML。所有準則皆以「單人本機、暗色密集工作台」為前提 —— 不是面向公眾的響應式網站。
 
