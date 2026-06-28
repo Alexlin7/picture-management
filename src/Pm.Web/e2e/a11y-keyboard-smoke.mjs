@@ -57,6 +57,14 @@ try {
   await page.goto(`${BASE}/browse?root=1&path=Pixiv`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.tile', { timeout: 15000 });
 
+  // 0) shell 結構(Wave C):skip-link + nav aria-label + <main id>
+  if (!(await page.$('a.skip-link[href="#main-content"]'))) fail('缺 skip-link');
+  else console.log('OK:skip-link 存在');
+  if ((await attr('nav.activity', 'aria-label')) !== '主導覽') fail('nav 缺 aria-label');
+  else console.log('OK:nav aria-label=主導覽');
+  if (!(await page.$('main#main-content'))) fail('缺 <main id=main-content>');
+  else console.log('OK:<main id> 存在');
+
   // 1) masonry roving:可聚焦格是 .m-item.roving(role=button),整個圖牆只當一個 Tab 停駐點
   if ((await attr('.m-item.roving', 'role')) !== 'button') fail('m-item 缺 role=button(roving 未生效)');
   else console.log('OK:m-item.roving role=button');

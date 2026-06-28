@@ -9,10 +9,11 @@
   <!-- 作品/企劃 → 角色 DAG 樹 -->
   <div class="facet">
     <div class="facet-t toggleable" role="button" tabindex="0"
+         [attr.aria-expanded]="!isCollapsed('dag')"
          (click)="toggleSection('dag')"
          (keydown.enter)="toggleSection('dag')"
          (keydown.space)="$event.preventDefault(); toggleSection('dag')">
-      <span class="ttoggle" [class.open]="!isCollapsed('dag')">▶</span>
+      <span class="ttoggle" aria-hidden="true" [class.open]="!isCollapsed('dag')">▶</span>
       <span class="dot" [style.color]="color('copyright')" [style.background]="color('copyright')"></span>
       作品 / 企劃 → 角色
       <span class="dag">DAG</span>
@@ -22,9 +23,11 @@
       <!-- depth 0 -->
       @for (n0 of tree(); track n0.name) {
         <div class="tnode">
-          <div class="frow pickable" [class.on]="isActive(n0.name)" [style.padding-left]="pad(0)" (pmActivate)="pick(n0)">
+          <div class="frow pickable" [class.on]="isActive(n0.name)" [style.padding-left]="pad(0)" (pmActivate)="pick(n0)"
+               [attr.aria-expanded]="hasKids(n0) ? isOpen(n0) : null"
+               (keydown.arrowright)="expand(n0)" (keydown.arrowleft)="collapse(n0)">
             @if (hasKids(n0)) {
-              <span class="ttoggle" [class.open]="isOpen(n0)" (click)="$event.stopPropagation(); toggle(n0)">▶</span>
+              <span class="ttoggle" aria-hidden="true" [class.open]="isOpen(n0)" (click)="$event.stopPropagation(); toggle(n0)">▶</span>
             } @else {
               <span class="tspacer"></span>
             }
@@ -41,9 +44,11 @@
               <!-- depth 1 -->
               @for (n1 of n0.children; track n1.name) {
                 <div class="tnode">
-                  <div class="frow pickable" [class.on]="isActive(n1.name)" [style.padding-left]="pad(1)" (pmActivate)="pick(n1)">
+                  <div class="frow pickable" [class.on]="isActive(n1.name)" [style.padding-left]="pad(1)" (pmActivate)="pick(n1)"
+                       [attr.aria-expanded]="hasKids(n1) ? isOpen(n1) : null"
+                       (keydown.arrowright)="expand(n1)" (keydown.arrowleft)="collapse(n1)">
                     @if (hasKids(n1)) {
-                      <span class="ttoggle" [class.open]="isOpen(n1)" (click)="$event.stopPropagation(); toggle(n1)">▶</span>
+                      <span class="ttoggle" aria-hidden="true" [class.open]="isOpen(n1)" (click)="$event.stopPropagation(); toggle(n1)">▶</span>
                     } @else {
                       <span class="tspacer"></span>
                     }
@@ -107,10 +112,11 @@
   <!-- 屬性 -->
   <div class="facet">
     <div class="facet-t toggleable" role="button" tabindex="0"
+         [attr.aria-expanded]="!isCollapsed('general')"
          (click)="toggleSection('general')"
          (keydown.enter)="toggleSection('general')"
          (keydown.space)="$event.preventDefault(); toggleSection('general')">
-      <span class="ttoggle" [class.open]="!isCollapsed('general')">▶</span>
+      <span class="ttoggle" aria-hidden="true" [class.open]="!isCollapsed('general')">▶</span>
       <span class="dot" [style.color]="color('general')" [style.background]="color('general')"></span>
       屬性
     </div>
@@ -137,10 +143,11 @@
   <div class="facet">
     <div class="facet-t toggleable" role="button" tabindex="0"
          title="你收錄／存圖的年份,非作品發行年"
+         [attr.aria-expanded]="!isCollapsed('meta')"
          (click)="toggleSection('meta')"
          (keydown.enter)="toggleSection('meta')"
          (keydown.space)="$event.preventDefault(); toggleSection('meta')">
-      <span class="ttoggle" [class.open]="!isCollapsed('meta')">▶</span>
+      <span class="ttoggle" aria-hidden="true" [class.open]="!isCollapsed('meta')">▶</span>
       <span class="dot" [style.color]="color('meta')" [style.background]="color('meta')"></span>
       年份
     </div>
