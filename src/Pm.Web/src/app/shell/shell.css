@@ -6,6 +6,28 @@
   grid-template-columns: 58px 1fr;
   height: 100vh;
 }
+/* 跳到主內容:平時移出畫面,鍵盤 Tab 聚焦才現身(a11y skip-link)。 */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 2000;
+  padding: 8px 14px;
+  border-radius: var(--radius-soft);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-150%);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip-link { transition: none; }
+}
 /* routed 元件容器 = 第 2 欄;router-outlet 注入的元件在此填滿,
    不再變成 .app grid 的直接項目(否則會掉到第 1 欄被壓成 58px)。 */
 .stage {
@@ -83,7 +105,8 @@
   z-index: 40;
   border: 1px solid var(--color-hair);
 }
-.act:hover .lbl {
+.act:hover .lbl,
+.act:focus-visible .lbl {
   opacity: 1;
   transform: translateX(0);
 }

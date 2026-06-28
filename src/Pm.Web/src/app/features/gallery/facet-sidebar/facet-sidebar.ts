@@ -89,6 +89,10 @@ export class FacetSidebar {
     this.overrides.set(next);
   }
 
+  // 鍵盤樹操作:聚焦樹列時 → 展開、← 收合(標準 tree 行為;箭頭 span 仍供滑鼠點)。
+  expand(node: FacetNode): void { if (this.hasKids(node) && !this.isOpen(node)) this.toggle(node); }
+  collapse(node: FacetNode): void { if (this.hasKids(node) && this.isOpen(node)) this.toggle(node); }
+
   // 分區整段收折(dag/屬性/年份),狀態存 localStorage,預設全展。
   private readonly collapsed = signal<Set<FacetSection>>(loadCollapsed(localStorage));
   readonly isCollapsed = (s: FacetSection): boolean => this.collapsed().has(s);
