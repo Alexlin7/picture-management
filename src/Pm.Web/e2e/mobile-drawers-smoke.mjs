@@ -72,11 +72,11 @@ try {
   console.log('OK:資料夾鈕開左抽屜');
   await page.screenshot({ path: `${OUT}/mobile-left-drawer.png` });
 
-  // header X 關左抽屜。
+  // header X 關左抽屜(等 DOM 真的卸載,不靠固定延遲)。
   await page.click('.dp-panel.left .dp-close');
-  await page.waitForTimeout(250);
-  if (await page.$('.dp-panel.left')) fail('header X 未關左抽屜');
-  else console.log('OK:header X 關左抽屜');
+  await page.waitForSelector('.dp-panel.left', { state: 'detached', timeout: 5000 })
+    .then(() => console.log('OK:header X 關左抽屜'))
+    .catch(() => fail('header X 未關左抽屜'));
 
   // 點圖 → 自動開右抽屜(inspector)。
   await page.click('.m-item.roving');
@@ -97,15 +97,16 @@ try {
   await page.waitForSelector('.lb[role="dialog"]', { timeout: 5000 });
   console.log('OK:⤢ 可點,開 lightbox');
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(150);
+  await page.waitForSelector('.lb[role="dialog"]', { state: 'detached', timeout: 5000 });
 
   // ---- 桌面寬(1440):無抽屜、維持三欄(回歸保護)----
+  // 切寬後等抽屜與篩選鈕都從 DOM 卸載(mobile() 變 false → @if 移除),不靠固定延遲。
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.waitForTimeout(300);
+  await page.waitForSelector('.filter-btn', { state: 'detached', timeout: 5000 })
+    .then(() => console.log('OK:桌面寬「資料夾」鈕隱藏'))
+    .catch(() => fail('桌面寬仍顯示「資料夾」鈕'));
   if (await page.$('.dp-scrim')) fail('桌面寬仍殘留抽屜');
   else console.log('OK:桌面寬無抽屜');
-  if (!(await page.$('.filter-btn'))) console.log('OK:桌面寬「資料夾」鈕隱藏');
-  else fail('桌面寬仍顯示「資料夾」鈕');
 } catch (e) {
   fail(e.message);
 } finally {

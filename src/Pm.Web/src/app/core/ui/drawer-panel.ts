@@ -36,14 +36,15 @@ import { A11yModule } from '@angular/cdk/a11y';
     }
   `,
   styles: [`
+    /* scrim 起於 rail 右側(left: --rail-width),讓 rail 在抽屜開啟時仍可見可用,不被遮罩蓋住。 */
     .dp-scrim {
-      position: fixed; inset: 0; z-index: 600; display: flex;
+      position: fixed; top: 0; right: 0; bottom: 0; left: var(--rail-width, 0); z-index: 600; display: flex;
       background: rgba(8, 9, 12, 0.6); backdrop-filter: blur(2px);
       animation: dp-fade 0.18s var(--ease-out, ease-out);
     }
     .dp-panel {
       display: flex; flex-direction: column; height: 100%;
-      background: var(--color-panel); box-shadow: 0 0 40px -8px rgba(0, 0, 0, 0.6);
+      background: var(--color-panel); box-shadow: var(--shadow-3);
     }
     .dp-panel.left {
       margin-right: auto; width: 86vw; max-width: 330px;

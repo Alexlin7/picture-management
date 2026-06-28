@@ -45,6 +45,7 @@ describe('DrawerPanel', () => {
     fixture.componentInstance.side.set('right');
     fixture.detectChanges();
     expect(root.querySelector('.dp-panel.right')).toBeTruthy();
+    expect(root.querySelector('.dp-panel.left')).toBeNull(); // 切換後舊 class 應移除
   });
 
   it('點關閉 X 觸發一次 (close)', () => {
