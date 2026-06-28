@@ -73,7 +73,7 @@
                 [style.color]="lane.color"
                 [style.border-color]="rgba(lane.color, 0.4)"
                 [style.background]="rgba(lane.color, 0.08)"
-              ><span class="tmain">@if (t.emoji) {<span class="emo">{{ t.emoji }}</span>}<span class="tlabel">{{ t.label }}</span>@for (c of t.costumes; track c) {<span class="cb cos">造型:{{ c }}</span>}@if (t.work) {<span class="cb work">作品:{{ t.work }}</span>}</span><span class="tmeta">@if (t.label !== t.canonical) {<span class="canon">{{ t.canonical }}</span>}<span class="src">{{ sourceLabel(t) }}</span><button class="tx" type="button" title="從這張圖移除" (click)="remove(t.id)">×</button></span></span>
+              ><span class="tmain">@if (t.emoji) {<span class="emo">{{ t.emoji }}</span>}<span class="tlabel">{{ t.label }}</span>@for (c of t.costumes; track c) {<span class="cb cos">造型:{{ c }}</span>}@if (t.work) {<span class="cb work">作品:{{ t.work }}</span>}</span><span class="tmeta">@if (t.label !== t.canonical) {<span class="canon">{{ t.canonical }}</span>}<span class="src">{{ sourceLabel(t) }}</span><button class="tx" type="button" title="從這張圖移除" [attr.aria-label]="'移除標籤:' + t.label" (click)="remove(t.id)">×</button></span></span>
             }
           </div>
         </div>
@@ -88,6 +88,12 @@
             class="addtag-in"
             type="text"
             placeholder="加標籤…(查既有,避免重複)"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="insp-combo"
+            aria-label="加標籤"
+            [attr.aria-expanded]="!!query().trim() && comboRows().length > 0"
+            [attr.aria-activedescendant]="activeIndex() >= 0 ? 'insp-combo-' + activeIndex() : null"
             [value]="query()"
             (input)="onType($any($event.target).value)"
             (keydown.arrowdown)="$event.preventDefault(); move(1)"
@@ -96,12 +102,15 @@
             (keydown.escape)="close()"
           />
           @if (query().trim()) {
-            <div class="combo-pop">
+            <div class="combo-pop" role="listbox" id="insp-combo">
               @for (r of comboRows(); track $index; let i = $index) {
                 @if (r.kind === 'tag') {
                   <button
                     type="button"
                     class="combo-row"
+                    role="option"
+                    [id]="'insp-combo-' + i"
+                    [attr.aria-selected]="activeIndex() === i"
                     [class.active]="activeIndex() === i"
                     (mousedown)="$event.preventDefault()"
                     (click)="pick(r.tag)"
@@ -114,6 +123,9 @@
                   <button
                     type="button"
                     class="combo-row create"
+                    role="option"
+                    [id]="'insp-combo-' + i"
+                    [attr.aria-selected]="activeIndex() === i"
                     [class.active]="activeIndex() === i"
                     (mousedown)="$event.preventDefault()"
                     (click)="createNew(r.name)"

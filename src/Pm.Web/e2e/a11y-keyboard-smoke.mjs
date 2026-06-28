@@ -80,6 +80,15 @@ try {
   await page.waitForSelector('.ac-pop .ac-row', { timeout: 3000 }).catch(() => {});
   const hasRow = await page.$('.ac-pop .ac-row');
   if (hasRow) {
+    // combobox ARIA(Wave B):input role=combobox + aria-expanded;清單 role=listbox;列 role=option
+    if ((await attr('.addinput', 'role')) !== 'combobox') fail('夾內篩 input 缺 role=combobox');
+    else console.log('OK:夾內篩 input role=combobox');
+    if ((await attr('.addinput', 'aria-expanded')) !== 'true') fail('展開時 aria-expanded 應為 true');
+    else console.log('OK:展開時 aria-expanded=true');
+    if ((await attr('.ac-pop', 'role')) !== 'listbox') fail('.ac-pop 缺 role=listbox');
+    else console.log('OK:.ac-pop role=listbox');
+    if ((await attr('.ac-pop .ac-row', 'role')) !== 'option') fail('.ac-row 缺 role=option');
+    else console.log('OK:.ac-row role=option');
     await page.click('.ac-pop .ac-row');
     await page.waitForSelector('.tchip .x', { timeout: 3000 }).catch(() => {});
     const xTag = await page.$eval('.tchip .x', (el) => el.tagName).catch(() => null);

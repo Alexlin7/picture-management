@@ -56,6 +56,11 @@ export class TagManager {
     if (this.sortKey() !== key) return '';
     return this.sortDir() === 'asc' ? '▲' : '▼';
   }
+  // 排序鈕的可及名稱:帶當前排序狀態(箭頭字元對報讀器無意義,故另以文字宣告)。
+  sortLabel(key: SortKey, name: string): string {
+    if (this.sortKey() !== key) return `依${name}排序`;
+    return `依${name}排序,目前${this.sortDir() === 'asc' ? '遞增' : '遞減'}`;
+  }
 
   // ---- 新增 ----
   async add(name: string, kind: string, nameInput: HTMLInputElement): Promise<void> {
