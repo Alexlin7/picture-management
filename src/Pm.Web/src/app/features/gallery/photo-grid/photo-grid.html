@@ -20,6 +20,12 @@
         <input
           #si
           placeholder="搜尋標籤名…(打字挑、Enter 套精準標)"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="pg-ac"
+          aria-label="搜尋標籤"
+          [attr.aria-expanded]="suggestions().length > 0"
+          [attr.aria-activedescendant]="acIndex() >= 0 ? 'pg-ac-' + acIndex() : null"
           (input)="onType(si.value)"
           (keydown.arrowdown)="$event.preventDefault(); acMove(1)"
           (keydown.arrowup)="$event.preventDefault(); acMove(-1)"
@@ -27,11 +33,14 @@
           (keydown.escape)="closeAc()"
         />
         @if (suggestions().length) {
-          <div class="ac-pop">
+          <div class="ac-pop" role="listbox" id="pg-ac">
             @for (s of suggestions(); track s.id; let i = $index) {
               <button
                 type="button"
                 class="ac-row"
+                role="option"
+                [id]="'pg-ac-' + i"
+                [attr.aria-selected]="acIndex() === i"
                 [class.active]="acIndex() === i"
                 (mousedown)="$event.preventDefault()"
                 (click)="pickSuggestion(s, si)"
@@ -59,7 +68,7 @@
   <!-- toolbar:命中數 · 已選 · 模型佇列 + 兩段式檢視切換。
        窄寬(手機)時 .wide-only 隱藏、次要操作收進 .more「⋯ 更多」溢出選單(見 photo-grid.css @media)。 -->
   <div class="toolbar">
-    <span class="count">符合 <b>{{ hitCountText() }}</b> 張 · 已選 <b>{{ selCount() }}</b></span>
+    <span class="count" aria-live="polite">符合 <b>{{ hitCountText() }}</b> 張 · 已選 <b>{{ selCount() }}</b></span>
     <span class="status-dot wide-only">
       <span class="dot" style="color:var(--color-t-meta);background:var(--color-t-meta)"></span>
       WD14 佇列 <b class="num">{{ wd14QueueText() }}</b> 待標
@@ -75,17 +84,19 @@
       [disabled]="requeueingQuery() || hitCount() === 0"
       title="把目前查詢命中的圖片重新加入 WD14 自動標籤佇列(retry,非破壞)。"
     >重標查詢</button>
-    <div class="seg">
-      <button [class.on]="viewMode() === 'dense'" (click)="viewMode.set('dense')" title="小圖密集">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+    <div class="seg" role="group" aria-label="檢視模式">
+      <button [class.on]="viewMode() === 'dense'" [attr.aria-pressed]="viewMode() === 'dense'"
+              (click)="viewMode.set('dense')" title="小圖密集" aria-label="小圖密集檢視">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <rect x="3" y="3" width="7" height="7" rx="1" />
           <rect x="14" y="3" width="7" height="7" rx="1" />
           <rect x="3" y="14" width="7" height="7" rx="1" />
           <rect x="14" y="14" width="7" height="7" rx="1" />
         </svg>
       </button>
-      <button [class.on]="viewMode() === 'large'" (click)="viewMode.set('large')" title="大圖">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <button [class.on]="viewMode() === 'large'" [attr.aria-pressed]="viewMode() === 'large'"
+              (click)="viewMode.set('large')" title="大圖" aria-label="大圖檢視">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <rect x="3" y="3" width="8" height="8" rx="1" />
           <rect x="13" y="3" width="8" height="18" rx="1" />
           <rect x="3" y="13" width="8" height="8" rx="1" />

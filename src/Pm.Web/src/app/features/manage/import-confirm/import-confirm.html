@@ -124,11 +124,12 @@
                     </span>
                     @if (presets().length) {
                       <span class="cat-pick">
-                        <button class="sel-mini" type="button" (click)="togglePresetMenu(r.seg, $event)">preset ▾</button>
+                        <button class="sel-mini" type="button" aria-haspopup="menu"
+                          [attr.aria-expanded]="openPreset() === r.seg" (click)="togglePresetMenu(r.seg, $event)">preset ▾</button>
                         @if (openPreset() === r.seg) {
-                          <div class="cat-menu">
+                          <div class="cat-menu" role="menu">
                             @for (p of presets(); track p.name + ':' + p.kind) {
-                              <button type="button" class="cat-item" (click)="applyPreset(r.seg, p)">
+                              <button type="button" class="cat-item" role="menuitem" (click)="applyPreset(r.seg, p)">
                                 <span class="dot" [style.color]="TAG_COLOR[p.kind]" [style.background]="TAG_COLOR[p.kind]"></span>
                                 {{ p.name }} <span class="pk">{{ KIND_LABEL[p.kind] }}</span>
                               </button>
@@ -138,15 +139,18 @@
                       </span>
                     }
                     <span class="cat-pick">
-                      <button class="sel-mini" type="button" (click)="toggleMenu(r.seg, $event)">
+                      <button class="sel-mini" type="button" aria-haspopup="listbox"
+                        [attr.aria-expanded]="openMenu() === r.seg" (click)="toggleMenu(r.seg, $event)">
                         {{ KIND_LABEL[r.cat ?? 'general'] }} ▾
                       </button>
                       @if (openMenu() === r.seg) {
-                        <div class="cat-menu">
+                        <div class="cat-menu" role="listbox">
                           @for (c of catOptions; track c) {
                             <button
                               type="button"
                               class="cat-item"
+                              role="option"
+                              [attr.aria-selected]="(r.cat ?? 'general') === c"
                               [class.on]="(r.cat ?? 'general') === c"
                               (click)="pickCat(r.seg, c)"
                             >

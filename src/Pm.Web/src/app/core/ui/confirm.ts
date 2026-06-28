@@ -42,11 +42,13 @@ export class ConfirmService {
           cdkTrapFocusAutoCapture
           role="alertdialog"
           aria-modal="true"
+          [attr.aria-labelledby]="c.title ? 'cf-title' : null"
+          aria-describedby="cf-msg"
           (click)="$event.stopPropagation()"
           (keydown.escape)="svc.settle(false)"
         >
-          @if (c.title) { <div class="cf-title">{{ c.title }}</div> }
-          <div class="cf-msg">{{ c.message }}</div>
+          @if (c.title) { <div class="cf-title" id="cf-title">{{ c.title }}</div> }
+          <div class="cf-msg" id="cf-msg">{{ c.message }}</div>
           <div class="cf-acts">
             <button class="cf-btn ghost" type="button" (click)="svc.settle(false)">
               {{ c.cancelText || '取消' }}

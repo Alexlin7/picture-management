@@ -59,7 +59,6 @@
   color: var(--color-text);
 }
 .q:focus {
-  outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
 }
@@ -75,7 +74,6 @@
   cursor: pointer;
 }
 .ksel:focus {
-  outline: none;
   border-color: var(--color-accent);
 }
 
@@ -193,9 +191,6 @@
   border: 1px solid var(--color-accent);
   background: var(--color-canvas);
   color: var(--color-text);
-}
-.rename:focus {
-  outline: none;
 }
 .c-kind .ksel {
   width: 100%;

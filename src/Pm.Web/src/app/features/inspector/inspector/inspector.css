@@ -390,7 +390,7 @@
   color: inherit;
 }
 .addtag-in:focus {
-  outline: none;
+  /* 不殺 outline:鍵盤聚焦仍走全域 :focus-visible cyan ring;border 變色為附加提示 */
   border-color: var(--color-muted);
 }
 .addtag-btn {
