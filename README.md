@@ -146,3 +146,5 @@ docs/           design/(設計 spec)、deployment.md、mockups/
 ## 授權
 
 [MIT](LICENSE) © 2026 alexlin7
+
+第三方相依套件授權見 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
