@@ -122,6 +122,11 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
     this.pick(e.item as PhotoListItem);
   }
 
+  // 方向鍵走到結尾附近:補載下一頁(沿用 sentinel IO 的同一 store.loadMore 與守衛)。
+  onLoadMore(): void {
+    if (this.hasMore() && !this.loading()) void this.store.loadMore();
+  }
+
   // 無限捲哨兵:接近底部時自動載下一頁(rootMargin 提前預抓)。
   @ViewChild('sentinel') private sentinel?: ElementRef<HTMLElement>;
   private io?: IntersectionObserver;

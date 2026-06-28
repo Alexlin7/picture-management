@@ -57,6 +57,9 @@ export class Masonry {
   roving = input(false);
   // 使用者「觸發」某格(Enter/Space/click):回拋 item 與 index 給消費端(原本的 pick)。
   readonly activate = output<{ item: unknown; index: number }>();
+  // 鍵盤往下/往右導航到接近結尾時發出:消費端據此載下一頁(純滾輪靠 sentinel IO,
+  // 但方向鍵停在最後一格不會觸發 IO,故另發此事件補上)。
+  readonly loadMore = output<void>();
   // 目前焦點格 index(roving 用)。items 變動時 clamp 在合法範圍。
   readonly activeIndex = signal(0);
 
@@ -135,6 +138,12 @@ export class Masonry {
   private moveActive(dir: GridNavDir): void {
     const next = gridNavTarget(this.layout().boxes, this.activeIndex(), dir);
     if (next !== this.activeIndex()) this.setActiveAndFocus(next);
+    // 往下/往右走到最後一列附近(含已卡在最後一格不動)→ 請消費端載下一頁。
+    // 純滾輪有 sentinel IO,但方向鍵停在結尾不會觸發 IO,故在此補發。
+    if (dir === 'down' || dir === 'right') {
+      const cols = this.cols() || 1;
+      if (this.items().length - 1 - next <= cols) this.loadMore.emit();
+    }
   }
 
   // 設定焦點格 + 必要時捲入視窗(windowing 才會 render 它)+ 下一幀聚焦該格。

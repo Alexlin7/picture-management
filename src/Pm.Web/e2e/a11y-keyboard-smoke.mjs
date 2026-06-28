@@ -104,6 +104,19 @@ try {
   const selExists = await page.$('.tile.sel');
   if (!selExists) fail('Enter 未選取 tile(.sel 未出現)');
   else console.log('OK:方向鍵移動後 Enter 觸發選取');
+
+  // 6) 方向鍵一路往下到結尾 → 自動載下一頁(active 的 data-i 能超過第一頁筆數)
+  await page.$eval('.m-item.roving[tabindex="0"]', (el) => el.focus());
+  let maxI = 0, stall = 0;
+  for (let k = 0; k < 200 && stall < 10; k++) {
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(45);
+    const di = Number((await page.evaluate(() => document.activeElement?.getAttribute('data-i'))) ?? -1);
+    if (di > maxI) { maxI = di; stall = 0; } else stall++;
+  }
+  // 第一頁 60 筆(index 0..59);若方向鍵到底有自動補頁,active 應能超過 59。
+  if (maxI > 59) console.log(`OK:方向鍵到底自動載入下一頁(active 抵達 data-i=${maxI} > 第一頁 60)`);
+  else fail(`方向鍵到底未自動載入下一頁(max data-i=${maxI},應 > 59)`);
 } catch (e) {
   fail(e.message);
 } finally {

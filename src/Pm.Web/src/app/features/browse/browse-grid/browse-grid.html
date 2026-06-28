@@ -45,7 +45,7 @@
       </div>
     }
     <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="stdCol" [gap]="gap" [scrollEl]="viewEl"
-      [roving]="true" (activate)="onActivate($event)">
+      [roving]="true" (activate)="onActivate($event)" (loadMore)="onLoadMore()">
       <ng-template let-p>
         <div class="tile" [class.sel]="store.selectedId() === p.id"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
       </ng-template>

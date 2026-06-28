@@ -43,6 +43,8 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
   pick(p: PhotoListItem): void { this.store.select(p.id); }
   // masonry roving 導航:click / Enter / Space 觸發 → 選取該圖。
   onActivate(e: { item: unknown; index: number }): void { this.pick(e.item as PhotoListItem); }
+  // 方向鍵走到結尾附近:補載下一頁(同 sentinel IO 的 store.loadMore 與守衛)。
+  onLoadMore(): void { if (this.hasMore() && !this.loading()) void this.store.loadMore(); }
 
   @ViewChild('sentinel') private sentinel?: ElementRef<HTMLElement>;
   private io?: IntersectionObserver;
