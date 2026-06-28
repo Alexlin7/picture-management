@@ -112,17 +112,26 @@ WD14 ONNX 模型(數百 MB)**不進 exe**,首次啟用時以 HTTPS 下載到 `<B
 
 ---
 
-## 9.(之後再玩)用 GitHub Release 散布
+## 9. 用 GitHub Release 自動散布
 
-> 目前**尚未設定**,留骨架供日後展開。目標:打 tag → 自動 build 出 zip → 當作 Release 附件供下載。
+> ✅ **已設定**(workflow:`.github/workflows/release.yml`)。打版本 tag 即自動建 Release 並附上 zip。
 
-大致流程(GitHub Actions):
-1. **觸發**:push 一個版本 tag(如 `v0.1.0`)。
-2. **CI 步驟**(`windows-latest` runner):
-   - `npm ci && npx ng build`(前端)
-   - `dotnet publish src/Pm.Api -p:PublishProfile=win-x64`
-   - 把 publish 夾(去掉 pdb/web.config)壓成 `PmApp-win-x64-v0.1.0.zip`
-3. **發布**:用 `softprops/action-gh-release` 之類的 action,把 zip 當 **release asset** 上傳,Release notes 可從 commit / tag 訊息生成。
-4. 使用者到 repo 的 **Releases 頁**下載 zip、解壓、跑 exe。
+**發版步驟(就這兩行):**
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+之後到 repo 的 **Releases 頁**會出現 `sus-picture-management-v0.1.0-win-x64.zip`,使用者下載、解壓、跑 `Pm.Api.exe` 即可。
 
-待學 / 待決:版本號規則(SemVer)、是否簽章(code signing 避免 SmartScreen 警告)、要不要順手接 Velopack 做自動更新。
+**workflow 做了什麼**(`windows-latest` runner —— win-x64 自包含 + 原生 DirectML 需 Windows):
+1. **觸發**:push 符合 `v*` 的 tag。
+2. **驗證**:`npm ci` → `npx ng test --watch=false`(前端)+ `dotnet test`(後端)—— 確保 tag 指向的 commit 是綠的才出版。
+3. **build / publish**:`npx ng build`(前端靜態檔 → `src/Pm.Api/wwwroot`)→ `dotnet publish src/Pm.Api -p:PublishProfile=win-x64`(自包含單檔)。
+4. **打包**:`Compress-Archive` 把整個 publish 夾(`Pm.Api.exe` + `wwwroot/` + `appsettings.json`)壓成 `sus-picture-management-<tag>-win-x64.zip`。
+5. **發布**:`softprops/action-gh-release@v2` 建立該 tag 的 Release、附上 zip,Release notes 由 commit 自動生成(`generate_release_notes`)。
+
+**注意 / 待決:**
+- **版本號走 SemVer**,以 git tag 為單一真相(`package.json` 的 `version` 目前 `0.0.0`,artifact 命名不依賴它)。
+- **未做 code signing** —— 使用者首次執行會跳 Windows SmartScreen 警告(點「仍要執行」)。要消除需簽章憑證(自簽不夠,需 OV/EV CA),屬日後。
+- **未接自動更新**(Velopack)—— 目前是手動下載新版 zip。
+- workflow 預設**含測試 gate**;若想加速、只出 build 不跑測試,刪掉「前端測試 / 後端測試」兩步即可(不建議)。
