@@ -7,13 +7,14 @@ import { displayOf } from '@core/tag-display';
 import { ToastService } from '@core/ui/toast';
 import { ConfirmService } from '@core/ui/confirm';
 import { Thumb } from '@core/ui/thumb';
+import { Activate } from '@core/a11y/activate';
 import { Masonry } from '../../../core/ui/masonry';
 import { MIN_COL_WIDTH, MASONRY_GAP } from '../../../core/layout-breakpoints';
 
 // 契約:頂欄 token 搜尋列 + masonry 圖牆。點 tile → 寫入 store 選取。
 @Component({
   selector: 'app-photo-grid',
-  imports: [Thumb, Masonry],
+  imports: [Thumb, Masonry, Activate],
   templateUrl: './photo-grid.html',
   styleUrl: './photo-grid.css',
 })

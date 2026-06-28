@@ -1,11 +1,12 @@
 import { Component, inject, input } from '@angular/core';
 import { BrowseStore } from '../browse.store';
+import { Activate } from '@core/a11y/activate';
 import type { FolderNode, FolderRoot } from '@core/api/pm-api';
 
 // 資料夾樹側欄:頂層並列各 root(多 root);選中 root 後展其樹(只渲染 1–2 層,深層靠主區子夾下鑽)。
 @Component({
   selector: 'app-folder-tree-sidebar',
-  imports: [],
+  imports: [Activate],
   templateUrl: './folder-tree-sidebar.html',
   styleUrl: './folder-tree-sidebar.css',
 })

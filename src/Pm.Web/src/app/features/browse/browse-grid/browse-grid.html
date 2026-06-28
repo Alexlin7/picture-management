@@ -8,7 +8,7 @@
           <!-- 當前節點:不可點、無 hover -->
           <span class="c cur">{{ c.name }}</span>
         } @else {
-          <span class="c" (click)="enter(c.relPath)">{{ c.name }}</span>
+          <span class="c" (pmActivate)="enter(c.relPath)">{{ c.name }}</span>
           <span class="sep">›</span>
         }
       }
@@ -46,7 +46,7 @@
     }
     <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="stdCol" [gap]="gap" [scrollEl]="viewEl">
       <ng-template let-p>
-        <div class="tile" [class.sel]="store.selectedId() === p.id" (click)="pick(p)"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
+        <div class="tile" [class.sel]="store.selectedId() === p.id" (pmActivate)="pick(p)"><app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" /></div>
       </ng-template>
     </app-masonry>
     @if (loading()) { <div class="empty">載入中…</div> }
