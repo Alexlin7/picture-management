@@ -10,7 +10,8 @@
     "e2e": "node e2e/browse-smoke.mjs",
     "e2e:rwd": "node e2e/rwd-resize-smoke.mjs",
     "e2e:a11y": "node e2e/a11y-keyboard-smoke.mjs",
-    "e2e:lightbox": "node e2e/lightbox-smoke.mjs"
+    "e2e:lightbox": "node e2e/lightbox-smoke.mjs",
+    "e2e:mobile": "node e2e/mobile-drawers-smoke.mjs"
   },
   "private": true,
   "packageManager": "npm@11.12.1",
