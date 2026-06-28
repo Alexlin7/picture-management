@@ -509,3 +509,20 @@ app-masonry {
     display: block;
   }
 }
+
+/* ③g 手機抽屜模式:topbar「篩選」鈕(開 facet 左抽屜)。顯示與否由 mobile() 控制,故此處不設 @media。 */
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+  border: 1px solid var(--color-hair);
+  border-radius: var(--radius-soft);
+  background: var(--color-raised);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.filter-btn:hover { border-color: var(--color-accent); }
+.filter-btn svg { width: 18px; height: 18px; }

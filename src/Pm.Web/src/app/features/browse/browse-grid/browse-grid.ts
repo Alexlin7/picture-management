@@ -1,4 +1,4 @@
-import { Component, inject, ElementRef, ViewChild, AfterViewInit, OnDestroy, computed } from '@angular/core';
+import { Component, inject, ElementRef, ViewChild, AfterViewInit, OnDestroy, computed, input, output } from '@angular/core';
 import { BrowseStore } from '../browse.store';
 import { Thumb } from '@core/ui/thumb';
 import { Activate } from '@core/a11y/activate';
@@ -30,6 +30,13 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
   readonly hitText = computed(() => this.hitCount().toLocaleString('en-US'));
   readonly fmt = (n: number): string => n.toLocaleString('en-US');
 
+  // ③g:手機抽屜模式;true → 顯示「資料夾」鈕。
+  readonly mobile = input(false);
+  // 點「資料夾」鈕 → 請上層開左抽屜(folder tree)。
+  readonly openFilter = output<void>();
+  // 點圖 / 鍵盤選取 → 請上層開右抽屜(inspector)。
+  readonly opened = output<void>();
+
   readonly gap = MASONRY_GAP;
   readonly stdCol = MIN_COL_WIDTH.standard;
   aspectNum = (p: unknown): number => {
@@ -41,8 +48,8 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
   enter(relPath: string): void { this.store.enterFolder(relPath); }
   enterChild(c: FolderNode): void { this.store.enterFolder(c.relPath); }
   pick(p: PhotoListItem): void { this.store.select(p.id); }
-  // masonry roving 導航:click / Enter / Space 觸發 → 選取該圖。
-  onActivate(e: { item: unknown; index: number }): void { this.pick(e.item as PhotoListItem); }
+  // masonry roving 導航:click / Enter / Space 觸發 → 選取該圖,並請上層開右抽屜(手機)。
+  onActivate(e: { item: unknown; index: number }): void { this.pick(e.item as PhotoListItem); this.opened.emit(); }
   // 方向鍵走到結尾附近:補載下一頁(同 sentinel IO 的 store.loadMore 與守衛)。
   onLoadMore(): void { if (this.hasMore() && !this.loading()) void this.store.loadMore(); }
 

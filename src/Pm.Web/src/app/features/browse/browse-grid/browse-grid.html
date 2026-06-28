@@ -1,6 +1,14 @@
 <div class="main">
   <!-- 麵包屑 -->
   <div class="topbar">
+    <!-- ③g:手機抽屜模式才顯示;開左抽屜(資料夾樹)。 -->
+    @if (mobile()) {
+      <button type="button" class="filter-btn" (click)="openFilter.emit()" aria-label="開啟資料夾樹" title="資料夾">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+        </svg>資料夾
+      </button>
+    }
     <div class="crumbs">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
       @for (c of breadcrumb(); track c.relPath; let last = $last) {
