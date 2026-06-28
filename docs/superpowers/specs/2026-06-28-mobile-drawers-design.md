@@ -1,6 +1,6 @@
 # ③g 完整手機版 — 抽屜式側板設計
 
-**狀態:設計定案,待實作(2026-06-28)。** 對應 backlog `2026-06-22-remaining-work-handoff.md` 的 ③g。
+**狀態:已實作(2026-06-28),見 `docs/superpowers/plans/2026-06-28-mobile-drawers.md`。** 對應 backlog `2026-06-22-remaining-work-handoff.md` 的 ③g。
 取代先前撤掉的「窄寬 inspector 覆蓋層」半成品(那版 close X 浮在內容上、疊住 ⤢ 放大鈕 —— 本設計以「抽屜自帶 header 關閉鈕」根治)。
 
 可點 mockup:`docs/mockups/mobile-drawers-preview.html`(瀏覽器開,下方有狀態切換鈕)。
@@ -61,8 +61,7 @@
   - edge 箭頭(et-left/et-right)隱藏。
   - **左抽屜:** `<app-drawer-panel side="left" [open]="facetDrawerOpen()" title="篩選" (close)="facetDrawerOpen.set(false)"><app-facet-sidebar/></app-drawer-panel>`(browse 換 folder-tree + 標題「資料夾」)。
   - **右抽屜:** `<app-drawer-panel side="right" [open]="inspectorDrawerOpen()" title="圖片詳情" (close)="inspectorDrawerOpen.set(false)"><app-inspector [photoId]="store.selectedId()" (expand)="openLightbox()"/></app-drawer-panel>`(標題用靜態「圖片詳情」,避免 view 跨 InspectorStore 取檔名的耦合;檔名仍顯示在 inspector 內容上方)。
-  - **自動開右抽屜:** `effect` 監看 `store.selectedId()`;手機模式下變為非 null → `inspectorDrawerOpen.set(true)`。關閉抽屜不清 selectedId(再點同圖會重開,見下)。
-  - **重開同一張:** 點圖一律 `inspectorDrawerOpen.set(true)`(grid 的選取流程已呼叫 select;另在 view 提供 openInspector() 確保同圖也能重開)。
+  - **自動開右抽屜(實作修訂):** 由 grid 新增 `(opened)` output —— `onActivate`(click/Enter/Space)每次選取都 emit,view 接到後手機模式 `inspectorDrawerOpen.set(true)`。**取代原案的「`effect` 監看 `selectedId`」**:output 更直接,且天然解決「關掉抽屜後重點同一張不會重開」(同 id 不會觸發 signal 變化,effect 案需額外 openInspector();output 案每次點都 emit 故免此補丁)。方向鍵 roving 移動不經 `onActivate`,故不會誤開。
 
 ### grid topbar「篩選」鈕(觸發左抽屜)
 
