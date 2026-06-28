@@ -5,6 +5,7 @@ import { FolderTreeSidebar } from '../folder-tree-sidebar/folder-tree-sidebar';
 import { BrowseGrid } from '../browse-grid/browse-grid';
 import { Inspector } from '@features/inspector/inspector/inspector';
 import { BrowseStore } from '../browse.store';
+import { LightboxService } from '@core/ui/lightbox';
 import { useStageWidth } from '../../../core/use-stage-width';
 import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE } from '../../../core/layout-breakpoints';
 
@@ -33,7 +34,7 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE } from '../../..
           <span aria-hidden="true">{{ inspectorCollapsed() ? '‹' : '›' }}</span>
         </button>
       </div>
-      <app-inspector [class.collapsed]="inspectorCollapsed()" [photoId]="store.selectedId()" />
+      <app-inspector [class.collapsed]="inspectorCollapsed()" [photoId]="store.selectedId()" (expand)="openLightbox()" />
     </div>
   `,
   styles: [
@@ -102,6 +103,7 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE } from '../../..
 })
 export class BrowseView implements OnInit {
   readonly store = inject(BrowseStore);
+  private readonly lightbox = inject(LightboxService);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly hostRef = inject(ElementRef<HTMLElement>);
@@ -121,6 +123,19 @@ export class BrowseView implements OnInit {
 
   toggleTree(): void { this.treeUserCollapsed.set(!this.treeCollapsed()); }
   toggleInspector(): void { this.inspectorUserCollapsed.set(!this.inspectorCollapsed()); }
+
+  // inspector「⤢ 放大」→ 以本頁 store 開 lightbox(←→ 走目前載入清單,到尾補載)。
+  openLightbox(): void {
+    const id = this.store.selectedId();
+    if (id == null) return;
+    this.lightbox.open({
+      ids: () => this.store.photos().map((p) => p.id),
+      total: () => this.store.hitCount(),
+      startId: id,
+      loadMore: () => { if (this.store.hasMore() && !this.store.loading()) void this.store.loadMore(); },
+      select: (pid) => this.store.select(pid),
+    });
+  }
 
   ngOnInit(): void {
     void this.store.loadRoots();

@@ -17,6 +17,35 @@ public static class PhotoEndpoints
         })
             .WithTags("Photos");
 
+        // 原圖串流(lightbox 顯示 + 下載):唯讀串流原檔,絕不修改原圖(鐵則 1)。
+        // download=true → Content-Disposition: attachment(下載);否則 inline(瀏覽器內顯示)。
+        // enableRangeProcessing:支援 Range 請求(大圖漸進載入 / 續傳)。
+        app.MapGet("/api/photos/{id:long}/file", async (long id, bool? download, PmDbContext db) =>
+        {
+            var photo = await db.Photos.Include(p => p.Locations).FirstOrDefaultAsync(p => p.Id == id);
+            if (photo is null) return Results.NotFound();
+
+            var loc = photo.Locations.FirstOrDefault(l => l.Status == "present");
+            if (loc is null) return Results.Json(new { error = "no readable location" }, statusCode: 409);
+
+            var root = await db.LibraryRoots.FindAsync(loc.LibraryRootId);
+            if (root is null) return Results.Json(new { error = "root missing" }, statusCode: 409);
+
+            var absPath = Path.GetFullPath(Path.Combine(root.AbsPath, loc.RelPath.Replace('/', Path.DirectorySeparatorChar)));
+            if (!File.Exists(absPath)) return Results.NotFound();
+
+            var mime = string.IsNullOrWhiteSpace(photo.Mime) ? "application/octet-stream" : photo.Mime;
+            var fileName = Path.GetFileName(absPath);
+            var stream = new FileStream(
+                absPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
+                bufferSize: 64 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            return Results.Stream(
+                stream, mime,
+                fileDownloadName: download == true ? fileName : null,
+                enableRangeProcessing: true);
+        })
+            .WithTags("Photos");
+
         app.MapGet("/api/photos/{id:long}", async (long id, PmDbContext db) =>
         {
             var photo = await db.Photos.Include(p => p.Locations).Include(p => p.Tags)

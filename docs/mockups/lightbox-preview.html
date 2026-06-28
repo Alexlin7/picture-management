@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lightbox 大圖 · 設計樣板</title>
+<style>
+  /* ── 專案設計 token(取自 styles.css @theme,值對齊正式 app)── */
+  :root {
+    --color-canvas: #14161b;
+    --color-panel: #1b1e25;
+    --color-raised: #23272f;
+    --color-raised-2: #2a2f39;
+    --color-hair: #2e333d;
+    --color-hair-strong: #3b4150;
+    --color-text: #e8eaed;
+    --color-muted: #959ba7;
+    --color-faint: #6b7280;
+    --color-accent: #22d3ee;
+    --color-accent-ink: #06323b;
+    --color-danger: #f0616d;
+    --color-t-character: #4ade80;
+    --color-t-copyright: #c084fc;
+    --radius-card: 10px;
+    --radius-soft: 7px;
+    --font-body: "Inter", "Noto Sans TC", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --dur-fast: 150ms;
+    --dur-base: 200ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--color-canvas);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 3px; }
+
+  /* ── 背景:示意圖牆(lightbox 打開時被壓暗)── */
+  .bg-grid {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    filter: brightness(0.5);
+  }
+  .bg-grid .cell { border-radius: var(--radius-card); aspect-ratio: 3/4; }
+  .topbar-fake { height: 52px; border-bottom: 1px solid var(--color-hair); display: flex; align-items: center; padding: 0 18px; color: var(--color-muted); font-size: 13px; filter: brightness(0.5); }
+
+  /* ── Lightbox overlay ── */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    display: grid; place-items: center;
+    background: rgba(8, 9, 12, 0.92);          /* 強 scrim:把原圖從背景隔離出來 */
+    backdrop-filter: blur(8px);
+    animation: lb-fade var(--dur-base) var(--ease-out);
+  }
+  @keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
+
+  /* 圖片本體:置中、contain、最大 92vw × 88vh */
+  .lb-figure {
+    margin: 0;
+    max-width: 92vw; max-height: 88vh;
+    display: flex; flex-direction: column; align-items: center;
+    animation: lb-pop var(--dur-base) var(--ease-out);
+  }
+  @keyframes lb-pop { from { transform: scale(0.965); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .lb-img {
+    max-width: 92vw; max-height: 82vh;
+    border-radius: var(--radius-soft);
+    box-shadow: 0 24px 70px -20px rgba(0, 0, 0, 0.85);
+    /* 樣板用漸層假裝「原圖」;正式版是 <img src=原圖> */
+    width: 760px; height: 76vh;
+    background:
+      radial-gradient(120% 90% at 30% 20%, #2b6cb0 0%, transparent 55%),
+      radial-gradient(120% 90% at 80% 80%, #c084fc 0%, transparent 50%),
+      linear-gradient(135deg, #1f2937, #0f172a);
+    display: grid; place-items: center;
+    color: rgba(255,255,255,0.5); font-family: var(--font-mono); font-size: 13px;
+  }
+  /* 圖片下方字幕條:檔名 + 尺寸 + 開 inspector */
+  .lb-caption {
+    margin-top: 12px;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 12.5px; color: var(--color-muted);
+    max-width: 92vw;
+  }
+  .lb-caption .name { color: var(--color-text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-caption .dim { font-family: var(--font-mono); font-size: 11.5px; color: var(--color-faint); }
+  .lb-caption .insp {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+    color: var(--color-accent); cursor: pointer; font-size: 12px;
+    background: none; border: 0; padding: 4px 6px; border-radius: var(--radius-soft);
+  }
+  .lb-caption .insp:hover { background: rgba(34, 211, 238, 0.1); }
+
+  /* ── 右上角工具列:下載 + 關閉 ── */
+  .lb-tools {
+    position: fixed; top: 16px; right: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .iconbtn {
+    width: 44px; height: 44px;                 /* 觸控目標 ≥ 44px */
+    display: inline-grid; place-items: center;
+    border-radius: 50%;
+    background: rgba(35, 39, 47, 0.7);
+    border: 1px solid var(--color-hair-strong);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+  .iconbtn:hover { background: var(--color-raised-2); border-color: var(--color-accent); }
+  .iconbtn:active { filter: brightness(0.9); }
+  .iconbtn svg { width: 20px; height: 20px; }
+  .iconbtn.close:hover { border-color: var(--color-danger); color: var(--color-danger); }
+
+  /* ── 左上角:計數 + 來源夾 ── */
+  .lb-meta {
+    position: fixed; top: 22px; left: 20px;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--color-muted); font-size: 13px;
+  }
+  .lb-meta .count { font-family: var(--font-mono); color: var(--color-text); font-size: 13px; }
+  .lb-meta .src { color: var(--color-faint); }
+
+  /* ── 左右換圖箭頭 ── */
+  .navbtn {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    width: 52px; height: 52px;
+    display: inline-grid; place-items: center;
+    border-radius: 50%;
+    background: rgba(35, 39, 47, 0.55);
+    border: 1px solid var(--color-hair-strong);
+    color: var(--color-text); cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+  .navbtn:hover { background: var(--color-raised-2); border-color: var(--color-accent); }
+  .navbtn.prev { left: 20px; }
+  .navbtn.next { right: 20px; }
+  .navbtn svg { width: 26px; height: 26px; }
+  .navbtn[disabled] { opacity: 0.3; cursor: default; pointer-events: none; }
+
+  /* ── reduced-motion:關掉所有進場動畫 ── */
+  @media (prefers-reduced-motion: reduce) {
+    .lightbox, .lb-figure { animation: none; }
+    .iconbtn, .navbtn, .lb-caption .insp { transition: none; }
+  }
+
+  /* ── 手機:工具縮小、箭頭貼邊、字幕收斂 ── */
+  @media (max-width: 640px) {
+    .lb-img { width: 92vw; height: auto; aspect-ratio: 3/4; max-height: 72vh; }
+    .navbtn { width: 44px; height: 44px; background: rgba(35,39,47,0.4); }
+    .navbtn.prev { left: 8px; } .navbtn.next { right: 8px; }
+    .lb-meta { top: 14px; left: 12px; font-size: 12px; }
+    .lb-tools { top: 12px; right: 12px; }
+    .lb-caption { font-size: 12px; gap: 10px; padding: 0 10px; }
+  }
+</style>
+</head>
+<body>
+  <!-- 背景示意(被 lightbox 壓暗) -->
+  <div class="topbar-fake">圖庫 · 符合 1,284 張</div>
+  <div class="bg-grid" id="bg"></div>
+
+  <!-- ── Lightbox(role=dialog + aria-modal;正式版用 CDK FocusTrap 鎖焦點)── -->
+  <div class="lightbox" role="dialog" aria-modal="true" aria-label="圖片檢視 第 3 張,共 1284 張">
+    <!-- 左上:計數 + 來源 -->
+    <div class="lb-meta">
+      <span class="count">3 / 1,284</span>
+      <span class="src">· 圖庫 / Pixiv / 2024</span>
+    </div>
+
+    <!-- 右上:下載 + 關閉 -->
+    <div class="lb-tools">
+      <button class="iconbtn download" type="button" aria-label="下載原圖" title="下載原圖">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      </button>
+      <button class="iconbtn close" type="button" aria-label="關閉(Esc)" title="關閉(Esc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- 左右換圖 -->
+    <button class="navbtn prev" type="button" aria-label="上一張(←)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+    </button>
+    <button class="navbtn next" type="button" aria-label="下一張(→)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+    </button>
+
+    <!-- 圖片 + 字幕 -->
+    <figure class="lb-figure">
+      <div class="lb-img">〔正式版此處為原圖 &lt;img&gt;〕</div>
+      <figcaption class="lb-caption">
+        <span class="name">arona_blue_archive_2024.png</span>
+        <span class="dim">3840 × 2160 · 5.2 MB</span>
+        <button class="insp" type="button">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          在側欄看詳情
+        </button>
+      </figcaption>
+    </figure>
+  </div>
+
+  <script>
+    // 背景假圖牆
+    const palette = ['#2b6cb0','#c084fc','#4ade80','#fbbf24','#f472b6','#818cf8','#22d3ee','#f0616d'];
+    const bg = document.getElementById('bg');
+    for (let i = 0; i < 20; i++) {
+      const d = document.createElement('div');
+      d.className = 'cell';
+      d.style.background = palette[i % palette.length];
+      bg.appendChild(d);
+    }
+    // 樣板互動:Esc / 點背景 關閉(僅 demo,正式版接 Angular)
+    const lb = document.querySelector('.lightbox');
+    function close() { lb.style.display = 'none'; }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
+    document.querySelector('.iconbtn.close').addEventListener('click', close);
+  </script>
+</body>
+</html>
