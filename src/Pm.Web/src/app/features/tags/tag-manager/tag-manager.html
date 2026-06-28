@@ -39,10 +39,10 @@
     <!-- 排序表頭 -->
     <div class="thead">
       <span class="c-sel"><input type="checkbox" [checked]="allSelected()" (change)="toggleAll()" aria-label="全選" /></span>
-      <span class="c-name sortable" (click)="sort('name')">名稱 <i>{{ arrow('name') }}</i></span>
-      <span class="c-kind sortable" (click)="sort('kind')">類別 <i>{{ arrow('kind') }}</i></span>
-      <span class="c-count sortable" (click)="sort('count')">使用數 <i>{{ arrow('count') }}</i></span>
-      <span class="c-recent sortable" (click)="sort('recent')">建立 <i>{{ arrow('recent') }}</i></span>
+      <span class="c-name sortable" (pmActivate)="sort('name')">名稱 <i>{{ arrow('name') }}</i></span>
+      <span class="c-kind sortable" (pmActivate)="sort('kind')">類別 <i>{{ arrow('kind') }}</i></span>
+      <span class="c-count sortable" (pmActivate)="sort('count')">使用數 <i>{{ arrow('count') }}</i></span>
+      <span class="c-recent sortable" (pmActivate)="sort('recent')">建立 <i>{{ arrow('recent') }}</i></span>
       <span class="c-acts"></span>
     </div>
 

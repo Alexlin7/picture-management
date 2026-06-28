@@ -2,7 +2,8 @@
 .filterbar { min-height: 40px; display: flex; align-items: center; gap: 9px; padding: 7px 15px; border-bottom: 1px solid var(--color-hair-soft); background: color-mix(in srgb, var(--color-accent) 2.5%, transparent); flex-wrap: wrap; }
 .filterbar .lab { font-size: 11.5px; color: var(--color-faint); flex: none; }
 .tchip { display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; padding: 3px 6px 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
-.tchip .x { opacity: 0.55; font-family: var(--font-mono); cursor: pointer; }
+.tchip .x { appearance: none; background: none; border: 0; margin: 0; padding: 0; color: inherit; line-height: 1; opacity: 0.55; font-family: var(--font-mono); cursor: pointer; }
+.tchip .x:hover { opacity: 1; }
 .ac-wrap { position: relative; display: flex; }
 .addinput { border: 1px dashed var(--color-hair-strong); border-radius: 20px; padding: 3px 11px; font-size: 12px; color: var(--color-text); background: transparent; outline: 0; min-width: 90px; }
 .addinput:focus-visible { border-color: var(--color-accent); border-style: solid; }

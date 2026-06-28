@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { GalleryStore, type FacetNode } from '../gallery.store';
 import { TAG_COLOR } from '@core/tag-color';
+import { Activate } from '@core/a11y/activate';
 import { loadCollapsed, saveCollapsed, toggleCollapsed, type FacetSection } from './facet-collapse';
 
 // 屬性/年份/rootless 分區初始顯示筆數;超過則收起並提供「顯示更多」。
@@ -10,7 +11,7 @@ const TOP_N = 12;
 // 由 workflow agent 補完內部(templateUrl/styleUrl + 互動)。
 @Component({
   selector: 'app-facet-sidebar',
-  imports: [],
+  imports: [Activate],
   templateUrl: './facet-sidebar.html',
   styleUrl: './facet-sidebar.css',
 })

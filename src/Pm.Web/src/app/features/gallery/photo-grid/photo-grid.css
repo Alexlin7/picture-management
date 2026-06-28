@@ -61,11 +61,34 @@
 .tok b {
   font-weight: 600;
 }
+/* token 內兩個並列 button(避免 button 套 button 的巢狀互動):
+   主鈕切換 排除／包含,× 鈕移除。視覺維持原樣,故清掉 button 預設外觀。 */
+.tok-main {
+  appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
 .tok .x {
+  appearance: none;
+  background: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
   color: inherit;
   opacity: 0.6;
   cursor: pointer;
   font-family: var(--font-mono);
+  line-height: 1;
+}
+.tok .x:hover {
+  opacity: 1;
 }
 .search input {
   flex: 1;

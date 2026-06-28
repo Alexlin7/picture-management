@@ -2,7 +2,8 @@
   <span class="lab">夾內再篩</span>
   @for (t of tokens(); track $index) {
     <span class="tchip" [style]="tokenStyle(t)">
-      {{ t.text }} <span class="x" (click)="remove($index, $event)">×</span>
+      {{ t.text }} <button type="button" class="x" (click)="remove($index, $event)"
+        [attr.aria-label]="'移除夾內篩選:' + t.text">×</button>
     </span>
   }
   <div class="ac-wrap">

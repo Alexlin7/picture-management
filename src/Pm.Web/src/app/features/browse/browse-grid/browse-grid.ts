@@ -1,6 +1,7 @@
 import { Component, inject, ElementRef, ViewChild, AfterViewInit, OnDestroy, computed } from '@angular/core';
 import { BrowseStore } from '../browse.store';
 import { Thumb } from '@core/ui/thumb';
+import { Activate } from '@core/a11y/activate';
 import { InnerTagFilter } from '../inner-tag-filter/inner-tag-filter';
 import type { PhotoListItem, FolderNode } from '@core/api/pm-api';
 import { Masonry } from '../../../core/ui/masonry';
@@ -9,7 +10,7 @@ import { MIN_COL_WIDTH, MASONRY_GAP } from '../../../core/layout-breakpoints';
 // 資料夾瀏覽主區:麵包屑 + 子資料夾晶片(深層下鑽)+ 遞迴圖牆(無限捲)+ 夾內疊 tag 帶。
 @Component({
   selector: 'app-browse-grid',
-  imports: [Thumb, InnerTagFilter, Masonry],
+  imports: [Thumb, InnerTagFilter, Masonry, Activate],
   templateUrl: './browse-grid.html',
   styleUrl: './browse-grid.css',
 })

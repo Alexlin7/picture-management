@@ -7,9 +7,13 @@
         <path d="m20 20-3.5-3.5" />
       </svg>
       @for (t of tokens(); track $index) {
-        <span class="tok" [style]="tokenStyle(t)" (click)="toggleToken($index, $event)" title="點一下切換 排除／包含">
-          <b>{{ t.text }}</b>
-          <span class="x" (click)="removeToken($index, $event)">×</span>
+        <span class="tok" [style]="tokenStyle(t)">
+          <button type="button" class="tok-main" (click)="toggleToken($index, $event)"
+                  [attr.aria-label]="'切換 排除／包含:' + t.text" title="點一下切換 排除／包含">
+            <b>{{ t.text }}</b>
+          </button>
+          <button type="button" class="x" (click)="removeToken($index, $event)"
+                  [attr.aria-label]="'移除標籤:' + t.text">×</button>
         </span>
       }
       <div class="ac-wrap">
@@ -139,7 +143,7 @@
     }
     <app-masonry [items]="photos()" [aspect]="aspectNum" [minColWidth]="minColWidth()" [gap]="gap" [scrollEl]="viewEl">
       <ng-template let-p>
-        <div class="tile" [class.sel]="selectedId() === p.id" (click)="pick(p)">
+        <div class="tile" [class.sel]="selectedId() === p.id" (pmActivate)="pick(p)">
           <app-thumb [photoId]="p.id" [aspectRatio]="aspect(p)" />
         </div>
       </ng-template>

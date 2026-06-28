@@ -4,6 +4,7 @@ import { tagColor, KIND_LABEL } from '@core/tag-color';
 import { ToastService } from '@core/ui/toast';
 import { ConfirmService } from '@core/ui/confirm';
 import { MergeDialogService } from '@core/ui/merge-dialog';
+import { Activate } from '@core/a11y/activate';
 
 // 可選 kind(順序固定;label 走 KIND_LABEL)
 const KINDS = ['character', 'copyright', 'general', 'meta', 'path', 'manual'] as const;
@@ -11,7 +12,7 @@ const KINDS = ['character', 'copyright', 'general', 'meta', 'path', 'manual'] as
 // 路由 /tags:標籤庫管理 —— 新增 / 列表 + 排序 / 改名 + 改 kind / 合併 / 刪除(含批次)。
 @Component({
   selector: 'app-tag-manager',
-  imports: [],
+  imports: [Activate],
   templateUrl: './tag-manager.html',
   styleUrl: './tag-manager.css',
 })
