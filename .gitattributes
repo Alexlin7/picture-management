@@ -1,0 +1,27 @@
+# 預設:自動正規化文字檔,倉庫內統一存 LF(消除跨機 CRLF/LF 警告與 diff 噪音)
+* text=auto
+
+# 依平台慣例固定行尾
+*.sh   text eol=lf
+*.mjs  text eol=lf
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+
+# 明確二進位(不做行尾/diff 處理)
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.avif  binary
+*.onnx  binary
+*.sqlite binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+
+# GitHub linguist:設計文件 / mockup 不計入語言統計,讓語言比例反映 C#/TypeScript
+docs/**            linguist-documentation
+docs/mockups/*.html linguist-documentation
