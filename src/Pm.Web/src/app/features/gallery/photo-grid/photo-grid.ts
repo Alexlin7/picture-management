@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, computed, inject, signal, input, output, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { tagColor, DANGER, hexToRgba } from '@core/tag-color';
 import { PmApi, type PhotoListItem, type TagListRow } from '@core/api/pm-api';
 import { GalleryStore, type SearchToken } from '../gallery.store';
@@ -40,6 +40,13 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
 
   // 兩段式檢視切換:dense=小圖密集 / large=大圖(純視覺本地狀態)
   readonly viewMode = signal<'dense' | 'large'>('dense');
+
+  // ③g:由 gallery-view 傳入是否手機抽屜模式;true → 顯示「篩選」鈕。
+  readonly mobile = input(false);
+  // 點「篩選」鈕 → 請上層開左抽屜(facet)。
+  readonly openFilter = output<void>();
+  // 點圖 / 鍵盤選取 → 請上層開右抽屜(inspector)。同圖重點也會 emit,故能重開。
+  readonly opened = output<void>();
 
   // 窄寬(手機)toolbar 溢出選單「⋯ 更多」開合:收次要操作(模型佇列狀態 + 重標失敗),
   // 桌面 inline 顯示故此選單僅 @media 窄寬出現。點外部關閉走透明 backdrop,不掛 document listener。
@@ -117,9 +124,10 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
     this.store.select(p.id);
   }
 
-  // masonry roving 導航:click / Enter / Space 觸發 → 選取該圖。
+  // masonry roving 導航:click / Enter / Space 觸發 → 選取該圖,並請上層開右抽屜(手機)。
   onActivate(e: { item: unknown; index: number }): void {
     this.pick(e.item as PhotoListItem);
+    this.opened.emit();
   }
 
   // 方向鍵走到結尾附近:補載下一頁(沿用 sentinel IO 的同一 store.loadMore 與守衛)。

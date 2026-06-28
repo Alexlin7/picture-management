@@ -1,40 +1,58 @@
-import { Component, OnInit, inject, DestroyRef, ElementRef, computed, signal } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef, ElementRef, computed, signal, effect } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FolderTreeSidebar } from '../folder-tree-sidebar/folder-tree-sidebar';
 import { BrowseGrid } from '../browse-grid/browse-grid';
 import { Inspector } from '@features/inspector/inspector/inspector';
+import { DrawerPanel } from '@core/ui/drawer-panel';
 import { BrowseStore } from '../browse.store';
 import { LightboxService } from '@core/ui/lightbox';
 import { useStageWidth } from '../../../core/use-stage-width';
-import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE } from '../../../core/layout-breakpoints';
+import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE, MOBILE } from '../../../core/layout-breakpoints';
 
 // 資料夾瀏覽三欄:資料夾樹側欄(252)· 圖牆(1fr)· 檢視器(350)。
 // 動態欄寬:useStageWidth 量測 host 元素寬度,依門檻自動或手動收合側欄。
 @Component({
   selector: 'app-browse-view',
-  imports: [FolderTreeSidebar, BrowseGrid, Inspector],
+  imports: [FolderTreeSidebar, BrowseGrid, Inspector, DrawerPanel],
   template: `
     <div class="bview" [style.grid-template-columns]="gridCols()">
-      <app-folder-tree-sidebar [collapsed]="treeCollapsed()" />
+      @if (!mobile()) {
+        <app-folder-tree-sidebar [collapsed]="treeCollapsed()" />
+      }
       <div class="center-stage">
-        <button
-          class="edge-toggle et-left"
-          (click)="toggleTree()"
-          [attr.aria-label]="treeCollapsed() ? '展開資料夾樹' : '收合資料夾樹'"
-          [title]="treeCollapsed() ? '展開資料夾樹' : '收合資料夾樹'">
-          <span aria-hidden="true">{{ treeCollapsed() ? '›' : '‹' }}</span>
-        </button>
-        <app-browse-grid />
-        <button
-          class="edge-toggle et-right"
-          (click)="toggleInspector()"
-          [attr.aria-label]="inspectorCollapsed() ? '展開檢視器' : '收合檢視器'"
-          [title]="inspectorCollapsed() ? '展開檢視器' : '收合檢視器'">
-          <span aria-hidden="true">{{ inspectorCollapsed() ? '‹' : '›' }}</span>
-        </button>
+        @if (!mobile()) {
+          <button
+            class="edge-toggle et-left"
+            (click)="toggleTree()"
+            [attr.aria-label]="treeCollapsed() ? '展開資料夾樹' : '收合資料夾樹'"
+            [title]="treeCollapsed() ? '展開資料夾樹' : '收合資料夾樹'">
+            <span aria-hidden="true">{{ treeCollapsed() ? '›' : '‹' }}</span>
+          </button>
+        }
+        <app-browse-grid [mobile]="mobile()" (openFilter)="onOpenFilter()" (opened)="onImageOpened()" />
+        @if (!mobile()) {
+          <button
+            class="edge-toggle et-right"
+            (click)="toggleInspector()"
+            [attr.aria-label]="inspectorCollapsed() ? '展開檢視器' : '收合檢視器'"
+            [title]="inspectorCollapsed() ? '展開檢視器' : '收合檢視器'">
+            <span aria-hidden="true">{{ inspectorCollapsed() ? '‹' : '›' }}</span>
+          </button>
+        }
       </div>
-      <app-inspector [class.collapsed]="inspectorCollapsed()" [photoId]="store.selectedId()" (expand)="openLightbox()" />
+      @if (!mobile()) {
+        <app-inspector [class.collapsed]="inspectorCollapsed()" [photoId]="store.selectedId()" (expand)="openLightbox()" />
+      }
+
+      @if (mobile()) {
+        <app-drawer-panel side="left" [open]="facetDrawerOpen()" title="資料夾" (close)="facetDrawerOpen.set(false)">
+          <app-folder-tree-sidebar />
+        </app-drawer-panel>
+        <app-drawer-panel side="right" [open]="inspectorDrawerOpen()" title="圖片詳情" (close)="inspectorDrawerOpen.set(false)">
+          <app-inspector [photoId]="store.selectedId()" (expand)="openLightbox()" />
+        </app-drawer-panel>
+      }
     </div>
   `,
   styles: [
@@ -98,6 +116,17 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE } from '../../..
         border-right: none;
         border-radius: var(--radius-soft) 0 0 var(--radius-soft);
       }
+
+      /* ③g:投影進抽屜的子元件改填滿並自捲(理由同 gallery-view)。 */
+      :host ::ng-deep app-drawer-panel app-folder-tree-sidebar .sidebar {
+        width: 100%;
+        height: 100%;
+      }
+      :host ::ng-deep app-drawer-panel app-inspector {
+        width: 100%;
+        height: 100%;
+        border-left: none;
+      }
     `,
   ],
 })
@@ -115,7 +144,28 @@ export class BrowseView implements OnInit {
   readonly inspectorUserCollapsed = signal<boolean | null>(null);
   readonly inspectorCollapsed = computed(() =>
     this.inspectorUserCollapsed() ?? shouldAutoCollapse(this.stageWidth(), INSPECTOR_COLLAPSE));
+  // ③g 手機抽屜模式:stage 寬 < MOBILE。
+  readonly mobile = computed(() => {
+    const w = this.stageWidth();
+    return w > 0 && w < MOBILE;
+  });
+  readonly facetDrawerOpen = signal(false);
+  readonly inspectorDrawerOpen = signal(false);
+
+  onOpenFilter(): void { this.facetDrawerOpen.set(true); }
+  onImageOpened(): void { if (this.mobile()) this.inspectorDrawerOpen.set(true); }
+
+  constructor() {
+    effect(() => {
+      if (!this.mobile()) {
+        this.facetDrawerOpen.set(false);
+        this.inspectorDrawerOpen.set(false);
+      }
+    });
+  }
+
   readonly gridCols = computed(() => {
+    if (this.mobile()) return '1fr';
     const t = this.treeCollapsed() ? '0' : '252px';
     const i = this.inspectorCollapsed() ? '0' : '350px';
     return `${t} 1fr ${i}`;

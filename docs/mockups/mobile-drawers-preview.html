@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>③g 手機抽屜版 · 設計樣板</title>
+<style>
+  :root {
+    --color-canvas: #14161b; --color-panel: #1b1e25; --color-raised: #23272f; --color-raised-2: #2a2f39;
+    --color-hair: #2e333d; --color-hair-strong: #3b4150; --color-text: #e8eaed; --color-muted: #959ba7;
+    --color-faint: #6b7280; --color-accent: #22d3ee; --color-accent-ink: #06323b; --color-danger: #f0616d;
+    --color-t-character: #4ade80; --color-t-copyright: #c084fc; --color-t-general: #818cf8; --color-t-meta: #fbbf24;
+    --radius-card: 10px; --radius-soft: 7px;
+    --font-body: "Inter", "Noto Sans TC", sans-serif; --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0a0b0d; color: var(--color-text); font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased; display: flex; gap: 28px; padding: 24px; flex-wrap: wrap; justify-content: center; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .label { text-align: center; font-size: 13px; color: var(--color-muted); margin: 10px 0 0; }
+
+  /* 手機外框 */
+  .phone { width: 390px; height: 800px; position: relative; overflow: hidden; border-radius: 26px;
+    border: 1px solid var(--color-hair-strong); background: var(--color-canvas); box-shadow: 0 20px 60px -20px #000; }
+
+  /* app 版面:rail + 主區 */
+  .app { display: grid; grid-template-columns: 52px 1fr; height: 100%; }
+  .rail { background: #101216; border-right: 1px solid var(--color-hair); display: flex; flex-direction: column;
+    align-items: center; padding-top: 10px; gap: 6px; }
+  .rail .logo { width: 30px; height: 30px; border-radius: 8px;
+    background: conic-gradient(from 0deg, #22d3ee, #818cf8, #c084fc, #4ade80, #22d3ee); margin-bottom: 6px; }
+  .rail .act { width: 44px; height: 44px; display: grid; place-items: center; color: var(--color-faint); border-radius: 9px; }
+  .rail .act.on { color: var(--color-accent); background: rgba(34,211,238,0.1); }
+  .rail .act svg { width: 21px; height: 21px; }
+
+  .main { display: flex; flex-direction: column; min-width: 0; height: 100%; }
+  /* topbar:搜尋 + 篩選鈕(手機才有) */
+  .topbar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--color-hair); }
+  .search { flex: 1; display: flex; align-items: center; gap: 6px; background: var(--color-raised);
+    border: 1px solid var(--color-hair); border-radius: 8px; padding: 7px 10px; color: var(--color-faint); font-size: 12.5px; }
+  .search svg { width: 15px; height: 15px; }
+  .filter-btn { display: inline-flex; align-items: center; gap: 5px; height: 38px; padding: 0 12px;
+    background: var(--color-raised); border: 1px solid var(--color-hair); border-radius: 8px; color: var(--color-text);
+    font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+  .filter-btn svg { width: 15px; height: 15px; }
+  .toolbar { padding: 7px 12px; font-size: 12px; color: var(--color-muted); border-bottom: 1px solid var(--color-hair); }
+  .toolbar b { color: var(--color-text); }
+
+  /* 滿寬圖牆 */
+  .grid { flex: 1; overflow-y: auto; padding: 10px; column-count: 2; column-gap: 8px; }
+  .grid .tile { width: 100%; margin: 0 0 8px; border-radius: var(--radius-card); display: grid; place-items: center;
+    color: rgba(255,255,255,0.55); font-family: var(--font-mono); font-size: 12px; break-inside: avoid; }
+
+  /* ── 抽屜共用 ── */
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s var(--ease-out); }
+  .scrim.show { opacity: 1; pointer-events: auto; }
+  .drawer { position: absolute; top: 0; bottom: 0; width: 86%; max-width: 330px; z-index: 50; background: var(--color-panel);
+    display: flex; flex-direction: column; transition: transform 0.24s var(--ease-out); }
+  .drawer.left { left: 0; border-right: 1px solid var(--color-hair); transform: translateX(-100%); box-shadow: 8px 0 30px -10px #000; }
+  .drawer.right { right: 0; width: 100%; max-width: 360px; border-left: 1px solid var(--color-hair); transform: translateX(100%); box-shadow: -8px 0 30px -10px #000; }
+  .drawer.open { transform: translateX(0); }
+  /* 抽屜 header 條:標題 + 關閉鈕(關閉永遠在這條,不蓋內容) */
+  .dhead { display: flex; align-items: center; gap: 8px; padding: 12px 12px; border-bottom: 1px solid var(--color-hair);
+    flex: none; }
+  .dhead .dtitle { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dhead .dclose { margin-left: auto; width: 36px; height: 36px; flex: none; display: grid; place-items: center;
+    border-radius: 50%; background: var(--color-raised); border: 1px solid var(--color-hair-strong); color: var(--color-text); cursor: pointer; }
+  .dhead .dclose:hover { border-color: var(--color-danger); color: var(--color-danger); }
+  .dhead .dclose svg { width: 18px; height: 18px; }
+  .dbody { flex: 1; overflow-y: auto; }
+
+  /* facet 抽屜內容 */
+  .facet-sec { padding: 12px 14px; }
+  .facet-t { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); margin-bottom: 8px; }
+  .frow { display: flex; align-items: center; gap: 8px; padding: 8px 8px; border-radius: 7px; font-size: 13px; cursor: pointer; }
+  .frow:hover { background: var(--color-raised); }
+  .frow.on { background: rgba(34,211,238,0.08); box-shadow: inset 0 0 0 1px rgba(34,211,238,0.22); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 7px -1px currentColor; }
+  .frow .n { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--color-faint); }
+
+  /* inspector 抽屜內容 */
+  .preview { position: relative; }
+  .preview .pimg { width: 100%; height: 300px; display: block;
+    background: radial-gradient(120% 90% at 30% 20%, #c1466b 0%, transparent 55%), linear-gradient(135deg, #2a2f39, #14161b); }
+  /* ⤢ 放大鈕:在圖上右上角 —— 因為關閉鈕在 header 條裡,這裡不再被疊 */
+  .zoom-btn { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; display: grid; place-items: center;
+    border-radius: var(--radius-soft); background: rgba(20,22,27,0.6); border: 1px solid var(--color-hair-strong); color: var(--color-text); cursor: pointer; }
+  .zoom-btn svg { width: 17px; height: 17px; }
+  .ibody { padding: 12px 14px; }
+  .iname { font-weight: 600; font-size: 15px; margin-bottom: 12px; }
+  .iact { display: inline-flex; gap: 8px; margin-bottom: 16px; }
+  .iact .b { font-size: 12px; padding: 6px 11px; border-radius: 6px; border: 1px solid var(--color-hair); background: var(--color-raised); color: var(--color-text); }
+  .isec-h { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--color-muted); font-weight: 700; margin: 14px 0 10px; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px; font-size: 12px; border: 1px solid; margin: 0 6px 6px 0; }
+
+  /* mockup 控制列 */
+  .ctrl { position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 6px; padding: 8px; background: rgba(16,18,22,0.95);
+    border-top: 1px solid var(--color-hair); z-index: 60; }
+  .ctrl button { flex: 1; font-size: 11.5px; padding: 7px 4px; border-radius: 6px; border: 1px solid var(--color-hair);
+    background: var(--color-raised); color: var(--color-text); cursor: pointer; }
+  .ctrl button.on { border-color: var(--color-accent); color: var(--color-accent); }
+</style>
+</head>
+<body>
+  <div>
+  <div class="phone">
+    <div class="app">
+      <div class="rail">
+        <div class="logo"></div>
+        <div class="act on" title="圖庫"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+        <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></div>
+        <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 17-5.5 3 1-6.2L3 9.3l6.2-.9L12 3l2.8 5.4 6.2.9-4.5 4.5 1 6.2z"/></svg></div>
+        <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5V5a2 2 0 0 1 2-2h6.5a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.8l-6.5 6.5a2 2 0 0 1-2.8 0l-7-7a2 2 0 0 1-.6-1.4Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></div>
+        <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg></div>
+      </div>
+
+      <div class="main">
+        <div class="topbar">
+          <span class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>搜尋標籤…</span>
+          <button class="filter-btn" onclick="openD('left')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>篩選
+          </button>
+        </div>
+        <div class="toolbar">符合 <b>1,785</b> 張 · 已選 <b>1</b></div>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+
+    <!-- 遮罩 -->
+    <div class="scrim" id="scrim" onclick="closeD()"></div>
+
+    <!-- 左:篩選抽屜 -->
+    <aside class="drawer left" id="dleft">
+      <div class="dhead">
+        <span class="dtitle">篩選</span>
+        <button class="dclose" onclick="closeD()" aria-label="關閉"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      </div>
+      <div class="dbody">
+        <div class="facet-sec">
+          <div class="facet-t">作品 / 企劃 → 角色</div>
+          <div class="frow on"><span class="dot" style="color:#c084fc;background:#c084fc"></span>蔚藍檔案<span class="n">312</span></div>
+          <div class="frow"><span class="dot" style="color:#4ade80;background:#4ade80"></span>阿羅娜<span class="n">88</span></div>
+          <div class="frow"><span class="dot" style="color:#4ade80;background:#4ade80"></span>白子<span class="n">64</span></div>
+          <div class="facet-t" style="margin-top:14px">屬性</div>
+          <div class="frow"><span class="dot" style="color:#818cf8;background:#818cf8"></span>1girl<span class="n">1,540</span></div>
+          <div class="frow"><span class="dot" style="color:#818cf8;background:#818cf8"></span>solo<span class="n">980</span></div>
+          <div class="facet-t" style="margin-top:14px">年份</div>
+          <div class="frow"><span class="dot" style="color:#fbbf24;background:#fbbf24"></span>2024<span class="n">420</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 右:詳情抽屜 -->
+    <aside class="drawer right" id="dright">
+      <div class="dhead">
+        <span class="dtitle">2069435310786699486.jpg</span>
+        <button class="dclose" onclick="closeD()" aria-label="關閉"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+      </div>
+      <div class="dbody">
+        <div class="preview">
+          <div class="pimg"></div>
+          <button class="zoom-btn" aria-label="放大檢視原圖"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg></button>
+        </div>
+        <div class="ibody">
+          <div class="iname">2069435310786699486.jpg</div>
+          <div class="iact"><span class="b">↻ 重新處理</span><span class="b">清除自動標</span></div>
+          <div class="isec-h">標籤 · 表情</div>
+          <span class="tag" style="color:#f0616d;border-color:rgba(240,97,109,0.4);background:rgba(240,97,109,0.08)">臉紅 blush</span>
+          <span class="tag" style="color:#f0616d;border-color:rgba(240,97,109,0.4);background:rgba(240,97,109,0.08)">張嘴 open_mouth</span>
+          <div class="isec-h">屬性</div>
+          <span class="tag" style="color:#818cf8;border-color:rgba(129,140,248,0.4);background:rgba(129,140,248,0.08)">1girl</span>
+          <span class="tag" style="color:#818cf8;border-color:rgba(129,140,248,0.4);background:rgba(129,140,248,0.08)">long_hair</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- mockup 狀態切換(僅樣板;正式版無此列) -->
+    <div class="ctrl">
+      <button class="on" id="b-grid" onclick="closeD()">圖牆</button>
+      <button id="b-left" onclick="openD('left')">篩選抽屜(左)</button>
+      <button id="b-right" onclick="openD('right')">點圖→詳情(右)</button>
+    </div>
+  </div>
+  <p class="label">③g 手機抽屜版(390px)· 下方為樣板切換鈕</p>
+  </div>
+
+  <script>
+    const palette = ['#c1466b','#7c5cc4','#3f8f5a','#b08a2e','#4a6fa5','#9a4a8a'];
+    const heights = [150, 210, 130, 240, 170, 190, 140, 220];
+    const grid = document.getElementById('grid');
+    for (let i = 0; i < 8; i++) {
+      const d = document.createElement('div');
+      d.className = 'tile';
+      d.style.height = heights[i % heights.length] + 'px';
+      d.style.background = palette[i % palette.length];
+      d.textContent = (230 - i);
+      if (i === 2) d.style.boxShadow = '0 0 0 2px var(--color-accent)';
+      d.onclick = () => openD('right');
+      grid.appendChild(d);
+    }
+    function setBtn(id) { for (const b of document.querySelectorAll('.ctrl button')) b.classList.remove('on'); document.getElementById(id).classList.add('on'); }
+    function openD(side) {
+      document.getElementById('dleft').classList.toggle('open', side === 'left');
+      document.getElementById('dright').classList.toggle('open', side === 'right');
+      document.getElementById('scrim').classList.add('show');
+      setBtn(side === 'left' ? 'b-left' : 'b-right');
+    }
+    function closeD() {
+      document.getElementById('dleft').classList.remove('open');
+      document.getElementById('dright').classList.remove('open');
+      document.getElementById('scrim').classList.remove('show');
+      setBtn('b-grid');
+    }
+  </script>
+</body>
+</html>

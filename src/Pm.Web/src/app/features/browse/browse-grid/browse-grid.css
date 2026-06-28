@@ -23,3 +23,20 @@ app-masonry { display: block; padding: 16px 18px; box-sizing: border-box; }
 .tile:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.8); border-color: var(--color-hair-strong); }
 .tile.sel { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent), 0 14px 30px -12px rgba(34, 211, 238, 0.35); }
 .scroll-sentinel { height: 1px; }
+
+/* ③g 手機抽屜模式:topbar「資料夾」鈕(開 folder tree 左抽屜)。 */
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 13px;
+  border: 1px solid var(--color-hair);
+  border-radius: var(--radius-soft);
+  background: var(--color-raised);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.filter-btn:hover { border-color: var(--color-accent); }
+.filter-btn svg { width: 18px; height: 18px; }
