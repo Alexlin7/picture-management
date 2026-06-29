@@ -81,8 +81,7 @@ dotnet run --project src/Pm.Api
 ```powershell
 dotnet test                       # 後端全測試
 cd src/Pm.Web ; npm test          # 前端(vitest + jsdom)
-cd src/Pm.Web ; npm run e2e       # 瀏覽器 e2e(需先起 app)
-cd src/Pm.Web ; npm run e2e:rwd   # RWD resize e2e
+cd src/Pm.Web ; npm run e2e       # 瀏覽器 e2e(@playwright/test;webServer 自動起 app)
 ```
 
 ### 發版(自包含單檔 exe)
