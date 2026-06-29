@@ -111,8 +111,8 @@
   color: var(--color-text);
   font-family: var(--font-mono);
 }
+/* 不殺 outline:鍵盤聚焦仍走全域 :focus-visible cyan ring;border 變色為附加提示。 */
 .af-in:focus {
-  outline: none;
   border-color: var(--color-accent);
 }
 .af-acts {
