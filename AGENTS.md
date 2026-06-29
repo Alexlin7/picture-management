@@ -94,6 +94,16 @@ dotnet publish src/Pm.Api -r win-x64 --self-contained -p:PublishSingleFile=true
 - **鐵則**:元件 `.css`(component-scoped)**不得** `@apply`/`@tailwind`/`@reference` —— Angular 隔離編譯選不到全域 token,故元件 .css 只能手寫 + `var(--token)`。共用 `@apply` 只能寫在全域 `styles.css`。
 - **a11y 基礎已就位**:全域 `:focus-visible` cyan ring + `prefers-reduced-motion` 降載;新互動元件勿用 `outline:none` 蓋掉 focus ring(除非容器自理 focus)。
 
+**e2e 測試慣例(完整審查 + 遷移計畫見 [`docs/design/2026-06-29-e2e-test-hardening.md`](docs/design/2026-06-29-e2e-test-hardening.md)):**
+- **鐵則(新寫 / 改寫 e2e 一律遵守,既有違反處逐步收斂、不得新增):**
+  1. **一律 web-first 斷言** `await expect(locator).toXxx()`;**禁** `expect(await …)` 與「讀一次再手動比較」(`const x = await …; if (x !== …) fail()`)。
+  2. **禁硬等**(`waitForTimeout` / `sleep`);一律等具體條件(`expect` 輪詢 / `waitForFunction` / `locator.waitFor({state})`)。視覺截圖前的短等需註明理由。
+  3. **Locator 優先序** `getByRole` > `getByLabel`/`getByText` > `getByTestId` > CSS;有 role/aria 的元件一律 `getByRole`。**禁** ElementHandle(`page.$`/`$$`/`$eval`/`$$eval`,不 auto-wait)。
+  4. **禁 `force:true`**(除非註明非掩蓋真問題);URL 走 config `baseURL`,測試內不散落 `localhost`。
+  5. **測試隔離**:每個 `test()` 可單獨重跑、`page.route` mock 在 `beforeEach` 重建;單一 test 聚焦單一行為,不塞過載斷言。
+  6. **全程 `page.route` mock `/api`**,守鐵則 #1(不依賴真實圖庫 / 不碰原圖);物件型端點回正確形狀空物件而非 `[]`。
+- **目標形態**:`@playwright/test` runner + `playwright.config.ts`(`baseURL` / `webServer` 自動起 app / `testIdAttribute='data-testid'`);既有 5 支 `.mjs` 煙霧腳本分階段遷移,**新測試直接照鐵則寫、不再新增手寫腳本**。
+
 ## 文件整理原則
 
 - `README.md`:現況、啟動方式、功能清單(公開門面)。
