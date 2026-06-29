@@ -14,6 +14,7 @@ import { useStageWidth } from '../use-stage-width';
     <div class="m-root" [style.height.px]="layout().containerHeight">
       @for (entry of visibleItems(); track entry.i) {
         <div class="m-item"
+          data-testid="masonry-item"
           [class.roving]="roving()"
           [attr.data-i]="entry.i"
           [attr.role]="roving() ? 'button' : null"

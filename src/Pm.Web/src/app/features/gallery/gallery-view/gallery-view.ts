@@ -20,7 +20,7 @@ import { shouldAutoCollapse, INSPECTOR_COLLAPSE, FACET_COLLAPSE, MOBILE } from '
       @if (!mobile()) {
         <app-facet-sidebar [sidebarCollapsed]="facetCollapsed()" />
       }
-      <div class="center-stage">
+      <div class="center-stage" data-testid="center-stage">
         @if (!mobile()) {
           <button
             class="edge-toggle et-left"

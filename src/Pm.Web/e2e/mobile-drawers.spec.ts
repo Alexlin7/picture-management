@@ -32,17 +32,13 @@ test.describe('手機抽屜(viewport < 768)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(BROWSE_URL);
     // 等實質元素(首格 tile)出現代表進入手機模式且資料已載入,不靠 networkidle / 硬等。
-    // TODO: masonry m-item(role=button)無 accessible name 也無 data-testid,
-    //   無法用 getByRole 唯一定位某一格 → 暫用 CSS。建議元件補 data-testid="photo-tile"。
-    await expect(page.locator('.m-item.roving').first()).toBeVisible();
+    await expect(page.getByTestId('masonry-item').first()).toBeVisible();
   });
 
   test('圖牆滿寬,不被側欄擠爛', async ({ page }) => {
-    // center-stage 為純佈局容器、無語意 role。
-    // TODO: 建議補 data-testid="center-stage" 後改用 getByTestId。
     // 用 expect.poll(web-first 輪詢)量寬,不做一次性讀取後手動比較。
     await expect
-      .poll(async () => (await page.locator('.center-stage').boundingBox())?.width ?? 0)
+      .poll(async () => (await page.getByTestId('center-stage').boundingBox())?.width ?? 0)
       .toBeGreaterThanOrEqual(360);
   });
 
@@ -63,7 +59,7 @@ test.describe('手機抽屜(viewport < 768)', () => {
   });
 
   test('點圖自動開右抽屜(inspector),詳情顯示', async ({ page }) => {
-    await page.locator('.m-item.roving').first().click();
+    await page.getByTestId('masonry-item').first().click();
     const rightDrawer = page.getByRole('dialog', { name: '圖片詳情' });
     await expect(rightDrawer).toBeVisible();
     // 詳情已渲染:身分區塊(SHA-256)出現。
@@ -71,7 +67,7 @@ test.describe('手機抽屜(viewport < 768)', () => {
   });
 
   test('放大鈕與 header 關閉 X 不重疊(根治疊鈕 bug)', async ({ page }) => {
-    await page.locator('.m-item.roving').first().click();
+    await page.getByTestId('masonry-item').first().click();
     const rightDrawer = page.getByRole('dialog', { name: '圖片詳情' });
     const zoomBtn = rightDrawer.getByRole('button', { name: '放大檢視原圖' });
     const closeBtn = rightDrawer.getByRole('button', { name: '關閉' });
@@ -95,7 +91,7 @@ test.describe('手機抽屜(viewport < 768)', () => {
   });
 
   test('放大鈕可點,開 lightbox 並可 Esc 關', async ({ page }) => {
-    await page.locator('.m-item.roving').first().click();
+    await page.getByTestId('masonry-item').first().click();
     const rightDrawer = page.getByRole('dialog', { name: '圖片詳情' });
     await rightDrawer.getByRole('button', { name: '放大檢視原圖' }).click();
 
@@ -112,7 +108,7 @@ test.describe('桌面寬回歸(viewport ≥ 768)', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto(BROWSE_URL);
-    await expect(page.locator('.m-item.roving').first()).toBeVisible();
+    await expect(page.getByTestId('masonry-item').first()).toBeVisible();
   });
 
   test('不出現抽屜、維持三欄', async ({ page }) => {

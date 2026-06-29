@@ -20,7 +20,7 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE, MOBILE } from '
       @if (!mobile()) {
         <app-folder-tree-sidebar [collapsed]="treeCollapsed()" />
       }
-      <div class="center-stage">
+      <div class="center-stage" data-testid="center-stage">
         @if (!mobile()) {
           <button
             class="edge-toggle et-left"
