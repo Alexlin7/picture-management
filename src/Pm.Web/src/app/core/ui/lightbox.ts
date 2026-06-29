@@ -37,18 +37,18 @@ export class LightboxService {
 
         <!-- 左上:計數 -->
         <div class="lb-meta">
-          <span class="count">{{ index() + 1 }} / {{ fmt(src.total()) }}</span>
+          <span class="count" data-testid="lightbox-count">{{ index() + 1 }} / {{ fmt(src.total()) }}</span>
         </div>
 
         <!-- 右上:下載 + 關閉 -->
         <div class="lb-tools">
           <a class="iconbtn" [href]="downloadUrl()" [attr.download]="fileName()" aria-label="下載原圖" title="下載原圖">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           </a>
           <button class="iconbtn close" type="button" (click)="svc.close()" aria-label="關閉(Esc)" title="關閉(Esc)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
               <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
             </svg>
           </button>
@@ -56,10 +56,10 @@ export class LightboxService {
 
         <!-- 左右換圖 -->
         <button class="navbtn prev" type="button" (click)="prev()" [disabled]="index() === 0" aria-label="上一張(←)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
         <button class="navbtn next" type="button" (click)="next()" [disabled]="atEnd()" aria-label="下一張(→)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
         </button>
 
         <!-- 圖片 + 字幕 -->

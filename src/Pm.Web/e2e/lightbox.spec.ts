@@ -41,13 +41,9 @@ test.describe('Lightbox 大圖檢視(桌面)', () => {
 
   test('放大鈕開 lightbox,原圖 <img> 指向 /file', async ({ page }) => {
     const lightbox = await openLightbox(page);
-    // 原圖 <img> 有 alt(檔名)→ 具名 role=img;但 lightbox 裝飾 icon svg 尚無 aria-hidden
-    // (P2 a11y gap:全站 svg 加 aria-hidden),同樣被當成 role=img。故用 accessible name
-    // (檔名,含副檔名)鎖定原圖那張,避免 strict 命中 4 個無名 svg。src 應指向原圖 /file。
-    await expect(lightbox.getByRole('img', { name: /\.\w+$/ })).toHaveAttribute(
-      'src',
-      /\/api\/photos\/\d+\/file/,
-    );
+    // 裝飾 icon svg 已補 aria-hidden,role=img 只剩原圖那張(有 alt=檔名),故 getByRole 不必再
+    // 用 name 篩。src 應指向原圖 /file。
+    await expect(lightbox.getByRole('img')).toHaveAttribute('src', /\/api\/photos\/\d+\/file/);
   });
 
   test('下載連結帶 download=true,指向原圖', async ({ page }) => {
@@ -62,9 +58,8 @@ test.describe('Lightbox 大圖檢視(桌面)', () => {
   test('下一張 / 上一張換圖(計數隨之變動)', async ({ page }) => {
     const lightbox = await openLightbox(page);
 
-    // 計數元件無 role/testid,退用 CSS;以 toHaveText 輪詢(web-first,非一次性讀取)。
-    // TODO: lightbox 計數可補 data-testid 後改 getByTestId。
-    const counter = lightbox.locator('.lb-meta .count');
+    // 計數元件具 data-testid → getByTestId(鐵則 #3 優先序);以 toHaveText 輪詢(web-first)。
+    const counter = lightbox.getByTestId('lightbox-count');
     await expect(counter).toHaveText(/^1 \//);
 
     // 下一張:計數 1 → 2(具名按鈕 → getByRole)。
