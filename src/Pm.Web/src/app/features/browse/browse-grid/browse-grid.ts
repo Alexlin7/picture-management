@@ -30,6 +30,12 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
   readonly hitText = computed(() => this.hitCount().toLocaleString('en-US'));
   readonly fmt = (n: number): string => n.toLocaleString('en-US');
 
+  // 選取格在目前載入清單中的 index,餵給 Masonry 設 aria-pressed(無選取 → -1)。
+  readonly selectedIndex = computed(() => {
+    const id = this.store.selectedId();
+    return id == null ? -1 : this.photos().findIndex((p) => p.id === id);
+  });
+
   // ③g:手機抽屜模式;true → 顯示「資料夾」鈕。
   readonly mobile = input(false);
   // 點「資料夾」鈕 → 請上層開左抽屜(folder tree)。

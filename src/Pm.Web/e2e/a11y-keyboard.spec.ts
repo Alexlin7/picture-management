@@ -88,10 +88,10 @@ test.describe('roving tabindex 圖牆', () => {
   test('Enter 觸發選圖', async ({ page }) => {
     await page.locator(`${masonryItem}[data-i="0"]`).focus();
     await page.keyboard.press('Enter');
-    // 觸發 activate → store.select；被選圖 tile 加上 .sel class。
-    // TODO(元件): 被選格無 role/aria/testid 表達「已選取」,只能用 .tile.sel CSS;
-    //   建議於選取 tile 補 aria-selected 或 data-testid="selected-tile" 以走優先序 locator。
-    await expect(page.locator('.tile.sel')).toHaveCount(1);
+    // 觸發 activate → store.select;被選格(role=button)設 aria-pressed=true 表達「已選取」語意。
+    // 走語意 locator(鐵則 #3),不再依賴 .tile.sel CSS。
+    await expect(page.locator(`${masonryItem}[aria-pressed="true"]`)).toHaveCount(1);
+    await expect(page.locator(`${masonryItem}[data-i="0"]`)).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('Space 觸發選圖', async ({ page }) => {
@@ -100,8 +100,9 @@ test.describe('roving tabindex 圖牆', () => {
     await page.keyboard.press('ArrowRight');
     await expect(page.locator(`${masonryItem}[data-i="1"]`)).toBeFocused();
     await page.keyboard.press(' ');
-    // TODO(元件): 同上,缺「已選取」的語意 locator,暫以 .tile.sel CSS 斷言。
-    await expect(page.locator('.tile.sel')).toHaveCount(1);
+    // 選格 data-i=1 應為唯一 aria-pressed=true(語意 locator,不依賴 .tile.sel CSS)。
+    await expect(page.locator(`${masonryItem}[aria-pressed="true"]`)).toHaveCount(1);
+    await expect(page.locator(`${masonryItem}[data-i="1"]`)).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('方向鍵移動到底自動補頁(active data-i 超過第一頁)', async ({ page }) => {

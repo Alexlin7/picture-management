@@ -37,6 +37,11 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
   // 選取狀態(讀 store)
   readonly selectedId = this.store.selectedId;
   readonly selCount = computed(() => (this.selectedId() === null ? 0 : 1));
+  // 選取格在目前載入清單中的 index,餵給 Masonry 設 aria-pressed(無選取 → -1)。
+  readonly selectedIndex = computed(() => {
+    const id = this.selectedId();
+    return id === null ? -1 : this.photos().findIndex((p) => p.id === id);
+  });
 
   // 兩段式檢視切換:dense=小圖密集 / large=大圖(純視覺本地狀態)
   readonly viewMode = signal<'dense' | 'large'>('dense');

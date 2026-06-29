@@ -19,6 +19,7 @@ import { useStageWidth } from '../use-stage-width';
           [attr.data-i]="entry.i"
           [attr.role]="roving() ? 'button' : null"
           [attr.tabindex]="roving() ? (entry.i === activeIndex() ? 0 : -1) : null"
+          [attr.aria-pressed]="roving() ? (entry.i === selectedIndex() ? 'true' : 'false') : null"
           (click)="onCellClick(entry.i)"
           (keydown)="onCellKeydown($event, entry.i)"
           [style.left.px]="entry.box?.left ?? 0"
@@ -56,6 +57,10 @@ export class Masonry {
   // 進去後方向鍵在 tile 間移動(依版面幾何)、Enter/Space 觸發 activate。
   // 不啟用(預設)→ m-item 不可聚焦、不攔鍵盤,行為與原本完全相同。
   roving = input(false);
+  // 目前被選取格的 index(roving 模式下對該格設 aria-pressed=true,表達「已選取」語意;
+  // 消費端把 selectedId 換算成 index 傳入)。-1 = 無選取。與 activeIndex(焦點)分開:
+  // 焦點可在未選取格上移動,選取才是「已挑中這張」。
+  selectedIndex = input(-1);
   // 使用者「觸發」某格(Enter/Space/click):回拋 item 與 index 給消費端(原本的 pick)。
   readonly activate = output<{ item: unknown; index: number }>();
   // 鍵盤往下/往右導航到接近結尾時發出:消費端據此載下一頁(純滾輪靠 sentinel IO,
