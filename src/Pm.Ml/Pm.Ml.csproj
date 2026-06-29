@@ -1,13 +1,43 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!--
+      推論 flavor:編譯期決定綁哪個 ONNX Runtime EP 套件。預設 directml,故平常
+      `dotnet build/test/run` 與既有 publish 行為完全不變。以 `-p:InferenceFlavor=cuda`
+      或 `-p:InferenceFlavor=windowsml` 切換(命令列 global property 會傳遞到本 ProjectReference)。
+      三套 native ORT(DirectML / Gpu / Windows ML)互斥、檔名相同不可並存,故同一 build
+      只引一個套件,並以對應 INFER_* 常數編進對應的 factory(見各 *SessionFactory.cs 與
+      Wd14Setup.Available[])。鐵則 #6「換 publish profile、程式碼不動」即此機制。
+    -->
+    <InferenceFlavor Condition="'$(InferenceFlavor)' == ''">directml</InferenceFlavor>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- flavor → 編譯常數(供 factory 檔與 Wd14Setup.Available[] 的 #if 取用) -->
+  <PropertyGroup Condition="'$(InferenceFlavor)' == 'directml'">
+    <DefineConstants>$(DefineConstants);INFER_DIRECTML</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(InferenceFlavor)' == 'cuda'">
+    <DefineConstants>$(DefineConstants);INFER_CUDA</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(InferenceFlavor)' == 'windowsml'">
+    <DefineConstants>$(DefineConstants);INFER_WINDOWSML</DefineConstants>
+  </PropertyGroup>
+
+  <!-- flavor → ONNX Runtime EP 套件(互斥,三選一)。windowsml 套件於 Slice 3 補上。 -->
+  <ItemGroup Condition="'$(InferenceFlavor)' == 'directml'">
+    <!-- 帶 {CPU, DirectML} 兩個 EP;任何 DX12 GPU(NV/AMD/Intel)。最廣相容。 -->
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(InferenceFlavor)' == 'cuda'">
+    <!-- 帶 {CPU, CUDA, TensorRT} EP;僅 NVIDIA,機器另需 CUDA/cuDNN。installer 較肥屬正常。 -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.24.4" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
   </ItemGroup>
 

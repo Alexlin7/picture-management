@@ -1,3 +1,4 @@
+#if INFER_DIRECTML
 using Microsoft.ML.OnnxRuntime;
 
 namespace Pm.Ml;
@@ -16,3 +17,4 @@ public sealed class DirectMlSessionFactory : IInferenceSessionFactory
         return new InferenceSession(modelPath, so);
     }
 }
+#endif

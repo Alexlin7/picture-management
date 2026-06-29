@@ -30,14 +30,15 @@ public static class Wd14Setup
         return services;
     }
 
-    // 本 build 帶的推論工廠;各 factory 自帶 .Backend,加新 backend 只需在此清單加一筆
-    // (不必再同步維護一份 backend→factory 的 switch)。Cuda/WindowsML 為骨架,不在清單內,
-    // 被選到時明確報錯而非默默退化。
-    private static readonly IInferenceSessionFactory[] Available =
-        [new CpuSessionFactory(), new DirectMlSessionFactory()];
+    // 本 build「真的帶」的推論工廠清單來自 Pm.Ml.InferenceFactories(與 INFER_* 編譯常數同住該專案)。
+    // 加 backend = 在 InferenceFactories.ForThisBuild() 對應 flavor 的 #if 分支加一筆。
+    private static readonly IReadOnlyList<IInferenceSessionFactory> Available = InferenceFactories.ForThisBuild();
 
     private static IInferenceSessionFactory FactoryFor(InferenceBackend backend)
-        => Array.Find(Available, f => f.Backend == backend)
+        => Available.FirstOrDefault(f => f.Backend == backend)
            ?? throw new NotSupportedException(
-               $"推論 backend '{backend}' 在本 build 未啟用(僅 cpu / directml);CUDA 需專屬 publish profile,Windows ML 為 Phase 2。");
+               $"推論 backend '{backend}' 在本 build 未啟用(本 build 僅帶:" +
+               $"{string.Join(" / ", Available.Select(f => f.Backend))})。" +
+               "跨 EP 由 publish flavor 綁定:DirectML(預設)/ CUDA(-p:InferenceFlavor=cuda)/ " +
+               "Windows ML(-p:InferenceFlavor=windowsml)各為獨立 build。");
 }
