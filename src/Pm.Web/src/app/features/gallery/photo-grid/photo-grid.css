@@ -39,7 +39,7 @@
 }
 .search:focus-within {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.12);
+  box-shadow: 0 0 0 3px var(--color-accent-focus);
 }
 .search > svg {
   width: 16px;
@@ -349,7 +349,7 @@ app-masonry {
 }
 .tile.sel {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent), 0 14px 30px -12px rgba(34, 211, 238, 0.35);
+  box-shadow: 0 0 0 1px var(--color-accent), 0 14px 30px -12px var(--color-accent-glow);
 }
 .tile .art {
   width: 100%;

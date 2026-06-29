@@ -77,7 +77,7 @@
 }
 .act.active {
   color: var(--color-accent);
-  background: rgba(34, 211, 238, 0.1);
+  background: var(--color-accent-soft);
 }
 .act.active::before {
   content: "";

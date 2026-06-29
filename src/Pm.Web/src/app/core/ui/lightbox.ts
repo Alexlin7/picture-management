@@ -91,7 +91,7 @@ export class LightboxService {
     .lb-caption .dim { font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--color-faint, #6b7280); }
     .lb-caption .insp { margin-left: auto; color: var(--color-accent, #22d3ee); cursor: pointer; font-size: var(--text-sm);
       background: none; border: 0; padding: 4px 6px; border-radius: var(--radius-soft, 7px); }
-    .lb-caption .insp:hover { background: rgba(34, 211, 238, 0.1); }
+    .lb-caption .insp:hover { background: var(--color-accent-soft); }
     .lb-meta { position: fixed; top: 22px; left: 20px; color: var(--color-muted, #959ba7); font-size: var(--text-body); }
     .lb-meta .count { font-family: var(--font-mono, monospace); color: var(--color-text, #e8eaed); }
     .lb-tools { position: fixed; top: 16px; right: 18px; display: flex; align-items: center; gap: 8px; }

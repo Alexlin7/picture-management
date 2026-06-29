@@ -8,7 +8,7 @@
 - **推論後端三 flavor 正式出貨**(原 CUDA / Windows ML「僅骨架」狀態解除):**DirectML**(預設,任何 DX12 GPU,24H2 以下通用)/ **CUDA**(NVIDIA,24H2 以下)/ **Windows ML**(Win11 24H2+,EP 由 OS 動態下載)。切點為 OS 版本涵蓋;編譯期經 `InferenceFlavor` 屬性切 ONNX Runtime 套件 + 選 factory,呼叫端程式碼不動,各有 publish profile + CI release matrix(出三個 zip)。CPU / DirectML 已實機驗證;CUDA / Windows ML 為編譯 + publish 驗證,runtime 推論需對應硬體 / OS。
 
 - **前端設計 token 系統收斂(P1)**:`@theme` 補齊單一真相源並改 `@theme static`(避免 runtime `var()` 引用的 token 被 Tailwind tree-shake)——
-  間距 4px scale(`--space-*`)、7 階封閉 type-scale(`--text-*`,散落字級含 .5px 全歸階)、tag 分色改單向引用 `--color-t-*`(刪手抄 hex 表,`hexToRgba`→`color-mix`)。
+  間距 4px scale(`--space-*`)、7 階封閉 type-scale(`--text-*`,散落字級含 .5px 全歸階)、tag 分色改單向引用 `--color-t-*`(刪手抄 hex 表,`hexToRgba`→`color-mix`)、transition 時長收斂兩階(`--dur-fast`/`--dur-base`,散落 ms 就近 snap)、半透明 cyan 抽 5 個 accent 衍生 token(`--color-accent-soft`/`-ring`/`-focus`/`-glow`/`-edge`,`color-mix` 從 `--color-accent` 推導,散落裸 `rgba(34,211,238,…)` 收斂、視覺等價)。
 - 抽屜投影子元件改 `:host(.fill)` 自管,移除全部 `::ng-deep`(Angular 已 deprecated)。
 
 ### 新增

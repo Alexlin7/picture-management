@@ -58,8 +58,8 @@
 
 /* 目前選到(accent 框,沿用 .frow.on 的視覺語彙) */
 .saved.on {
-  border-color: rgba(34, 211, 238, 0.45);
-  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.22);
+  border-color: var(--color-accent-edge);
+  box-shadow: inset 0 0 0 1px var(--color-accent-ring);
 }
 
 /* 標題 */

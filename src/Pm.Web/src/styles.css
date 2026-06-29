@@ -26,6 +26,15 @@
   --color-accent-ink: #06323b;
   --color-danger: #f0616d;
 
+  /* accent 半透明衍生(hue 單一真相 = --color-accent,以 color-mix 推導、alpha 顯式;
+     premultiplied alpha 下 color-mix(... N%, transparent) ≡ rgba(34,211,238,N/100))。
+     語意分用途,元件勿再寫裸 rgba(34,211,238,…)。 */
+  --color-accent-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);   /* 淡背景填色(active 列 / 確認區 / hover) */
+  --color-accent-ring: color-mix(in srgb, var(--color-accent) 22%, transparent);  /* inset 0 0 0 1px 強調環 */
+  --color-accent-focus: color-mix(in srgb, var(--color-accent) 12%, transparent); /* 0 0 0 3px 焦點環(搜尋框 / 輸入框) */
+  --color-accent-glow: color-mix(in srgb, var(--color-accent) 35%, transparent);  /* 選中圖卡 drop glow */
+  --color-accent-edge: color-mix(in srgb, var(--color-accent) 45%, transparent);  /* on 狀態 border */
+
   /* tag taxonomy(booru kind 分色)*/
   --color-t-character: #4ade80;
   --color-t-copyright: #c084fc;
@@ -225,7 +234,7 @@ body {
     @apply bg-raised;
   }
   .frow.on {
-    @apply bg-[rgba(34,211,238,0.08)] shadow-[inset_0_0_0_1px_rgba(34,211,238,0.22)];
+    @apply bg-[var(--color-accent-soft)] shadow-[inset_0_0_0_1px_var(--color-accent-ring)];
   }
 
   /* 區段小標題 */
