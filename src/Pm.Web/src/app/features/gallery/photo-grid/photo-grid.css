@@ -35,7 +35,7 @@
   border-radius: 9px;
   padding: 7px 11px;
   max-width: 640px;
-  transition: 0.15s;
+  transition: var(--dur-fast);
 }
 .search:focus-within {
   border-color: var(--color-accent);
@@ -340,7 +340,7 @@ app-masonry {
   cursor: pointer;
   border: 1px solid var(--color-hair-soft);
   background: var(--color-raised);
-  transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s;
+  transition: transform var(--dur-fast), box-shadow var(--dur-fast), border-color var(--dur-fast);
 }
 .tile:hover {
   transform: translateY(-3px);
@@ -394,7 +394,7 @@ app-masonry {
   max-width: 80%;
   opacity: 0;
   transform: translateY(-3px);
-  transition: 0.16s;
+  transition: var(--dur-fast);
 }
 .tile:hover .chips,
 .tile.sel .chips {

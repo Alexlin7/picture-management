@@ -334,7 +334,7 @@ related: [2026-06-24-ui-style-system-design]
 | ✅(2026-06-29,on-scale 部分)建 `--space-*` value 命名 scale(4 6 8 10 12 14 16 20 24 28 32 40 48);14 個 .css 的 padding/margin/gap **已在階上的值** 178 處 → `var(--space-N)`(值不變、視覺零變動)。🔲 **off-scale ~90 處**(9/5/11/7/3/18/15…光學微調)留裸 px,待獨立正規化切片(視覺決策、需逐處截圖) | 間距 scale | M | 新發現 |
 | ✅(2026-06-29)建封閉 type-scale 7 階 token(`--text-2xs:10 / -xs:11 / -sm:12 / -body:13 / -title:14 / -h2:16 / -h1:21`,`@theme static`);15 個散落字級(含 .5px)全歸階,半階就近 snap 平手往下(≤0.5px、近乎無感),罕用 8/9/15 ≤1px。元件 .css + .ts inline styles + styles.css `@apply`(`text-[length:var(--text-*)]`)共 ~140 處替換。**body 全域 13.5 為閱讀基準,保留不納入階**。驗證:ng build / 127 單元 / 26 e2e 全綠 | type scale 封閉階 | L | 新發現 |
 | 建三角色 utility(`.u-mono`/`.u-display`),60+ 處逐處替換 `font-family: var(--font-*)` | 三角色固化 | M | 新發現 |
-| transition 時長 / 緩動走 `--dur-*` / `--ease-out`,~10 處魔術數字機械替換 | transition token | M | 新發現 |
+| ✅(2026-06-29,時長部分)transition **時長** 38 處 → `var(--dur-fast)` / `var(--dur-base)`(散落 100/120/130/140/160/180ms 就近 snap 到兩階,界線 175ms;≤50ms 位移、transition 肉眼無感)。🔲 **緩動**未動:把裸 `ease` / 預設曲線換 `var(--ease-out)` 會改曲線=視覺變,留待專門切片逐處核 | transition token | M | 新發現 |
 | 半透明 cyan `rgba(34,211,238,…)` ×19 抽 `--color-accent-soft` / `-ring`,各透明階收斂 | 取色 token 化 | M | 新發現 |
 | ✅(2026-06-29)`TAG_COLOR` 雙真相源收斂:刪手抄 hex 表,`tagColor()`→`var(--color-t-*)`、`DANGER`→`var(--color-danger)`、`hexToRgba`→`tint()`(`color-mix`,視覺等價);`@theme` 補 `--color-t-expression`;`ACCENT` 死碼移除。8 處消費端遷移,127 單元測試綠。**併修**:token 區塊改 `@theme static`,否則 runtime `var()` 引用的 token 被 Tailwind tree-shake(`--color-t-copyright` 等)→ facet 作品軸無色(見 style-system 設計 §b) | 色彩唯一真相源 | M | 新發現 |
 | logo conic-gradient 混 4 分類色,重設計回 cyan 系識別 | cyan 唯一識別 | M | 新發現 |

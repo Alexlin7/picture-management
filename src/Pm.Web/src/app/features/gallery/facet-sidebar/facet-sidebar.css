@@ -11,7 +11,7 @@
   border-right: 1px solid var(--color-hair);
   overflow-y: auto;
   padding: var(--space-16) var(--space-14);
-  transition: width 0.15s ease;
+  transition: width var(--dur-fast) ease;
 }
 
 /* 收合狀態:寬度縮 0,隱藏內容與邊框。 */
@@ -101,7 +101,7 @@
   color: var(--color-faint);
   cursor: pointer;
   font-size: var(--text-2xs);
-  transition: transform 0.15s;
+  transition: transform var(--dur-fast);
   flex: none;
 }
 .ttoggle.open {

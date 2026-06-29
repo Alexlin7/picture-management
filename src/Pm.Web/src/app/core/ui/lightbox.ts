@@ -98,7 +98,7 @@ export class LightboxService {
     .iconbtn { width: 44px; height: 44px; display: inline-grid; place-items: center; border-radius: 50%;
       background: rgba(35, 39, 47, 0.7); border: 1px solid var(--color-hair-strong, #3b4150);
       color: var(--color-text, #e8eaed); cursor: pointer;
-      transition: background 0.15s var(--ease-out, ease-out), border-color 0.15s var(--ease-out, ease-out); }
+      transition: background var(--dur-fast) var(--ease-out, ease-out), border-color var(--dur-fast) var(--ease-out, ease-out); }
     .iconbtn:hover { background: var(--color-raised-2, #2a2f39); border-color: var(--color-accent, #22d3ee); }
     .iconbtn:active { filter: brightness(0.9); }
     .iconbtn svg { width: 20px; height: 20px; }
@@ -106,7 +106,7 @@ export class LightboxService {
     .navbtn { position: fixed; top: 50%; transform: translateY(-50%); width: 52px; height: 52px;
       display: inline-grid; place-items: center; border-radius: 50%; background: rgba(35, 39, 47, 0.55);
       border: 1px solid var(--color-hair-strong, #3b4150); color: var(--color-text, #e8eaed); cursor: pointer;
-      transition: background 0.15s var(--ease-out, ease-out), border-color 0.15s var(--ease-out, ease-out); }
+      transition: background var(--dur-fast) var(--ease-out, ease-out), border-color var(--dur-fast) var(--ease-out, ease-out); }
     .navbtn:hover { background: var(--color-raised-2, #2a2f39); border-color: var(--color-accent, #22d3ee); }
     .navbtn.prev { left: 20px; } .navbtn.next { right: 20px; }
     .navbtn svg { width: 26px; height: 26px; }

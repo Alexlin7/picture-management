@@ -66,8 +66,8 @@ import { A11yModule } from '@angular/cdk/a11y';
       margin-left: auto; width: 44px; height: 44px; display: inline-grid; place-items: center;
       border: 1px solid var(--color-hair); border-radius: var(--radius-soft);
       background: var(--color-raised); color: var(--color-text); cursor: pointer;
-      transition: border-color var(--dur-fast, 0.12s) var(--ease-out, ease-out),
-                  color var(--dur-fast, 0.12s) var(--ease-out, ease-out);
+      transition: border-color var(--dur-fast, var(--dur-fast)) var(--ease-out, ease-out),
+                  color var(--dur-fast, var(--dur-fast)) var(--ease-out, ease-out);
     }
     .dp-close:hover { border-color: var(--color-danger); color: var(--color-danger); }
     .dp-close svg { width: 18px; height: 18px; }

@@ -62,7 +62,7 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE, MOBILE } from '
         height: 100vh;
         min-width: 0;
         position: relative;
-        transition: grid-template-columns 0.15s ease;
+        transition: grid-template-columns var(--dur-fast) ease;
       }
       @media (prefers-reduced-motion: reduce) {
         .bview {
@@ -96,7 +96,7 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE, MOBILE } from '
         justify-content: center;
         font-size: var(--text-body);
         padding: 0;
-        transition: background 0.1s, color 0.1s;
+        transition: background var(--dur-fast), color var(--dur-fast);
       }
       .edge-toggle:hover {
         color: var(--color-text);

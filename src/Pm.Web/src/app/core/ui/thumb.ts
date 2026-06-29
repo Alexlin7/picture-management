@@ -51,7 +51,7 @@ type ThumbState = 'loading' | 'loaded' | 'broken';
       display: block;
       object-fit: cover;
       opacity: 0;
-      transition: opacity 0.2s ease;
+      transition: opacity var(--dur-base) ease;
     }
     .img.ready { opacity: 1; }
     .ph { position: absolute; inset: 0; }

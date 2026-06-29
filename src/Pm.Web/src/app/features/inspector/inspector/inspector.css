@@ -7,7 +7,7 @@
   overflow-y: auto;
   background: var(--color-panel);
   border-left: 1px solid var(--color-hair);
-  transition: width 0.15s ease;
+  transition: width var(--dur-fast) ease;
 }
 
 /* 收合狀態:由 gallery-view 透過 [class.collapsed] 控制。 */

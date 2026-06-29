@@ -95,7 +95,7 @@ tbody tr:hover {
   font-size: var(--text-sm);
   padding: 5px 9px;
   cursor: pointer;
-  transition: border-color 0.14s, background 0.14s;
+  transition: border-color var(--dur-fast), background var(--dur-fast);
 }
 .sel-mini:hover {
   border-color: var(--color-hair-strong);
@@ -165,7 +165,7 @@ tbody tr:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: border-color 0.14s, color 0.14s;
+  transition: border-color var(--dur-fast), color var(--dur-fast);
 }
 .root-tab:hover {
   border-color: var(--color-hair-strong);
@@ -203,7 +203,7 @@ tbody tr:hover {
 .preset-head .chev {
   font-size: var(--text-2xs);
   color: var(--color-faint);
-  transition: transform 0.15s;
+  transition: transform var(--dur-fast);
 }
 .preset-head .chev.open {
   transform: rotate(90deg);

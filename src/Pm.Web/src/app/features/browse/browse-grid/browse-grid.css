@@ -19,7 +19,7 @@
 .view { flex: 1; overflow-y: auto; min-height: 0; }
 .empty { padding: var(--space-28) 18px; color: var(--color-muted); font-size: var(--text-body); text-align: center; }
 app-masonry { display: block; padding: var(--space-16) 18px; box-sizing: border-box; }
-.tile { border-radius: var(--radius-card); overflow: hidden; position: relative; cursor: pointer; border: 1px solid var(--color-hair-soft); background: var(--color-raised); transition: transform 0.16s, box-shadow 0.16s, border-color 0.16s; }
+.tile { border-radius: var(--radius-card); overflow: hidden; position: relative; cursor: pointer; border: 1px solid var(--color-hair-soft); background: var(--color-raised); transition: transform var(--dur-fast), box-shadow var(--dur-fast), border-color var(--dur-fast); }
 .tile:hover { transform: translateY(-3px); box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.8); border-color: var(--color-hair-strong); }
 .tile.sel { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent), 0 14px 30px -12px rgba(34, 211, 238, 0.35); }
 .scroll-sentinel { height: 1px; }
