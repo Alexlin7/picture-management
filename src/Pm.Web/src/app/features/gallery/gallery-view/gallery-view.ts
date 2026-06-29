@@ -120,6 +120,13 @@ import { shouldAutoCollapse, INSPECTOR_COLLAPSE, FACET_COLLAPSE, MOBILE } from '
 
       /* ③g:把原側板元件投影進抽屜時,收束其內建固定尺寸,改填滿抽屜 body 並讓其自身 overflow 捲動。
          ::ng-deep 必要 —— 隔離編譯下父層選不到子元件內部 .sidebar/:host;限定在本 view scope 下。 */
+      /* host 須有定值高度,內層 .sidebar 的 height:100% + overflow-y:auto 才能解析成捲動視窗
+         (對齊下方 inspector;舊版漏設此行 → 手機 facet 抽屜無法捲動)。 */
+      :host ::ng-deep app-drawer-panel app-facet-sidebar {
+        display: block;
+        height: 100%;
+        min-height: 0;
+      }
       :host ::ng-deep app-drawer-panel app-facet-sidebar .sidebar {
         width: 100%;
         height: 100%;
