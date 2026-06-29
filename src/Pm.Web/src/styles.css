@@ -211,6 +211,23 @@ body {
   .input:hover {
     @apply border-hair-strong;
   }
+  /* 鍵盤聚焦:全域 :focus-visible 已給 cyan ring,這裡補 border 變色為附加提示
+     (滑鼠點擊不變色,維持乾淨;對齊 a11y 鐵則 focus 走 :focus-visible) */
+  .input:focus-visible {
+    @apply border-accent;
+  }
+  /* 修飾子:is-mono(路徑 / 技術值)、is-sm(密集列,如 inspector 加標籤) */
+  .input.is-mono {
+    @apply font-mono;
+  }
+  .input.is-sm {
+    @apply text-[length:var(--text-sm)] px-[9px] py-[5px] rounded-[6px];
+  }
+  /* 第四態:disabled(降透明 + 不可點;native input 本身已擋輸入) */
+  .input:disabled,
+  .input[disabled] {
+    @apply opacity-[0.5] cursor-not-allowed;
+  }
 
   /* loading 微光;reduced-motion 下由全域規則凍結為靜態淡色塊 */
   .skeleton {
@@ -235,6 +252,15 @@ body {
   }
   .frow.on {
     @apply bg-[var(--color-accent-soft)] shadow-[inset_0_0_0_1px_var(--color-accent-ring)];
+  }
+  /* 第三/四態:active 按下回饋、disabled(含 aria-disabled,涵蓋非 form 元素的列) */
+  .frow:active {
+    @apply bg-raised-2;
+  }
+  .frow:disabled,
+  .frow[disabled],
+  .frow[aria-disabled="true"] {
+    @apply opacity-50 cursor-default pointer-events-none;
   }
 
   /* 區段小標題 */

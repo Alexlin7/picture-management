@@ -330,17 +330,7 @@
   flex: 1;
   min-width: 0;
 }
-.addtag-in {
-  width: 100%;
-  flex: 1;
-  min-width: 0;
-  font-size: var(--text-sm);
-  padding: 5px 9px;
-  border-radius: 6px;
-  border: 1px solid var(--color-hair);
-  background: var(--color-canvas);
-  color: inherit;
-}
+/* 加標籤輸入(.addtag-in)已收斂到全域 .input.is-sm(掛 class);寬度由 .input w-full + .combo 容器處理。 */
 .combo-pop {
   position: absolute;
   top: calc(100% + 4px);
@@ -373,6 +363,9 @@
 .combo-row.active {
   background: var(--color-raised);
 }
+.combo-row:active {
+  background: var(--color-raised-2);
+}
 .combo-row .cname {
   flex: 1;
   min-width: 0;
@@ -395,10 +388,6 @@
 .combo-row.create.active,
 .combo-row.create:hover {
   color: inherit;
-}
-.addtag-in:focus {
-  /* 不殺 outline:鍵盤聚焦仍走全域 :focus-visible cyan ring;border 變色為附加提示 */
-  border-color: var(--color-muted);
 }
 .addtag-btn {
   flex: none;

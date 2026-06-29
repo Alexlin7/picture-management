@@ -340,8 +340,8 @@ related: [2026-06-24-ui-style-system-design]
 | logo conic-gradient 混 4 分類色,重設計回 cyan 系識別 | cyan 唯一識別 | M | 新發現 |
 | 加 `.u-num`(tabular-nums)並掛上計數點(facet / grid / confidence / reconcile / import) | 數字 tabular | S | 新發現 |
 | 抽 `.eyebrow`,各頁 group 小標統一沿用 `.facet-t` 範式 | eyebrow | M | 新發現 |
-| `.input` 收斂(`.q`/`.af-in`/`.addtag-in`/裸 input),focus 統一走 `:focus-visible` | 輸入 primitive | M | 新發現 |
-| 可點元件補 `:active` / `:disabled`(`.frow`/`.ac-row`/`.combo-row`/`.cat-item`/`.seg`/`.act`/`.saved`/`.b`) | 四態齊備 | M | 部分屬 `gallery-improvements` |
+| ✅(2026-06-29)`.input` 收斂:三個各自造輪子的文字輸入(`.q` tag搜尋/新增、`.af-in` 加來源、`.addtag-in` 加標籤)統一到全域 `.input` primitive(模板掛 class），刪元件各自 box 樣式;差異化保留為修飾子 `.input.is-mono`(路徑/技術值)、`.input.is-sm`(密集列）。focus 統一走全域 `:focus-visible`(補 `.input:focus-visible{border-accent}` 為附加提示,滑鼠點擊不變色)。**視覺變化**:三者背景 panel/canvas→raised、圓角→7、padding 對齊 primitive(使用者已拍板統一)。`.addinput`(inner-tag-filter dashed pill)語意不同、刻意不收。驗證:ng build / 127 單元 / 30 e2e 全綠 | 輸入 primitive | M | 新發現 |
+| ✅(2026-06-29,四態)補 `:disabled`/`:active`:全域 `.input:disabled`(降透明+not-allowed)、`.frow` 補 `:active`(raised-2 按下)+`:disabled`/`[aria-disabled]`;選單列 `.ac-row`(×2)/`.combo-row`/`.cat-item` 補 `:active` 按下回饋。`.btn`、inspector `.act`、lightbox `.navbtn`/`.iconbtn` 四態原已齊。**刻意不補**:選單列 `:disabled`(語意不可達——選項永不 disabled)、shell `.act`(導覽鈕永不 disabled);`.seg`/`.saved`/`.b` 經盤點非缺態(`.b` 無此 class) | 四態齊備 | M | 部分屬 `gallery-improvements` |
 | 文案正名:「標」縮寫全面改「標籤」;「收藏 vs 儲存」對齊;empty CTA;error 前綴;`taken_at` 改人話;placeholder 精簡 | 文案多條 | M | 新發現 |
 | 首屏清單骨架:gallery 網格 / manage 清單 / saved 卡片 `loading() && length===0` 時鋪 `.skeleton` 佔位塊維持版面骨架(`.skeleton` primitive 已存在、thumb 縮圖在用) | loading / skeleton | M | gallery-improvements(原誤列 P0「死碼」,2026-06-29 修正下放) |
 

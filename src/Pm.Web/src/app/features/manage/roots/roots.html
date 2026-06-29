@@ -48,14 +48,14 @@
     <div class="add-form">
       <input
         #pi
-        class="af-in"
+        class="input is-mono"
         type="text"
         placeholder="來源資料夾絕對路徑(例:D:/pics,正斜線免跳脫)"
         (keydown.enter)="ni.focus()"
       />
       <input
         #ni
-        class="af-in"
+        class="input is-mono"
         type="text"
         placeholder="來源名稱(可留空 = 用路徑)"
         (keydown.enter)="submitAdd(pi.value, ni.value, pi)"

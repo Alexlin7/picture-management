@@ -10,13 +10,14 @@
 - **前端設計 token 系統收斂(P1)**:`@theme` 補齊單一真相源並改 `@theme static`(避免 runtime `var()` 引用的 token 被 Tailwind tree-shake)——
   間距 4px scale(`--space-*`)、7 階封閉 type-scale(`--text-*`,散落字級含 .5px 全歸階)、tag 分色改單向引用 `--color-t-*`(刪手抄 hex 表,`hexToRgba`→`color-mix`)、transition 時長收斂兩階(`--dur-fast`/`--dur-base`,散落 ms 就近 snap)、半透明 cyan 抽 5 個 accent 衍生 token(`--color-accent-soft`/`-ring`/`-focus`/`-glow`/`-edge`,`color-mix` 從 `--color-accent` 推導,散落裸 `rgba(34,211,238,…)` 收斂、視覺等價)。
 - 抽屜投影子元件改 `:host(.fill)` 自管,移除全部 `::ng-deep`(Angular 已 deprecated)。
+- 文字輸入收斂到全域 `.input` primitive:三個各自造輪子的輸入(tag 搜尋/新增、加來源、加標籤）統一掛 class,差異化保留為 `.input.is-mono`/`.input.is-sm` 修飾子;補第四態 `.input:disabled`、`.frow:active`/`:disabled`,選單列補 `:active` 按下回饋。
 
 ### 新增
 - `IInferenceSessionFactory.InitializeAsync` 暖機接縫(預設 no-op;Windows ML 用於 async 註冊 EP 目錄)。
 - `CudaSessionFactory`、真正的 `WindowsMlSessionFactory`(EP 目錄暖機 + `GetEpDevices` 顯式選 EP + device policy + CPU fallback)。
 
 ### 修正
-- a11y:選取圖格補 `aria-pressed` 選取語意;`.af-in` / `.addinput` 輸入框還原全域 `:focus-visible` 焦點環;lightbox 裝飾 svg 補 `aria-hidden`。
+- a11y:選取圖格補 `aria-pressed` 選取語意;輸入框焦點統一走全域 `:focus-visible` 焦點環;lightbox 裝飾 svg 補 `aria-hidden`。
 - 手機 facet 抽屜無法捲動(投影子元件漏設 host 高度)。
 - e2e 測試遷移至 `@playwright/test` runner(webServer 自動起 app + 嚴守 web-first 鐵則),取代手寫煙霧腳本。
 

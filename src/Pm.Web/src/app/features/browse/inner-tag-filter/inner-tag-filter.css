@@ -11,6 +11,7 @@
 .ac-pop { position: absolute; top: calc(100% + 7px); left: 0; min-width: min(210px, 100%); max-height: 260px; overflow-y: auto; z-index: 50; background: var(--color-panel); border: 1px solid var(--color-hair); border-radius: 8px; box-shadow: var(--shadow-2); padding: var(--space-4); }
 .ac-row { width: 100%; display: flex; align-items: center; gap: var(--space-8); padding: var(--space-6) var(--space-8); border: 0; border-radius: 6px; background: transparent; color: var(--color-text); font-size: var(--text-sm); text-align: left; cursor: pointer; }
 .ac-row:hover, .ac-row.active { background: var(--color-raised); }
+.ac-row:active { background: var(--color-raised-2); }
 .ac-row .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .ac-row .acname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ac-row .account { flex: none; font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--color-faint); }

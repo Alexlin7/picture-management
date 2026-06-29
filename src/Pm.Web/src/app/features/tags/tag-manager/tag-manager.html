@@ -9,7 +9,7 @@
 
   <!-- 新增純標籤(name + kind,不掛圖) -->
   <div class="add">
-    <input #ni class="q" type="text" placeholder="新標籤名…" (keydown.enter)="add(ni.value, nk.value, ni)" />
+    <input #ni class="input" type="text" placeholder="新標籤名…" (keydown.enter)="add(ni.value, nk.value, ni)" />
     <select #nk class="ksel" aria-label="類別">
       @for (k of kinds; track k) {
         <option [value]="k" [selected]="k === 'manual'">{{ kindLabel(k) }}</option>
@@ -20,7 +20,7 @@
 
   <!-- 過濾 + 批次操作 -->
   <div class="bar">
-    <input #qi class="q" type="text" placeholder="過濾標籤名…(不分大小寫)" (input)="filter(qi.value)" />
+    <input #qi class="input" type="text" placeholder="過濾標籤名…(不分大小寫)" (input)="filter(qi.value)" />
     @if (selCount() > 0) {
       <span class="selinfo">已選 {{ selCount() }}</span>
       @if (selCount() === 2) {

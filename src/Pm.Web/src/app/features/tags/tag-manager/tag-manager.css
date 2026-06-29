@@ -29,7 +29,7 @@
   gap: var(--space-8);
   margin: 18px 0 var(--space-10);
 }
-.add .q {
+.add .input {
   flex: 1;
 }
 
@@ -39,7 +39,7 @@
   gap: var(--space-8);
   margin: var(--space-10) 0;
 }
-.bar .q {
+.bar .input {
   flex: 1;
 }
 .selinfo {
@@ -49,19 +49,7 @@
   white-space: nowrap;
 }
 
-.q {
-  width: 100%;
-  font-size: var(--text-body);
-  padding: 9px var(--space-12);
-  border-radius: 8px;
-  border: 1px solid var(--color-hair);
-  background: var(--color-panel);
-  color: var(--color-text);
-}
-.q:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-focus);
-}
+/* 文字輸入(.q)已收斂到全域 .input primitive(掛 class),此處不再各自造輪子。 */
 
 .ksel {
   flex: none;

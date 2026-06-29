@@ -144,6 +144,9 @@
 .ac-row.active {
   background: var(--color-raised);
 }
+.ac-row:active {
+  background: var(--color-raised-2);
+}
 .ac-row .dot {
   width: 8px;
   height: 8px;
