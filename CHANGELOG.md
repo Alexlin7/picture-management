@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-29
+
 ### 變更
 - **推論後端三 flavor 正式出貨**(原 CUDA / Windows ML「僅骨架」狀態解除):**DirectML**(預設,任何 DX12 GPU,24H2 以下通用)/ **CUDA**(NVIDIA,24H2 以下)/ **Windows ML**(Win11 24H2+,EP 由 OS 動態下載)。切點為 OS 版本涵蓋;編譯期經 `InferenceFlavor` 屬性切 ONNX Runtime 套件 + 選 factory,呼叫端程式碼不動,各有 publish profile + CI release matrix(出三個 zip)。CPU / DirectML 已實機驗證;CUDA / Windows ML 為編譯 + publish 驗證,runtime 推論需對應硬體 / OS。
 
@@ -40,5 +42,6 @@
 - 大圖檢視 lightbox。
 - GitHub Release 自動散布 workflow(打 `v*` tag → 測試 → build → win-x64 單檔 zip)。
 
-[Unreleased]: https://github.com/Alexlin7/picture-management/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Alexlin7/picture-management/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Alexlin7/picture-management/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Alexlin7/picture-management/releases/tag/v0.1.0
