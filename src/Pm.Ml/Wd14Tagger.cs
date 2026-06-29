@@ -17,6 +17,8 @@ public sealed class Wd14Tagger(IInferenceSessionFactory factory, Wd14Options opt
         {
             if (_session is not null) return;
             var (modelPath, tagsPath) = await Wd14ModelProvider.EnsureAsync(options, ct);
+            // EP 暖機(多數後端 no-op;Windows ML 在此 async 註冊 EP 目錄)後才建 session。
+            await factory.InitializeAsync(ct);
             var session = factory.Create(modelPath);
             _inputName = session.InputMetadata.Keys.First();
             _tags = Wd14Tags.Parse(await File.ReadAllLinesAsync(tagsPath, ct));
