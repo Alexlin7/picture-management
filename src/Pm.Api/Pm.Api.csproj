@@ -13,7 +13,10 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- windowsml flavor 下 Pm.Ml 是 Windows TFM(WinRT 投影),宿主須同為 Windows TFM 才能引用;
+         其餘 flavor(directml 預設 / cuda)維持純 net10.0。flavor 由命令列 global property 傳入。 -->
+    <TargetFramework Condition="'$(InferenceFlavor)' == 'windowsml'">net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework Condition="'$(InferenceFlavor)' != 'windowsml'">net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
