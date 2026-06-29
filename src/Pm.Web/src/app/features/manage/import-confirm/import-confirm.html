@@ -63,7 +63,7 @@
             @if (presets().length === 0) { <span class="preset-empty">尚無 preset,新增常用標籤以便快速套用。</span> }
           </div>
           <div class="preset-add">
-            <input #pname class="input" type="text" placeholder="標籤名…" />
+            <input #pname class="input" type="text" placeholder="標籤…" />
             <select #pkind class="input preset-kind">
               @for (c of catOptions; track c) { <option [value]="c">{{ KIND_LABEL[c] }}</option> }
             </select>

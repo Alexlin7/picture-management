@@ -17,6 +17,7 @@
 - `CudaSessionFactory`、真正的 `WindowsMlSessionFactory`(EP 目錄暖機 + `GetEpDevices` 顯式選 EP + device policy + CPU fallback)。
 
 ### 修正
+- 文案正名:「收藏」與「儲存」對齊,收藏搜尋流程統一用「收藏」(按鈕 / toast / 空狀態);「標籤名」一律改「標籤」+ placeholder 精簡;`+ tag` 英文改「+ 標籤」;inspector EXIF 空狀態不再露 `taken_at` 欄位名。
 - a11y:選取圖格補 `aria-pressed` 選取語意;輸入框焦點統一走全域 `:focus-visible` 焦點環;lightbox 裝飾 svg 補 `aria-hidden`。
 - 手機 facet 抽屜無法捲動(投影子元件漏設 host 高度)。
 - e2e 測試遷移至 `@playwright/test` runner(webServer 自動起 app + 嚴守 web-first 鐵則),取代手寫煙霧腳本。

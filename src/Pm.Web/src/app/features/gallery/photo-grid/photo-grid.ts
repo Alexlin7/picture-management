@@ -164,16 +164,16 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
     this.io?.disconnect();
   }
 
-  // 儲存目前搜尋:無 token 時 disabled(template 層也保護),成功/失敗皆 toast 提示。
+  // 收藏目前搜尋:無 token 時 disabled(template 層也保護),成功/失敗皆 toast 提示。
   saveSearch(): void {
     const ts = this.tokens();
     if (!ts.length) return;
     const queryJson = JSON.stringify(ts);
     const name = ts.map((t) => t.text).join(' ');
     void this.api.createSavedSearch({ name, queryJson }).then(() => {
-      this.toast.success('已儲存搜尋');
+      this.toast.success('已收藏搜尋');
     }).catch(() => {
-      this.toast.error('儲存搜尋失敗,請稍後再試');
+      this.toast.error('收藏搜尋失敗,請稍後再試');
     });
   }
 

@@ -1,5 +1,5 @@
 <div class="main">
-  <!-- 頂欄 topbar:搜尋列 + 儲存搜尋(掃描已移除 —— 屬 per-root 維護,在「圖庫來源」頁) -->
+  <!-- 頂欄 topbar:搜尋列 + 收藏搜尋(掃描已移除 —— 屬 per-root 維護,在「圖庫來源」頁) -->
   <div class="topbar">
     <!-- ③g:手機抽屜模式才顯示;開左抽屜(facet 篩選)。桌面用 edge 箭頭故不顯示。 -->
     @if (mobile()) {
@@ -27,7 +27,7 @@
       <div class="ac-wrap">
         <input
           #si
-          placeholder="搜尋標籤名…(打字挑、Enter 套精準標)"
+          placeholder="搜尋標籤…(Enter 套用精準標籤)"
           role="combobox"
           aria-autocomplete="list"
           aria-controls="pg-ac"
@@ -65,11 +65,11 @@
         }
       </div>
     </div>
-    <div class="search-hint">挑標籤＝AND · 點標籤切換排除 · Enter 套用精準標</div>
-    <button class="btn ghost" title="儲存目前搜尋" (click)="saveSearch()" [disabled]="!tokens().length">
+    <div class="search-hint">挑標籤＝AND · 點標籤切換排除 · Enter 套用精準標籤</div>
+    <button class="btn ghost" title="收藏目前搜尋" (click)="saveSearch()" [disabled]="!tokens().length">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
         <path d="m12 17-5.5 3 1-6.2L3 9.3l6.2-.9L12 3l2.8 5.4 6.2.9-4.5 4.5 1 6.2z" />
-      </svg>儲存搜尋
+      </svg>收藏搜尋
     </button>
   </div>
 
