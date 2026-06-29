@@ -94,6 +94,9 @@ export class PhotoGrid implements AfterViewInit, OnDestroy {
   // kind → 顏色(共用分色 helper)
   kindColor = tagColor;
 
+  // masonry 圖格(role=button)可及名稱:序位名,讓 SR 不只念「button」。
+  readonly tileLabel = (_: unknown, i: number): string => `圖片 ${i + 1}`;
+
   // 移除頂欄 token
   removeToken(idx: number, ev: Event): void {
     ev.stopPropagation();

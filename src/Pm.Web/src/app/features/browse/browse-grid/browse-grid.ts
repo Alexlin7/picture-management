@@ -30,6 +30,9 @@ export class BrowseGrid implements AfterViewInit, OnDestroy {
   readonly hitText = computed(() => this.hitCount().toLocaleString('en-US'));
   readonly fmt = (n: number): string => n.toLocaleString('en-US');
 
+  // masonry 圖格(role=button)可及名稱:序位名,讓 SR 不只念「button」。
+  readonly tileLabel = (_: unknown, i: number): string => `圖片 ${i + 1}`;
+
   // 選取格在目前載入清單中的 index,餵給 Masonry 設 aria-pressed(無選取 → -1)。
   readonly selectedIndex = computed(() => {
     const id = this.store.selectedId();

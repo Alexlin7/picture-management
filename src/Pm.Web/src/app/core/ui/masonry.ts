@@ -20,6 +20,7 @@ import { useStageWidth } from '../use-stage-width';
           [attr.role]="roving() ? 'button' : null"
           [attr.tabindex]="roving() ? (entry.i === activeIndex() ? 0 : -1) : null"
           [attr.aria-pressed]="roving() ? (entry.i === selectedIndex() ? 'true' : 'false') : null"
+          [attr.aria-label]="roving() ? itemLabel()(entry.item, entry.i) : null"
           (click)="onCellClick(entry.i)"
           (keydown)="onCellKeydown($event, entry.i)"
           [style.left.px]="entry.box?.left ?? 0"
@@ -61,6 +62,9 @@ export class Masonry {
   // 消費端把 selectedId 換算成 index 傳入)。-1 = 無選取。與 activeIndex(焦點)分開:
   // 焦點可在未選取格上移動,選取才是「已挑中這張」。
   selectedIndex = input(-1);
+  // roving 模式下每格的可及名稱:role=button 需有 name,否則螢幕報讀器只念「button」
+  // (Lighthouse aria-command-name)。預設給序位名;消費端可傳更具體者。
+  itemLabel = input<(item: unknown, index: number) => string>((_, i) => `項目 ${i + 1}`);
   // 使用者「觸發」某格(Enter/Space/click):回拋 item 與 index 給消費端(原本的 pick)。
   readonly activate = output<{ item: unknown; index: number }>();
   // 鍵盤往下/往右導航到接近結尾時發出:消費端據此載下一頁(純滾輪靠 sentinel IO,

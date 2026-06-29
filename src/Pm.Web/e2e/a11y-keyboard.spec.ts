@@ -73,6 +73,12 @@ test.describe('roving tabindex 圖牆', () => {
     await expect(page.locator(`${masonryItem}[tabindex="-1"]`)).not.toHaveCount(0);
   });
 
+  test('每格有可及名稱(role=button 不再無名;守 Lighthouse aria-command-name)', async ({ page }) => {
+    // 首格 data-i=0 → 序位名「圖片 1」(itemLabel);走語意 locator 確認可及名稱存在。
+    await expect(page.getByRole('button', { name: '圖片 1', exact: true })).toBeVisible();
+    await expect(page.locator(`${masonryItem}[data-i="0"]`)).toHaveAttribute('aria-label', '圖片 1');
+  });
+
   test('ArrowRight 在 tile 間移動焦點', async ({ page }) => {
     // 聚焦 active 格(data-i=0);.focus() 是 locator 動作(非 ElementHandle)。
     const cell0 = page.locator(`${masonryItem}[data-i="0"]`);
