@@ -35,12 +35,12 @@
 .insp-empty svg {
   width: 34px;
   height: 34px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-12);
   opacity: 0.5;
 }
 .insp-empty .sub {
   font-size: 11.5px;
-  margin-top: 6px;
+  margin-top: var(--space-6);
 }
 
 /* ---------- 預覽圖 ---------- */
@@ -84,7 +84,7 @@
 
 /* ---------- 主體 ---------- */
 .ibody {
-  padding: 14px 16px 26px;
+  padding: var(--space-14) var(--space-16) 26px;
 }
 .iname {
   font-family: var(--font-display);
@@ -95,16 +95,16 @@
 .iser {
   color: var(--color-muted);
   font-size: 12.5px;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-14);
 }
 
 /* ---------- key/value(EXIF personal)---------- */
 .kvs {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 6px 12px;
+  gap: var(--space-6) var(--space-12);
   font-size: 12px;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-6);
 }
 .kvs .k {
   color: var(--color-faint);
@@ -118,7 +118,7 @@
 
 /* ---------- 區段 ---------- */
 .isec {
-  margin-top: 20px;
+  margin-top: var(--space-20);
 }
 .isec-h {
   font-size: 11px;
@@ -126,10 +126,10 @@
   text-transform: uppercase;
   color: var(--color-muted);
   font-weight: 700;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-10);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .isec-h .line {
   height: 1px;
@@ -150,7 +150,7 @@
   background: var(--color-canvas);
   border: 1px solid var(--color-hair);
   border-radius: var(--radius-soft);
-  padding: 11px 12px;
+  padding: 11px var(--space-12);
 }
 .idhash {
   font-family: var(--font-mono);
@@ -166,10 +166,10 @@
 .loc {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   padding: 7px 0;
   border-top: 1px dashed var(--color-hair);
-  margin-top: 8px;
+  margin-top: var(--space-8);
   font-size: 11.5px;
 }
 .loc:first-of-type {
@@ -194,7 +194,7 @@
   font-size: 10px;
   color: var(--color-faint);
   background: var(--color-raised);
-  padding: 1px 6px;
+  padding: 1px var(--space-6);
   border-radius: 4px;
   flex: none;
 }
@@ -207,16 +207,16 @@
 
 /* ---------- tag lanes ---------- */
 .lane {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-12);
 }
 .lane-t {
   font-size: 11px;
   color: var(--color-muted);
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-6);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .lane-t .n {
   margin-left: auto;
@@ -234,13 +234,13 @@
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-6);
 }
 .tag {
   display: flex;
   flex-wrap: wrap;          /* tmeta 只在放不下時才折到第二行(RWD、內容驅動) */
   align-items: center;
-  column-gap: 6px;
+  column-gap: var(--space-6);
   row-gap: 3px;
   max-width: 100%;
   padding: 3px 9px;
@@ -258,7 +258,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  column-gap: 6px;
+  column-gap: var(--space-6);
   row-gap: 2px;
   min-width: 0;
 }
@@ -293,7 +293,7 @@
   font-size: 9.5px;
   letter-spacing: 0.02em;
   opacity: 0.7;
-  padding: 0 4px;
+  padding: 0 var(--space-4);
   border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
   border-radius: 4px;
 }
@@ -314,8 +314,8 @@
 }
 .addtag {
   display: flex;
-  gap: 6px;
-  margin-top: 10px;
+  gap: var(--space-6);
+  margin-top: var(--space-10);
 }
 /* combobox 容器:input 在上、浮層清單絕對定位於其下 */
 .combo {
@@ -346,14 +346,14 @@
   border: 1px solid var(--color-hair);
   border-radius: 8px;
   box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.45);
-  padding: 4px;
+  padding: var(--space-4);
 }
 .combo-row {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -396,7 +396,7 @@
 .addtag-btn {
   flex: none;
   font-size: 12px;
-  padding: 5px 12px;
+  padding: 5px var(--space-12);
   border-radius: 6px;
   border: 1px solid var(--color-hair);
   background: var(--color-raised);
@@ -409,17 +409,17 @@
 }
 
 /* ---------- photo 層級動作列 ---------- */
-.iactions { display: flex; gap: 8px; margin: 4px 0 10px; }
+.iactions { display: flex; gap: var(--space-8); margin: var(--space-4) 0 var(--space-10); }
 .iactions .act {
   font-size: 11px; font-weight: 500; color: var(--color-text);
   background: var(--color-raised); border: 1px solid var(--color-hair);
-  border-radius: var(--radius-soft); padding: 5px 10px; cursor: pointer;
+  border-radius: var(--radius-soft); padding: 5px var(--space-10); cursor: pointer;
 }
 .iactions .act:hover:not(:disabled) { border-color: var(--color-accent); }
 .iactions .act.ghost { color: var(--color-muted); background: transparent; }
 .iactions .act.ghost:hover:not(:disabled) { color: var(--color-text); border-color: var(--color-muted); }
 .iactions .act:disabled { opacity: 0.4; cursor: default; }
-.iactions-msg { font-size: 11px; color: var(--color-warning); margin: -4px 0 10px; }
+.iactions-msg { font-size: 11px; color: var(--color-warning); margin: -4px 0 var(--space-10); }
 
 /* ---------- EXIF 空框 ---------- */
 .exif-empty {

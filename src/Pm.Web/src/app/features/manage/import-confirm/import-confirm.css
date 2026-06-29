@@ -34,14 +34,14 @@ thead th {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 600;
-  padding: 0 12px 9px;
+  padding: 0 var(--space-12) 9px;
   border-bottom: 1px solid var(--color-hair);
 }
 thead th.col-act {
   width: 300px;
 }
 tbody td {
-  padding: 11px 12px;
+  padding: 11px var(--space-12);
   border-bottom: 1px solid var(--color-hair-soft);
   vertical-align: middle;
 }
@@ -68,7 +68,7 @@ tbody tr:hover {
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   padding: 3px 9px;
   border-radius: 6px;
   font-size: 11.5px;
@@ -80,7 +80,7 @@ tbody tr:hover {
 .act-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .cat-pick {
   position: relative;
@@ -112,13 +112,13 @@ tbody tr:hover {
   background: var(--color-raised-2);
   border: 1px solid var(--color-hair);
   border-radius: var(--radius-soft);
-  padding: 4px;
+  padding: var(--space-4);
   box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.7);
 }
 .cat-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   width: 100%;
   border: 0;
   background: transparent;
@@ -126,7 +126,7 @@ tbody tr:hover {
   font-family: var(--font-body);
   font-size: 12.5px;
   text-align: left;
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   border-radius: 6px;
   cursor: pointer;
 }
@@ -149,8 +149,8 @@ tbody tr:hover {
 .root-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: var(--space-6);
+  margin-bottom: var(--space-14);
 }
 .root-tab {
   border: 1px solid var(--color-hair);
@@ -159,7 +159,7 @@ tbody tr:hover {
   color: var(--color-muted);
   font-family: var(--font-body);
   font-size: 12.5px;
-  padding: 5px 12px;
+  padding: 5px var(--space-12);
   cursor: pointer;
   max-width: 220px;
   overflow: hidden;
@@ -176,7 +176,7 @@ tbody tr:hover {
   color: var(--color-accent);
 }
 .root-select {
-  margin-bottom: 14px;
+  margin-bottom: var(--space-14);
   max-width: 280px;
 }
 
@@ -189,7 +189,7 @@ tbody tr:hover {
 .preset-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   width: 100%;
   border: 0;
   background: transparent;
@@ -197,7 +197,7 @@ tbody tr:hover {
   font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 600;
-  padding: 10px 12px;
+  padding: var(--space-10) var(--space-12);
   cursor: pointer;
 }
 .preset-head .chev {
@@ -218,22 +218,22 @@ tbody tr:hover {
   padding: 0 5px;
 }
 .preset-body {
-  padding: 4px 12px 12px;
+  padding: var(--space-4) var(--space-12) var(--space-12);
   border-top: 1px solid var(--color-hair-soft);
 }
 .preset-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  margin: 10px 0;
+  margin: var(--space-10) 0;
 }
 .preset-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   border: 1px solid var(--color-hair);
   border-radius: 7px;
-  padding: 3px 6px 3px 9px;
+  padding: 3px var(--space-6) 3px 9px;
   font-size: 12px;
   color: var(--color-text);
 }
@@ -266,7 +266,7 @@ tbody tr:hover {
 }
 .preset-add {
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: center;
 }
 .preset-add .input {
@@ -280,7 +280,7 @@ tbody tr:hover {
 
 /* map 動作:inline 可編輯 tag 名 */
 .pill-edit {
-  padding-right: 4px;
+  padding-right: var(--space-4);
 }
 .tag-name-edit {
   border: 0;
@@ -307,7 +307,7 @@ tbody tr:hover {
 .actions-bar {
   margin-top: 18px;
   display: flex;
-  gap: 10px;
+  gap: var(--space-10);
 }
 .actions-bar .btn svg {
   width: 15px;

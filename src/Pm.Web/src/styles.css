@@ -31,6 +31,23 @@
   --color-t-path: #94a3b8;
   --color-t-manual: #f472b6;
 
+  /* 間距 scale(4px 基準 + Tailwind 慣例半階;value 命名 = var 名即 px。
+     元件 .css 一律取 var(--space-N),不寫裸 px。off-scale 奇數值(9/5/11…)
+     屬光學微調,暫留裸 px,待後續正規化切片。漸進 token 化,只替換已在階上的值。 */
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+
   /* radius */
   --radius-card: 10px;
   --radius-soft: 7px;
@@ -217,12 +234,12 @@ body {
   .vhead {
     max-width: 880px;
     margin: 0 auto;
-    padding: 20px 24px 4px;
+    padding: var(--space-20) var(--space-24) var(--space-4);
   }
   .vhead h1 {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-10);
     margin: 0 0 5px;
     font-family: var(--font-display);
     font-weight: 600;
@@ -239,7 +256,7 @@ body {
   .panel-pad {
     max-width: 880px;
     margin: 0 auto;
-    padding: 16px 24px 40px;
+    padding: var(--space-16) var(--space-24) var(--space-40);
   }
 
   /* 資訊提示條(accent info 條;rgba/hex 於 Slice 3 收斂為 token) */

@@ -78,7 +78,7 @@ related: [2026-06-24-ui-style-system-design]
 
 **間距 scale**
 
-- DO:間距只從 `@theme` 的 spacing token 取值(4px 基準:`--space-1:4 / -2:8 / -3:12 / -4:16 / -5:20 / -6:24 / -8:32 / -10:40`)。所有 padding / gap / margin 由此挑。
+- DO:間距只從 `@theme` 的 spacing token 取值(4px 基準 + Tailwind 慣例半階,**value 命名**:`--space-4 / -6 / -8 / -10 / -12 / -14 / -16 / -20 / -24 / -28 / -32 / -40 / -48`,var 名即 px)。所有 padding / gap / margin 由此挑。元件 .css 一律 `var(--space-N)`,不寫裸 px。
 - DO:**頁面層級水平內距全站統一為單一值**(收斂為 `24px`),讓 gallery chrome(topbar/toolbar/masonry)與 manage 的 panel-pad 對齊,消除切頁時左緣跳動。
 - DONT:不要再新增任意 px 字面值(`11 / 13 / 15 / 18px` 之類)做間距。落不進 scale 的值,先問是否真的需要。
 
@@ -330,7 +330,7 @@ related: [2026-06-24-ui-style-system-design]
 
 | 項目 | 違反準則 | 成本 | 來源 |
 |---|---|---|---|
-| 建 spacing scale token,全站散落 px 間距逐處歸階 | 間距 scale | M | 新發現 |
+| ✅(2026-06-29,on-scale 部分)建 `--space-*` value 命名 scale(4 6 8 10 12 14 16 20 24 28 32 40 48);14 個 .css 的 padding/margin/gap **已在階上的值** 178 處 → `var(--space-N)`(值不變、視覺零變動)。🔲 **off-scale ~90 處**(9/5/11/7/3/18/15…光學微調)留裸 px,待獨立正規化切片(視覺決策、需逐處截圖) | 間距 scale | M | 新發現 |
 | 建 type-scale token,16 個散落字級(含 .5px)逐處歸階 | type scale 封閉階 | L | 新發現 |
 | 建三角色 utility(`.u-mono`/`.u-display`),60+ 處逐處替換 `font-family: var(--font-*)` | 三角色固化 | M | 新發現 |
 | transition 時長 / 緩動走 `--dur-*` / `--ease-out`,~10 處魔術數字機械替換 | transition token | M | 新發現 |

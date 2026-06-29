@@ -8,7 +8,7 @@
 .tagmgr {
   max-width: 880px;
   margin: 0 auto;
-  padding: 28px 24px 60px;
+  padding: var(--space-28) var(--space-24) 60px;
 }
 
 .hd h1 {
@@ -19,15 +19,15 @@
 .hd .sub {
   color: var(--color-muted);
   font-size: 13px;
-  margin-top: 6px;
+  margin-top: var(--space-6);
   line-height: 1.5;
 }
 
 /* 新增區 */
 .add {
   display: flex;
-  gap: 8px;
-  margin: 18px 0 10px;
+  gap: var(--space-8);
+  margin: 18px 0 var(--space-10);
 }
 .add .q {
   flex: 1;
@@ -36,8 +36,8 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 10px 0;
+  gap: var(--space-8);
+  margin: var(--space-10) 0;
 }
 .bar .q {
   flex: 1;
@@ -52,7 +52,7 @@
 .q {
   width: 100%;
   font-size: 13px;
-  padding: 9px 12px;
+  padding: 9px var(--space-12);
   border-radius: 8px;
   border: 1px solid var(--color-hair);
   background: var(--color-panel);
@@ -66,7 +66,7 @@
 .ksel {
   flex: none;
   font-size: 12.5px;
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
   border-radius: 8px;
   border: 1px solid var(--color-hair);
   background: var(--color-panel);
@@ -78,7 +78,7 @@
 }
 
 .empty {
-  padding: 24px;
+  padding: var(--space-24);
   text-align: center;
   color: var(--color-muted);
   font-size: 13px;
@@ -89,11 +89,11 @@
 .row {
   display: grid;
   grid-template-columns: 26px minmax(0, 1fr) 110px 72px 60px auto;
-  gap: 10px;
+  gap: var(--space-10);
   align-items: center;
 }
 .thead {
-  padding: 6px 12px;
+  padding: var(--space-6) var(--space-12);
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -125,7 +125,7 @@
   overflow: hidden;
 }
 .row {
-  padding: 9px 12px;
+  padding: 9px var(--space-12);
   border-top: 1px solid var(--color-hair-soft);
 }
 .row:first-child {
@@ -144,7 +144,7 @@
 .c-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-weight: 500;
   font-size: 13.5px;
   min-width: 0;
@@ -171,7 +171,7 @@
 }
 .c-acts {
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   justify-content: flex-end;
 }
 
@@ -188,7 +188,7 @@
 }
 .c-kind .ksel {
   width: 100%;
-  padding: 5px 8px;
+  padding: 5px var(--space-8);
 }
 
 /* 按鈕已收斂為全域 .btn 家族(.btn / .btn-sm / .btn-primary / .btn-ghost / .btn-danger);

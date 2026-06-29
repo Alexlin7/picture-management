@@ -21,15 +21,15 @@
   border-bottom: 1px solid var(--color-hair);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 24px;
+  gap: var(--space-12);
+  padding: 0 var(--space-24);
   background: linear-gradient(180deg, var(--color-bar-1), var(--color-bar-2));
 }
 .search {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   background: var(--color-canvas);
   border: 1px solid var(--color-hair);
   border-radius: 9px;
@@ -51,7 +51,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 7px 2px 8px;
+  padding: 2px 7px 2px var(--space-8);
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
@@ -124,14 +124,14 @@
   border: 1px solid var(--color-hair);
   border-radius: 8px;
   box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.45);
-  padding: 4px;
+  padding: var(--space-4);
 }
 .ac-row {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -180,8 +180,8 @@
   border-bottom: 1px solid var(--color-hair-soft);
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 24px;
+  gap: var(--space-14);
+  padding: 0 var(--space-24);
   color: var(--color-muted);
   font-size: 12.5px;
 }
@@ -193,7 +193,7 @@
 .status-dot {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   font-size: 11.5px;
   color: var(--color-muted);
 }
@@ -260,8 +260,8 @@
 .more-status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 9px;
+  gap: var(--space-8);
+  padding: var(--space-8) 9px;
   font-size: 11.5px;
   color: var(--color-muted);
   white-space: nowrap;
@@ -281,14 +281,14 @@
 .more-sep {
   height: 1px;
   background: var(--color-hair-soft);
-  margin: 4px 2px;
+  margin: var(--space-4) 2px;
 }
 .more-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   width: 100%;
-  padding: 8px 9px;
+  padding: var(--space-8) 9px;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -316,13 +316,13 @@
 /* masonry 容器邊距(ResizeObserver 用 contentRect.width,padding 不干擾欄寬計算) */
 app-masonry {
   display: block;
-  padding: 16px 24px;
+  padding: var(--space-16) var(--space-24);
   box-sizing: border-box;
 }
 
 /* 空 / 載入 / 錯誤狀態 */
 .empty {
-  padding: 28px 24px;
+  padding: var(--space-28) var(--space-24);
   color: var(--color-muted);
   font-size: 13px;
   text-align: center;
@@ -330,7 +330,7 @@ app-masonry {
 .loadmore {
   display: flex;
   justify-content: center;
-  padding: 8px 24px 24px;
+  padding: var(--space-8) var(--space-24) var(--space-24);
 }
 
 .tile {
@@ -369,7 +369,7 @@ app-masonry {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 9px 10px;
+  padding: 9px var(--space-10);
   z-index: 2;
 }
 .tile .ttl {
@@ -388,7 +388,7 @@ app-masonry {
   top: 8px;
   left: 8px;
   display: flex;
-  gap: 4px;
+  gap: var(--space-4);
   flex-wrap: wrap;
   z-index: 2;
   max-width: 80%;
@@ -404,11 +404,11 @@ app-masonry {
 .mini {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   background: rgba(13, 15, 19, 0.82);
   backdrop-filter: blur(3px);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  padding: 2px 6px;
+  padding: 2px var(--space-6);
   border-radius: 5px;
   font-size: 10.5px;
   font-weight: 600;
@@ -427,11 +427,11 @@ app-masonry {
   color: var(--color-t-meta);
   border: 1px solid rgba(251, 191, 36, 0.4);
   border-radius: 5px;
-  padding: 2px 6px;
+  padding: 2px var(--space-6);
   font-size: 10px;
   font-weight: 600;
   display: flex;
-  gap: 4px;
+  gap: var(--space-4);
   align-items: center;
 }
 .dupflag {
@@ -443,7 +443,7 @@ app-masonry {
   border: 1px solid var(--color-hair);
   color: var(--color-muted);
   border-radius: 5px;
-  padding: 2px 6px;
+  padding: 2px var(--space-6);
   font-size: 10px;
   font-family: var(--font-mono);
 }
@@ -455,7 +455,7 @@ app-masonry {
   align-self: center;
 }
 .ac-empty {
-  padding: 8px 11px;
+  padding: var(--space-8) 11px;
   font-size: 12.5px;
   color: var(--color-muted);
 }
@@ -476,9 +476,9 @@ app-masonry {
     flex-wrap: wrap;
     height: auto;
     min-height: 56px;
-    row-gap: 8px;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    row-gap: var(--space-8);
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-8);
   }
   .search {
     flex: 1 1 100%;
@@ -505,9 +505,9 @@ app-masonry {
 .filter-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 var(--space-12);
   font-size: 13px;
   border: 1px solid var(--color-hair);
   border-radius: var(--radius-soft);

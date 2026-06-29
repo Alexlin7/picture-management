@@ -10,7 +10,7 @@
   background: var(--color-panel);
   border-right: 1px solid var(--color-hair);
   overflow-y: auto;
-  padding: 16px 14px;
+  padding: var(--space-16) var(--space-14);
   transition: width 0.15s ease;
 }
 
@@ -34,10 +34,10 @@
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.2px;
-  margin: 2px 2px 14px;
+  margin: 2px 2px var(--space-14);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 .side-h .sub {
   font-family: var(--font-mono);
@@ -65,7 +65,7 @@
 
 /* 無上層分類小標 */
 .rootless-h {
-  margin: 12px 2px 6px;
+  margin: var(--space-12) 2px var(--space-6);
   color: var(--color-faint);
 }
 
@@ -107,8 +107,8 @@
   color: var(--color-t-meta);
   border: 1px solid rgba(251, 191, 36, 0.45);
   border-radius: 4px;
-  padding: 0 4px;
-  margin-left: 6px;
+  padding: 0 var(--space-4);
+  margin-left: var(--space-6);
   line-height: 1.4;
 }
 
@@ -133,7 +133,7 @@
 
 /* 頂部過濾框(.input 走全域 primitive,這裡只管外距與字級) */
 .filter-box {
-  margin: 0 2px 14px;
+  margin: 0 2px var(--space-14);
 }
 .filter-input {
   font-size: 12.5px;
@@ -142,8 +142,8 @@
 /* 「顯示更多」幽靈按鈕 */
 .show-more {
   width: 100%;
-  margin-top: 4px;
-  padding: 5px 8px;
+  margin-top: var(--space-4);
+  padding: 5px var(--space-8);
   border: none;
   background: transparent;
   color: var(--color-accent);
@@ -158,7 +158,7 @@
 
 /* 查無結果提示 */
 .empty-hint {
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
   color: var(--color-faint);
   font-size: 12px;
 }
