@@ -4,7 +4,7 @@
   <!-- 多 root:各 root 一列(頂層並列);單 root 也照列。 -->
   @for (r of roots(); track r.id) {
     <div class="frow root-row" [class.on]="currentRootId() === r.id" (pmActivate)="selectRoot(r)">
-      <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+      <svg aria-hidden="true" class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
       <span class="nm">{{ r.name }}</span>
       <span class="n">{{ fmt(r.photoCount) }}</span>
     </div>
@@ -13,7 +13,7 @@
     @if (currentRootId() === r.id) {
       @for (c of firstLevel(); track c.relPath) {
         <div class="frow indent" [class.on]="currentPath() === c.relPath" (pmActivate)="enter(c)">
-          <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+          <svg aria-hidden="true" class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
           <span class="nm">{{ c.name }}</span>
           <span class="n">{{ fmt(c.photoCount) }}</span>
         </div>

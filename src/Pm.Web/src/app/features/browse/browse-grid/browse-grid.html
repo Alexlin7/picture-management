@@ -10,7 +10,7 @@
       </button>
     }
     <div class="crumbs">
-      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+      <svg aria-hidden="true" class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
       @for (c of breadcrumb(); track c.relPath; let last = $last) {
         @if (last) {
           <!-- 當前節點:不可點、無 hover -->
@@ -29,7 +29,7 @@
       <span class="lab">子資料夾</span>
       @for (c of subfolders(); track c.relPath) {
         <button class="dchip" (click)="enterChild(c)">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></svg>
           {{ c.name }} <span class="n">{{ fmt(c.photoCount) }}</span>
         </button>
       }

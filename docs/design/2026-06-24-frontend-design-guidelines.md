@@ -347,7 +347,7 @@ related: [2026-06-24-ui-style-system-design]
 
 ### P2 — a11y 結構性改造(M/L)
 
-> **2026-06-29 校正:** 原表多項標註已與程式碼脫節(規劃當時的靜態盤點,未反映後續以 `pmActivate` directive + masonry roving 補上的鍵盤可達)。下表已據實重核,✅ 為已達標。**鍵盤可達基本已就位**,僅剩 saved 刪除鈕(hover-only)一處真缺口 + 全站 svg `aria-hidden` 部分未掃 + 「`role=button`→原生 `<button>`」最佳實踐升級(低價值,降優先)。
+> **2026-06-29 校正:** 原表多項標註已與程式碼脫節(規劃當時的靜態盤點,未反映後續以 `pmActivate` directive + masonry roving 補上的鍵盤可達)。下表已據實重核,✅ 為已達標。**鍵盤可達基本已就位**,僅剩 saved 刪除鈕(hover-only)一處真缺口 + 「`role=button`→原生 `<button>`」最佳實踐升級(低價值,降優先)。(svg `aria-hidden` 全站掃描已於 2026-06-29 完成;saved 刪除鈕亦已重構。)
 
 | 項目 | 違反準則 | 成本 | 狀態 |
 |---|---|---|---|
@@ -355,7 +355,7 @@ related: [2026-06-24-ui-style-system-design]
 | photo tile 選圖、search token 鍵盤可達 + 選取語意 | 鍵盤可達 / 狀態語意 | M | ✅(2026-06-29)search token 早已是原生 `<button>`;photo tile masonry roving = role=button + 方向鍵/Enter/Space,**本次補 `aria-pressed` 選取語意**(取代僅 `.tile.sel` CSS)。native-button 升級低價值 |
 | saved 刪除鈕重構:解巢狀雙 button + 常駐(非 hover-only) | 鍵盤可達 / 巢狀 / hover-only | M | ✅(2026-06-29)卡片 `<button>` → `<div>` 容器;主動作 `.saved-main` 與刪除 `.del` 改兩個並排真 `<button>`(解巢狀);刪除鈕常駐 DOM,改 CSS `:hover` / `:focus-within` 顯示(鍵盤可聚焦即達);`aria-label` 帶標題、裝飾 svg `aria-hidden`。e2e `saved-a11y.spec.ts` 3 測守住 |
 | 搜尋 / 加標籤 combobox 補 `role=combobox/listbox/option` + `aria-*` | combobox | M | ✅ 兩處(photo-grid 搜尋、inner-tag-filter 夾內再篩)role/aria/activedescendant 齊全,e2e 有測 |
-| shell nav 可及名稱;`<svg>` 加 `aria-hidden`;skip-link;`<nav> aria-label` | 圖示名稱 / 結構 | S | ✅ 大部:skip-link、`<nav aria-label>`、`<main id>` 就位;nav 項目用 opacity-toggle 文字(留在 a11y tree)+ `:focus-visible` 顯示,有可及名稱;shell/photo-grid/lightbox svg 已 `aria-hidden`。🔲 **其餘頁面 svg aria-hidden 尚未全面掃** |
+| shell nav 可及名稱;`<svg>` 加 `aria-hidden`;skip-link;`<nav> aria-label` | 圖示名稱 / 結構 | S | ✅ 大部:skip-link、`<nav aria-label>`、`<main id>` 就位;nav 項目用 opacity-toggle 文字(留在 a11y tree)+ `:focus-visible` 顯示,有可及名稱;shell/photo-grid/lightbox svg 已 `aria-hidden`。✅(2026-06-29)**svg aria-hidden 全站掃完**:19 個裝飾性 `<svg>`(跨 photo-grid/inspector/roots/folder-tree/browse-grid/reconcile/import-confirm)補 `aria-hidden="true"`,逐處確認父層皆有文字或 `aria-label`/`title`(無 icon-only 無名按鈕);thumb 破圖 svg 父層 `.ph` 已 `aria-hidden` 故略 |
 | `:focus`+`outline:none` 改 `:focus-visible` / 補統一 ring | 焦點可見 | S | ✅(2026-06-29)四處核畢:`.search`(容器 `:focus-within` ring)、`.af-in` / `.addinput`(本次移除 outline 壓制,還原全域環)、inspector(保留全域環);`.rename` 有常駐 accent border + 未壓環,亦 OK |
 | 檢視切換 `.seg` / 排序表頭 `aria-pressed`;import 分類選 `aria-selected` | 狀態語意 / 鍵盤 | S–M | ✅ 大部:`.seg` 檢視鈕已 `aria-pressed`;import 分類選 role=listbox/option + `aria-selected`。🔲 tags 排序表頭狀態語意待查 |
 

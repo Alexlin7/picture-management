@@ -10,7 +10,7 @@
       </button>
     }
     <div class="search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="7" />
         <path d="m20 20-3.5-3.5" />
       </svg>
@@ -67,7 +67,7 @@
     </div>
     <div class="search-hint">挑標籤＝AND · 點標籤切換排除 · Enter 套用精準標籤</div>
     <button class="btn ghost" title="收藏目前搜尋" (click)="saveSearch()" [disabled]="!tokens().length">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
         <path d="m12 17-5.5 3 1-6.2L3 9.3l6.2-.9L12 3l2.8 5.4 6.2.9-4.5 4.5 1 6.2z" />
       </svg>收藏搜尋
     </button>
@@ -122,7 +122,7 @@
         aria-haspopup="menu"
         [attr.aria-expanded]="moreOpen()"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="5" r="1.4" />
           <circle cx="12" cy="12" r="1.4" />
           <circle cx="12" cy="19" r="1.4" />
@@ -137,13 +137,13 @@
           </div>
           <div class="more-sep"></div>
           <button class="more-row" role="menuitem" (click)="moreRequeue()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
               <path d="M3 3v5h5" />
             </svg>重標失敗
           </button>
           <button class="more-row" role="menuitem" (click)="moreRequeueQuery()" [disabled]="requeueingQuery() || hitCount() === 0">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
               <path d="M3 3v5h5" />
             </svg>重標查詢
