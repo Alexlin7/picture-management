@@ -136,7 +136,7 @@ related: [2026-06-24-ui-style-system-design]
 
 **三角色(display / body / mono)**
 
-- DO:把三角色固化成可複用 utility / primitive(`.u-display` / `.u-mono`,或 Tailwind `font-display` / `font-mono`),元件掛 class,不再逐處寫 `font-family: var(--font-mono)`。
+- DO:把三角色固化成可複用 utility / primitive —— **以 Tailwind 內建 `font-display` / `font-mono` 為準**(v4 從 `@theme` `--font-*` 自動生成,毋須自建 `.u-*`),新元件掛 class。**既有 `font-family: var(--font-*)` 已是 token 化單一真相,不做全站 sweep**(2026-06-29 決議,理由見下「P1 gap」表三角色列),機會性收斂即可。
 - DO:mono 只用於機器值 —— 絕對路徑、SHA / hash、計數、confidence%、tag token 輸入、技術 badge。display 只用於頁標題與大數字。其餘一律 body。
 - DONT:不要在敘述性說明文字(`.vhead p`、note)用 display 或 mono。
 
@@ -333,7 +333,7 @@ related: [2026-06-24-ui-style-system-design]
 |---|---|---|---|
 | ✅(2026-06-29,on-scale 部分)建 `--space-*` value 命名 scale(4 6 8 10 12 14 16 20 24 28 32 40 48);14 個 .css 的 padding/margin/gap **已在階上的值** 178 處 → `var(--space-N)`(值不變、視覺零變動)。🔲 **off-scale ~90 處**(9/5/11/7/3/18/15…光學微調)留裸 px,待獨立正規化切片(視覺決策、需逐處截圖) | 間距 scale | M | 新發現 |
 | ✅(2026-06-29)建封閉 type-scale 7 階 token(`--text-2xs:10 / -xs:11 / -sm:12 / -body:13 / -title:14 / -h2:16 / -h1:21`,`@theme static`);15 個散落字級(含 .5px)全歸階,半階就近 snap 平手往下(≤0.5px、近乎無感),罕用 8/9/15 ≤1px。元件 .css + .ts inline styles + styles.css `@apply`(`text-[length:var(--text-*)]`)共 ~140 處替換。**body 全域 13.5 為閱讀基準,保留不納入階**。驗證:ng build / 127 單元 / 26 e2e 全綠 | type scale 封閉階 | L | 新發現 |
-| 建三角色 utility(`.u-mono`/`.u-display`),60+ 處逐處替換 `font-family: var(--font-*)` | 三角色固化 | M | 新發現 |
+| 🚫(2026-06-29 決議不做 sweep)三角色 utility：盤點後判定 CP 值最低、**不執行 60+ 處模板掃**。理由:① `font-family: var(--font-*)` 已是 token 化單一真相,**無 magic number / tree-shake bug**(不同於其他 P1 列在修真相源違規)→ 換 utility 視覺零變化、純 DRY;② utility **已存在** —— Tailwind v4 從 `@theme` 的 `--font-mono`/`--font-display` 自動生成 `font-mono`/`font-display` class,毋須自建(§137 DO 已允許用 Tailwind 版);③ AGENTS 鐵則「元件 .css 不得 `@apply`」→ 只能走模板層,要逐處編輯 ~50 個深巢狀元素(`.lb-caption .dim`/`.side-h .sub`/`.frow .n`…)跨 14 元件,specificity 敏感、回歸風險高;④ 掃下來 display 全在標題、mono 全在機器值,**無語意誤用 bug** 可修(符合 §140);⑤ display 6 處非同一三件套(共用 family+weight:600,size 各自 h1/h2/title),抽 primitive 反更糊。**收斂策略**:新元件直接掛 Tailwind `font-mono`/`font-display`、舊處機會性收斂,不另開 sweep | 三角色固化 | M | 新發現 |
 | ✅(2026-06-29,時長部分)transition **時長** 38 處 → `var(--dur-fast)` / `var(--dur-base)`(散落 100/120/130/140/160/180ms 就近 snap 到兩階,界線 175ms;≤50ms 位移、transition 肉眼無感)。🔲 **緩動**未動:把裸 `ease` / 預設曲線換 `var(--ease-out)` 會改曲線=視覺變,留待專門切片逐處核 | transition token | M | 新發現 |
 | ✅(2026-06-29)半透明 cyan 收斂:建 5 個 accent 衍生 token(`--color-accent-soft` 8% 淡背景 / `-ring` 22% inset 環 / `-focus` 12% 3px 焦點環 / `-glow` 35% 選中 glow / `-edge` 45% on border),以 `color-mix(in srgb, var(--color-accent) N%, transparent)` 從 hue 單一真相推導、`@theme static` emit。12 處散落裸 `rgba(34,211,238,…)` → token(跨 styles.css `.frow.on` / import-confirm / saved-searches / shell / lightbox / tag-manager / photo-grid / browse-grid);premultiplied alpha 下 color-mix ≡ rgba,**零視覺變化**(僅 `.act.active` / lightbox hover 兩處 0.1→8% 差 2% 無感)。**刻意保留 raw**:`::selection` 0.28(styles.css 內單一全域規則)、logo conic-gradient glow 0.6(裝飾識別,見下列)。驗證:ng build / 127 單元 / 30 e2e 全綠 | 取色 token 化 | M | 新發現 |
 | ✅(2026-06-29)`TAG_COLOR` 雙真相源收斂:刪手抄 hex 表,`tagColor()`→`var(--color-t-*)`、`DANGER`→`var(--color-danger)`、`hexToRgba`→`tint()`(`color-mix`,視覺等價);`@theme` 補 `--color-t-expression`;`ACCENT` 死碼移除。8 處消費端遷移,127 單元測試綠。**併修**:token 區塊改 `@theme static`,否則 runtime `var()` 引用的 token 被 Tailwind tree-shake(`--color-t-copyright` 等)→ facet 作品軸無色(見 style-system 設計 §b) | 色彩唯一真相源 | M | 新發現 |
