@@ -46,7 +46,7 @@ related: [2026-06-24-ui-style-system-design]
 
 - **cyan 是唯一品牌/互動識別色,不是綠。** accent = cyan(`--color-accent`)。互動焦點、選中、主行動一律 cyan 系。logo 不得用混入分類色的全色環漸層稀釋 cyan。
 - **狀態語意色與 booru 分類色是兩套軸,不可互借。** 狀態用 `--color-success / --color-warning / --color-danger / --color-accent`;分類用 `--color-t-*`(character / copyright / general / meta / …)。character 綠 ≠ success 綠,meta 黃 ≠ warning 黃,即使色值接近也不可借用。
-- **`@theme` 是色彩唯一真相源。** 不維護第二份手抄 hex 色表(現存 `tag-color.ts` 的 `TAG_COLOR` 屬待收斂的雙真相源)。
+- **`@theme` 是色彩唯一真相源。** 不維護第二份手抄 hex 色表。`tag-color.ts` 已單向引用 token:`tagColor(kind)` 回 `var(--color-t-*)`、`DANGER` = `var(--color-danger)`、`tint()` 以 `color-mix` 取代舊 `hexToRgba`(2026-06-29 收斂)。
 - **暗色是唯一主題。** 不做亮色主題;深色階梯 canvas/panel/raised/raised-2 與 text/muted/faint 階層固定。
 
 **字體與排版**
@@ -335,7 +335,7 @@ related: [2026-06-24-ui-style-system-design]
 | 建三角色 utility(`.u-mono`/`.u-display`),60+ 處逐處替換 `font-family: var(--font-*)` | 三角色固化 | M | 新發現 |
 | transition 時長 / 緩動走 `--dur-*` / `--ease-out`,~10 處魔術數字機械替換 | transition token | M | 新發現 |
 | 半透明 cyan `rgba(34,211,238,…)` ×19 抽 `--color-accent-soft` / `-ring`,各透明階收斂 | 取色 token 化 | M | 新發現 |
-| `TAG_COLOR` 雙真相源收斂(單向供給 + 補 `--color-t-expression`) | 色彩唯一真相源 | M | 新發現 |
+| ✅(2026-06-29)`TAG_COLOR` 雙真相源收斂:刪手抄 hex 表,`tagColor()`→`var(--color-t-*)`、`DANGER`→`var(--color-danger)`、`hexToRgba`→`tint()`(`color-mix`,視覺等價);`@theme` 補 `--color-t-expression`;`ACCENT` 死碼移除。8 處消費端遷移,127 單元測試綠。**併修**:token 區塊改 `@theme static`,否則 runtime `var()` 引用的 token 被 Tailwind tree-shake(`--color-t-copyright` 等)→ facet 作品軸無色(見 style-system 設計 §b) | 色彩唯一真相源 | M | 新發現 |
 | logo conic-gradient 混 4 分類色,重設計回 cyan 系識別 | cyan 唯一識別 | M | 新發現 |
 | 加 `.u-num`(tabular-nums)並掛上計數點(facet / grid / confidence / reconcile / import) | 數字 tabular | S | 新發現 |
 | 抽 `.eyebrow`,各頁 group 小標統一沿用 `.facet-t` 範式 | eyebrow | M | 新發現 |

@@ -1,25 +1,26 @@
-// §6.1 booru 分色:tag.kind → 顏色
-export const TAG_COLOR: Record<string, string> = {
-  character: '#4ADE80',
-  copyright: '#C084FC',
-  expression: '#FB7185', // 表情:顯示層合成 group,從 general 拉出
-  general:   '#818CF8',
-  meta:      '#FBBF24',
-  path:      '#94A3B8',
-  manual:    '#F472B6',
-};
-export const ACCENT = '#22D3EE';
-export const DANGER = '#F0616D';
-export const tagColor = (kind: string) => TAG_COLOR[kind] ?? TAG_COLOR['general'];
+// §6.1 booru 分色:tag.kind → 顏色。
+// 顏色唯一真相源是 styles.css @theme 的 --color-t-*(及 --color-danger);此處只「單向引用」
+// token,不再手抄 hex(避免雙真相源)。回傳的是 CSS var() 字串,直接吃進 inline style。
+export type TagKind =
+  | 'character' | 'copyright' | 'expression' | 'general' | 'meta' | 'path' | 'manual';
 
-// #rrggbb + alpha → rgba()。共用半透明底色/邊框用;非 6 碼 hex 退回黑色(防 NaN)。
-export function hexToRgba(hex: string, a: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  if (Number.isNaN(n)) return `rgba(0,0,0,${a})`;
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
-}
+const KINDS: ReadonlySet<string> = new Set<TagKind>([
+  'character', 'copyright', 'expression', 'general', 'meta', 'path', 'manual',
+]);
 
-export type TagKind = keyof typeof TAG_COLOR; // character|copyright|expression|general|meta|path|manual
+/** tag.kind → var(--color-t-*);未知 kind 退回 general。 */
+export const tagColor = (kind: string): string =>
+  `var(--color-t-${KINDS.has(kind) ? kind : 'general'})`;
+
+/** 危險動作色(原為手抄 hex,改走 token)。 */
+export const DANGER = 'var(--color-danger)';
+
+/** 任意 CSS 顏色(含 var())+ 透明度 → 半透明底色/邊框。
+ *  以 color-mix 取代舊 hexToRgba,與 .btn-danger / .note 既有慣例一致;
+ *  底色不透明時視覺等價於 rgba(該色, a)。a ∈ [0,1]。 */
+export const tint = (color: string, a: number): string =>
+  `color-mix(in srgb, ${color} ${+(a * 100).toFixed(2)}%, transparent)`;
+
 export const KIND_LABEL: Record<TagKind, string> = {
   character: '角色',
   copyright: '作品',

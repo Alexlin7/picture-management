@@ -1,6 +1,6 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { GalleryStore, type FacetNode } from '../gallery.store';
-import { TAG_COLOR } from '@core/tag-color';
+import { tagColor } from '@core/tag-color';
 import { Activate } from '@core/a11y/activate';
 import { loadCollapsed, saveCollapsed, toggleCollapsed, type FacetSection } from './facet-collapse';
 
@@ -66,8 +66,8 @@ export class FacetSidebar {
   readonly rootlessVisible = computed(() =>
     this.showAllRootless() ? this.rootlessFiltered() : this.rootlessFiltered().slice(0, TOP_N));
 
-  // kind → 顏色
-  readonly color = (kind: string): string => TAG_COLOR[kind] ?? TAG_COLOR['general'];
+  // kind → 顏色(var(--color-t-*),未知退 general)
+  readonly color = tagColor;
 
   // 使用者手動覆寫的展開/收合(true=展開,false=收合)。
   private readonly overrides = signal<Map<FacetNode, boolean>>(new Map());

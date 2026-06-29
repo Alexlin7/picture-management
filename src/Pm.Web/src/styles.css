@@ -5,7 +5,10 @@
    Tailwind v4 @theme:每個 token 會同時產生 utility(bg-canvas / text-muted /
    border-hair / font-display …)並在 :root 暴露成 CSS 變數(var(--color-canvas)…)。
    =========================================================================== */
-@theme {
+/* static:強制輸出所有 token 變數到 :root。本檔多數 token 是經 runtime var()
+   或元件 .css 引用(非 Tailwind utility),Tailwind 預設會 tree-shake 掉「沒被
+   utility 用到」的(如 --color-t-copyright/path/manual),導致 inline var() 取不到色。 */
+@theme static {
   /* chrome */
   --color-canvas: #14161b;
   --color-panel: #1b1e25;
@@ -26,6 +29,7 @@
   /* tag taxonomy(booru kind 分色)*/
   --color-t-character: #4ade80;
   --color-t-copyright: #c084fc;
+  --color-t-expression: #fb7185; /* 表情:顯示層合成 group,從 general 拉出 */
   --color-t-general: #818cf8;
   --color-t-meta: #fbbf24;
   --color-t-path: #94a3b8;

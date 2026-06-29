@@ -96,6 +96,11 @@ related: [2026-06-24-frontend-design-guidelines]
 }
 ```
 
+> **⚠️ 鐵則(2026-06-29 補):token 區塊必須是 `@theme static { … }`,不可用裸 `@theme {`。**
+> Tailwind v4 預設**只輸出「有被 utility class 用到」的 @theme 變數**(tree-shaking)。本專案多數 token 是經 **runtime 組字串的 `var()`**(如 `tag-color.ts` 的 `tagColor(kind)` → `var(--color-t-${kind})`)或**元件 .css 的 `var()`** 引用 —— Tailwind 掃不到字面引用,就會把它們從 `:root` 砍掉,inline `var()` 取不到色。
+> 實例:TAG_COLOR 收斂後,`--color-t-copyright` / `-path` / `-manual`(無對應 utility)被 tree-shake,facet「作品/企劃→角色」分色點變無色;改 `@theme static` 後全數輸出修復。
+> 驗證:build 後 `grep --color-t- src/Pm.Api/wwwroot/*.css` 應看到所有定義的 token。新增「只給 `var()` 用」的 token 一律靠 static 保證輸出。
+
 ### (c) 全域 a11y / motion 基礎(`styles.css` base 段)
 
 ```css

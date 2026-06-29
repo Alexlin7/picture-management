@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { BrowseStore, type InnerToken } from '../browse.store';
 import { PmApi, type FolderTag } from '@core/api/pm-api';
-import { tagColor, hexToRgba, type TagKind } from '@core/tag-color';
+import { tagColor, tint, type TagKind } from '@core/tag-color';
 
 // 夾內疊 tag:+tag 自動完成只列「當前資料夾範圍內實際存在」的 tag(打字即時過濾),選了 = 範圍 AND tag。
 @Component({
@@ -68,6 +68,6 @@ export class InnerTagFilter {
 
   tokenStyle(t: InnerToken): Record<string, string> {
     const c = this.kindColor(t.kind);
-    return { color: c, background: hexToRgba(c, 0.12), 'border-color': hexToRgba(c, 0.34) };
+    return { color: c, background: tint(c, 0.12), 'border-color': tint(c, 0.34) };
   }
 }

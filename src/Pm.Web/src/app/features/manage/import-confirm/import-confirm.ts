@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ManageStore, type ImportRowView, type TagKind } from '../manage.store';
-import { TAG_COLOR, KIND_LABEL, hexToRgba } from '@core/tag-color';
+import { tagColor, KIND_LABEL, tint } from '@core/tag-color';
 import { loadPresets, savePresets, addPreset, removePreset, type TagPreset } from './tag-preset';
 
 // 契約(route /import):匯入確認 —— 路徑段 → tag 確認表。
@@ -14,8 +14,8 @@ import { loadPresets, savePresets, addPreset, removePreset, type TagPreset } fro
 export class ImportConfirm implements OnInit {
   private readonly store = inject(ManageStore);
 
-  // hex → rgba(共用 @core/tag-color;template 沿用此方法)
-  protected rgba(hex: string, a: number): string { return hexToRgba(hex, a); }
+  // CSS 色(含 var())→ 半透明 color-mix(共用 @core/tag-color;template 沿用此方法)
+  protected rgba(c: string, a: number): string { return tint(c, a); }
 
   // 讀 store signal
   protected readonly source = this.store.importSource;
@@ -27,7 +27,7 @@ export class ImportConfirm implements OnInit {
   protected readonly importRootId = this.store.importRootId;
 
   protected readonly KIND_LABEL = KIND_LABEL;
-  protected readonly TAG_COLOR = TAG_COLOR;
+  protected readonly tagColor = tagColor;
 
   // 可切換分類的候選(map 動作的「分類 ▾」小選單,也用於 preset 新增表單)
   protected readonly catOptions: TagKind[] = ['copyright', 'character', 'general', 'meta', 'path', 'manual'];
@@ -95,8 +95,8 @@ export class ImportConfirm implements OnInit {
   // 動作膠囊顏色(map 用 cat 的分色;year 用 meta;ignore 用灰)
   protected pillColor(r: ImportRowView): string {
     if (r.action === 'ignore') return 'var(--color-faint)';
-    if (r.action === 'year') return TAG_COLOR['meta'];
-    return TAG_COLOR[r.cat ?? 'general'];
+    if (r.action === 'year') return tagColor('meta');
+    return tagColor(r.cat ?? 'general');
   }
 
   protected toggleMenu(seg: string, ev: Event): void {

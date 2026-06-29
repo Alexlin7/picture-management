@@ -55,7 +55,7 @@
           <div class="preset-chips">
             @for (p of presets(); track p.name + ':' + p.kind) {
               <span class="preset-chip">
-                <span class="dot" [style.color]="TAG_COLOR[p.kind]" [style.background]="TAG_COLOR[p.kind]"></span>
+                <span class="dot" [style.color]="tagColor(p.kind)" [style.background]="tagColor(p.kind)"></span>
                 {{ p.name }} <span class="pk">{{ KIND_LABEL[p.kind] }}</span>
                 <button type="button" class="px" (click)="removePreset(p)" [attr.aria-label]="'移除 preset:' + p.name">×</button>
               </span>
@@ -106,9 +106,9 @@
                 @case ('year') {
                   <span
                     class="pill"
-                    [style.color]="TAG_COLOR['meta']"
-                    [style.border-color]="rgba(TAG_COLOR['meta'], 0.4)"
-                    [style.background]="rgba(TAG_COLOR['meta'], 0.1)"
+                    [style.color]="tagColor('meta')"
+                    [style.border-color]="rgba(tagColor('meta'), 0.4)"
+                    [style.background]="rgba(tagColor('meta'), 0.1)"
                     >標為年份</span
                   >
                 }
@@ -130,7 +130,7 @@
                           <div class="cat-menu" role="menu">
                             @for (p of presets(); track p.name + ':' + p.kind) {
                               <button type="button" class="cat-item" role="menuitem" (click)="applyPreset(r.seg, p)">
-                                <span class="dot" [style.color]="TAG_COLOR[p.kind]" [style.background]="TAG_COLOR[p.kind]"></span>
+                                <span class="dot" [style.color]="tagColor(p.kind)" [style.background]="tagColor(p.kind)"></span>
                                 {{ p.name }} <span class="pk">{{ KIND_LABEL[p.kind] }}</span>
                               </button>
                             }
@@ -154,7 +154,7 @@
                               [class.on]="(r.cat ?? 'general') === c"
                               (click)="pickCat(r.seg, c)"
                             >
-                              <span class="dot" [style.color]="TAG_COLOR[c]" [style.background]="TAG_COLOR[c]"></span>
+                              <span class="dot" [style.color]="tagColor(c)" [style.background]="tagColor(c)"></span>
                               {{ KIND_LABEL[c] }}
                             </button>
                           }
