@@ -203,6 +203,56 @@ body {
     @apply w-2 h-2 rounded-full shrink-0;
     box-shadow: 0 0 7px -1px currentColor;
   }
+
+  /* 頁標題區(manage 頁共用;max-width + auto 置中,與 tag-manager 對齊) */
+  .vhead {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 20px 24px 4px;
+  }
+  .vhead h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 5px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 21px;
+  }
+  .vhead p {
+    max-width: 680px;
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 13px;
+  }
+
+  /* 內容區(max-width + auto 置中) */
+  .panel-pad {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 16px 24px 40px;
+  }
+
+  /* 資訊提示條(accent info 條;rgba/hex 於 Slice 3 收斂為 token) */
+  .note {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    padding: 11px 13px;
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    border-radius: var(--radius-soft);
+    background: rgba(34, 211, 238, 0.06);
+    color: #bfeff7;
+    font-size: 12.5px;
+  }
+  .note svg {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    margin-top: 1px;
+    color: var(--color-accent);
+  }
 }
 
 /* skeleton 微光動畫(@layer 之外;reduced-motion 由全域 base 規則凍結) */

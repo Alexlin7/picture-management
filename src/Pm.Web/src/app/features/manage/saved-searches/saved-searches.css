@@ -9,34 +9,7 @@
   min-width: 0;
 }
 
-/* ---- vhead 標題區(mockup .vhead;max-width + auto 置中,與 tag-manager 880 對齊) ---- */
-.vhead {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 20px 24px 4px;
-}
-.vhead h1 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 21px;
-  margin: 0 0 5px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.vhead p {
-  color: var(--color-muted);
-  font-size: 13px;
-  margin: 0;
-  max-width: 680px;
-}
-
-/* ---- 內容區(mockup .panel-pad;max-width + auto 置中) ---- */
-.panel-pad {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 16px 24px 40px;
-}
+/* .vhead / .panel-pad / .note / .dot 已抽為全域 primitive(styles.css @layer components) */
 
 /* ---- 卡片格(mockup savedBig 的 inline grid) ---- */
 .saved-grid {
@@ -115,17 +88,6 @@
   height: 12px;
 }
 
-/* note 提示條(空狀態 / 錯誤) */
-.note {
-  background: rgba(34, 211, 238, 0.06);
-  border: 1px solid rgba(34, 211, 238, 0.2);
-  border-radius: var(--radius-soft);
-  padding: 11px 13px;
-  color: #bfeff7;
-  font-size: 12.5px;
-  margin-bottom: 18px;
-}
-
 /* 查詢字串(mockup .saved .sq) */
 .sq {
   font-family: var(--font-mono);
@@ -145,11 +107,3 @@
   font-family: var(--font-mono);
 }
 
-/* 色點(mockup .dot,special 標題前) */
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: none;
-  box-shadow: 0 0 7px -1px currentColor;
-}
