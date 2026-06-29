@@ -323,7 +323,7 @@ related: [2026-06-24-ui-style-system-design]
 | ✅(2026-06-29)danger 裸值(confirm / toast / reconcile / saved)token 化(rgba→`color-mix(--color-danger)`、裸 hex→token、去冗餘 fallback) | danger 色軸;退場 token | S | 新發現 |
 | ✅(2026-06-29)`#3b4150` 抽既有 token `--color-hair-strong`(.btn/.input/.sel-mini/.root-tab/.saved hover);`.note` 藍 rgba 改 `color-mix(accent)` + 文字 `--color-info-ink` | 取色 token 化 | S | 新發現 |
 | ✅(2026-06-29)新增 `--text-h1`/`--text-h2` token;頁標題 vhead + tag-manager 統一 `var(--text-h1)`(21)。inspector(h2/16)仍用裸值,待 P1 type-scale 收斂 | 頁標題 | S | 新發現 |
-| `.skeleton` 死碼:接上首屏 loading 或刪除(二選一) | loading / skeleton | M | 部分屬 `gallery-improvements` |
+| ✅(2026-06-29)~~`.skeleton` 死碼~~ 經查**非死碼**:`thumb.ts` 縮圖載入態在用、`thumb.spec` 有測。原「死碼」判斷修正;真正缺的「首屏清單骨架」下放 P1(見下) | loading / skeleton | — | gallery-improvements |
 | ✅(2026-06-29)`app.html` Angular 樣板殘留清除(實為孤兒死檔,App 用 inline template,直接刪) | 文案;勿留樣板 | S | 新發現 |
 
 ### P1 — 系統 token 化 / 機械替換(M,需逐處驗證視覺不變)
@@ -342,6 +342,7 @@ related: [2026-06-24-ui-style-system-design]
 | `.input` 收斂(`.q`/`.af-in`/`.addtag-in`/裸 input),focus 統一走 `:focus-visible` | 輸入 primitive | M | 新發現 |
 | 可點元件補 `:active` / `:disabled`(`.frow`/`.ac-row`/`.combo-row`/`.cat-item`/`.seg`/`.act`/`.saved`/`.b`) | 四態齊備 | M | 部分屬 `gallery-improvements` |
 | 文案正名:「標」縮寫全面改「標籤」;「收藏 vs 儲存」對齊;empty CTA;error 前綴;`taken_at` 改人話;placeholder 精簡 | 文案多條 | M | 新發現 |
+| 首屏清單骨架:gallery 網格 / manage 清單 / saved 卡片 `loading() && length===0` 時鋪 `.skeleton` 佔位塊維持版面骨架(`.skeleton` primitive 已存在、thumb 縮圖在用) | loading / skeleton | M | gallery-improvements(原誤列 P0「死碼」,2026-06-29 修正下放) |
 
 ### P2 — a11y 結構性改造(M/L,需專門 spec)
 
@@ -360,4 +361,4 @@ related: [2026-06-24-ui-style-system-design]
 - **RWD 已知缺口:** manage 頁全無斷點(僅 gallery 有兩條 inline 規則)。本機桌面窄視窗風險低,**列為已知 gap、低優先**,但準則要求新頁面至少在 `<1180` 有可預期行為。
 - **對比待核:** `faint` 用於正文小字對 raised-2 逼近 AA 下限,屬 **L**(需逐處核對用途),不是單點修。
 - 收斂順序建議:**P0 先清(立刻消最多「primitive 已存在卻被複製」的系統債,風險近零)→ P1 token 化(地基穩固後機械替換)→ P2 a11y(獨立 spec,改 DOM 結構需測鍵盤流程)**。每個切片 build + `ng build` 綠燈、手測視覺不變再 commit(對齊 CLAUDE.md 驗證約定)。
-- **P0 進度(2026-06-29):** 全部 S 級項目已收斂完成(vhead/note/dot primitive、manage 容器寬度、`#3b4150`/`--text-h1` token、頁面水平內距、`.b*`→`.btn*`、`.btn-primary`、accent-ink、toast/danger token 化、app.html 刪除)。**P0 僅剩 `.skeleton` 死碼(M)** 待決:接上首屏 loading(屬 `gallery-improvements` 行為層,非純去重)或刪除,二選一需另開決策,故未隨本批處理。
+- **P0 進度(2026-06-29):P0 已全數收斂完成。** S 級項目(vhead/note/dot primitive、manage 容器寬度、`#3b4150`/`--text-h1` token、頁面水平內距、`.b*`→`.btn*`、`.btn-primary`、accent-ink、toast/danger token 化、app.html 刪除)全清。原列為 P0 的「`.skeleton` 死碼」經查**非死碼**(`thumb.ts` 縮圖載入態在用),判斷修正;真正缺的「首屏清單骨架」屬行為層(gallery-improvements),已下放 P1。
