@@ -1,12 +1,19 @@
 name: Release
 
-# 打版本 tag(vX.Y.Z)→ 自動驗證(前端/後端測試)→ 前端 build → 自包含單檔 win-x64 publish
-# → 整個 publish 夾打包成 zip → 建立 GitHub Release 並上傳 zip 當 asset。
-# 手動發版步驟與產物說明見 docs/deployment.md;本 workflow 是該文件 §9 的自動化實作。
+# 打版本 tag(vX.Y.Z)→ 自動驗證(前端/後端測試)→ 前端 build → 三個推論 flavor 各自
+# 自包含 win-x64 publish → 各打包成 zip → 上傳同一個 GitHub Release 當 asset。
+# 三 flavor(切點 = OS 版本涵蓋,非廠商):
+#   directml  — 24H2 以下通用 fallback,任何 DX12 GPU(NV/AMD/Intel)。最廣相容。
+#   cuda      — 24H2 以下的 NVIDIA(OnnxRuntime.Gpu,{CPU,CUDA,TensorRT})。installer 較肥屬正常。
+#   windowsml — Windows 11 24H2(build 26100)+ 主力,EP 由 OS 動態下載,installer 最小。
+# 手動發版步驟與產物說明見 docs/deployment.md。
 #
 # 用法:
 #   git tag v0.1.0 && git push origin v0.1.0
-# 之後到 repo 的 Releases 頁即可下載 picture-management-v0.1.0-win-x64.zip。
+# 之後到 Releases 頁下載 picture-management-v0.1.0-win-x64-{directml,cuda,windowsml}.zip。
+#
+# 註:CUDA 推論需 NVIDIA GPU、Windows ML runtime EP 需 Win11 24H2 + 實機 —— GitHub runner
+#     兩者皆無,故 cuda / windowsml 在 CI 僅 build + publish 驗證,不驗推論。
 
 on:
   push:
@@ -18,8 +25,21 @@ permissions:
 
 jobs:
   release:
-    # win-x64 自包含 + 原生 DirectML(Windows-only)需在 Windows runner 上 publish。
+    # win-x64 自包含 + 原生 EP(Windows-only)需在 Windows runner 上 publish。
     runs-on: windows-latest
+    strategy:
+      fail-fast: false # 一個 flavor 失敗不連坐其他(各自獨立 artifact)
+      matrix:
+        include:
+          - flavor: directml
+            profile: win-x64
+            tfm: net10.0
+          - flavor: cuda
+            profile: win-x64-cuda
+            tfm: net10.0
+          - flavor: windowsml
+            profile: win-x64-windowsml
+            tfm: net10.0-windows10.0.26100.0
 
     steps:
       - name: Checkout
@@ -38,12 +58,13 @@ jobs:
           cache: npm
           cache-dependency-path: src/Pm.Web/package-lock.json
 
-      # ---- 前端:依賴 → 測試 → build(產靜態檔到 src/Pm.Api/wwwroot,publish 會一起打包)----
+      # ---- 前端:依賴 → 測試(僅 directml job,前端與 flavor 無關)→ build(各 job 都要,publish 會打包 wwwroot)----
       - name: 前端依賴(npm ci)
         working-directory: src/Pm.Web
         run: npm ci
 
       - name: 前端測試(vitest + jsdom,免瀏覽器)
+        if: matrix.flavor == 'directml'
         working-directory: src/Pm.Web
         run: npx ng test --watch=false
 
@@ -51,20 +72,22 @@ jobs:
         working-directory: src/Pm.Web
         run: npx ng build
 
-      # ---- 後端:測試 → 自包含單檔 publish ----
+      # ---- 後端:測試(僅 directml job,測試走預設 flavor、與 EP 無關)→ 該 flavor 自包含 publish ----
       - name: 後端測試
+        if: matrix.flavor == 'directml'
         run: dotnet test --configuration Release
 
-      - name: 自包含單檔 publish(win-x64)
-        run: dotnet publish src/Pm.Api -p:PublishProfile=win-x64
+      - name: 自包含單檔 publish(${{ matrix.flavor }})
+        run: dotnet publish src/Pm.Api -p:PublishProfile=${{ matrix.profile }}
 
-      # ---- 打包整個 publish 夾(Pm.Api.exe + wwwroot + appsettings.json)成 zip ----
+      # ---- 打包該 flavor 的整個 publish 夾成 zip(命名帶 flavor 後綴)----
       # 註:single-file 的 wwwroot 在 exe 旁邊不在 exe 內,故交付單位是整個 publish 夾(見 deployment.md §3)。
+      #     windowsml 為 Windows TFM,publish 夾在 net10.0-windows10.0.26100.0 下(見 matrix.tfm)。
       - name: 打包 zip
         shell: pwsh
         run: |
-          $zip = "picture-management-${{ github.ref_name }}-win-x64.zip"
-          Compress-Archive -Path "src/Pm.Api/bin/Release/net10.0/publish/*" -DestinationPath $zip
+          $zip = "picture-management-${{ github.ref_name }}-win-x64-${{ matrix.flavor }}.zip"
+          Compress-Archive -Path "src/Pm.Api/bin/Release/${{ matrix.tfm }}/publish/*" -DestinationPath $zip
           "ASSET=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: 建立 GitHub Release + 上傳 asset
