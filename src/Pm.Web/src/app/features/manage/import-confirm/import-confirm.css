@@ -98,7 +98,7 @@ tbody tr:hover {
   transition: border-color 0.14s, background 0.14s;
 }
 .sel-mini:hover {
-  border-color: #3b4150;
+  border-color: var(--color-hair-strong);
   background: var(--color-raised);
 }
 
@@ -168,7 +168,7 @@ tbody tr:hover {
   transition: border-color 0.14s, color 0.14s;
 }
 .root-tab:hover {
-  border-color: #3b4150;
+  border-color: var(--color-hair-strong);
   color: var(--color-text);
 }
 .root-tab.active {

@@ -313,16 +313,16 @@ related: [2026-06-24-ui-style-system-design]
 
 | 項目 | 違反準則 | 成本 | 來源 |
 |---|---|---|---|
-| 抽 `.vhead` / `.note` / `.dot` / `.facet-t` 為全域 primitive,刪 4–5 份複製 | primitive 散播;頁首節奏;eyebrow | M | 新發現(Spec 1 地基已備 primitive 機制) |
-| 四 manage 頁 `.panel-pad` 補 `max-width + margin:auto`(roots 擠左+右空根因);tag-manager 880 對齊 | 容器寬度置中 | S | 新發現 |
+| ✅(2026-06-29)抽 `.vhead` / `.note` / `.dot` / `.facet-t` 為全域 primitive,刪 4–5 份複製 | primitive 散播;頁首節奏;eyebrow | M | 新發現(Spec 1 地基已備 primitive 機制) |
+| ✅(2026-06-29)四 manage 頁 `.panel-pad` 補 `max-width + margin:auto`(roots 擠左+右空根因);tag-manager 880 對齊 | 容器寬度置中 | S | 新發現 |
 | 頁面水平內距統一單值(gallery 18 vs manage 24),消除切頁左緣跳動 | 間距 scale | S | 新發現 |
 | tag-manager `.b*` 按鈕收斂到全域 `.btn*`;順手修 danger 用錯 token(`--color-t-character`→`--color-danger`) | 按鈕;danger 色軸;退場 token | S | 新發現 |
 | `.btn.primary`→`.btn-primary`,刪 photo-grid 手抄的 `.btn.primary` | 按鈕命名 | S | 新發現 |
 | `accent-ink` 兩值(`#06323b` / `#04222a`)收斂為一 | 語意分軸 / token 唯一真相 | S | 新發現 |
 | toast token 名漂移(`--color-ink`→`--color-text`、`--color-panel` fallback 對不上)修正 | 退場 token | S | 新發現 |
 | danger 裸值(confirm / toast)token 化;`var(--color-t-character,#f0616d)` 筆誤修正 | danger 色軸;退場 token | S | 新發現 |
-| `#3b4150` ×4 抽 `--color-hair-hover`;成對的 `.note` 藍 rgba 抽 token | 取色 token 化 | S | 新發現 |
-| 頁標題字級漂移(vhead 21 / tag-manager 22 / inspector 16)對齊 `--text-h1` / `--text-h2` | 頁標題 | S | 新發現 |
+| ✅(2026-06-29)`#3b4150` 抽既有 token `--color-hair-strong`(.btn/.input/.sel-mini/.root-tab/.saved hover);`.note` 藍 rgba 改 `color-mix(accent)` + 文字 `--color-info-ink` | 取色 token 化 | S | 新發現 |
+| ✅(2026-06-29)新增 `--text-h1`/`--text-h2` token;頁標題 vhead + tag-manager 統一 `var(--text-h1)`(21)。inspector(h2/16)仍用裸值,待 P1 type-scale 收斂 | 頁標題 | S | 新發現 |
 | `.skeleton` 死碼:接上首屏 loading 或刪除(二選一) | loading / skeleton | M | 部分屬 `gallery-improvements` |
 | `app.html` Angular 英文 + emoji 殘留清除 | 文案;勿留樣板 | S | 新發現 |
 

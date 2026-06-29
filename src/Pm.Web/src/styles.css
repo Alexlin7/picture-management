@@ -40,9 +40,14 @@
   --font-body: "Inter", "Noto Sans TC", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
+  /* 字級階(頁標題 / 面板標題;漸進 token 化,取代逐檔裸 px) */
+  --text-h1: 21px;   /* 頁標題(manage 頁 .vhead h1 / tag-manager 標題) */
+  --text-h2: 16px;   /* 面板 / 區段標題(如 inspector) */
+
   /* 語意狀態色(原只有 danger;補 success/warning,與 booru 分色語意分離) */
   --color-success: #34d399; /* 成功/完成(emerald,刻意異於 character 綠 #4ade80) */
   --color-warning: #f5b454; /* 警告(amber,異於 meta tag 黃 #fbbf24) */
+  --color-info-ink: #bfeff7; /* accent-soft 資訊條(.note)文字色;bg/border 由 accent color-mix 推得 */
 
   /* focus ring(a11y CRITICAL,現幾乎無);= accent,以 outline 呈現 */
   --color-ring: #22d3ee;
@@ -130,7 +135,7 @@ body {
       cursor-pointer transition-[background,border-color,filter] duration-150;
   }
   .btn:hover {
-    @apply bg-raised-2 border-[#3b4150];
+    @apply bg-raised-2 border-hair-strong;
   }
   .btn-primary {
     @apply bg-accent text-accent-ink border-transparent;
@@ -164,7 +169,7 @@ body {
       transition-[border-color] duration-150;
   }
   .input:hover {
-    @apply border-[#3b4150];
+    @apply border-hair-strong;
   }
 
   /* loading 微光;reduced-motion 下由全域規則凍結為靜態淡色塊 */
@@ -217,7 +222,7 @@ body {
     margin: 0 0 5px;
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 21px;
+    font-size: var(--text-h1);
   }
   .vhead p {
     max-width: 680px;
@@ -240,10 +245,10 @@ body {
     align-items: flex-start;
     margin-bottom: 18px;
     padding: 11px 13px;
-    border: 1px solid rgba(34, 211, 238, 0.2);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent);
     border-radius: var(--radius-soft);
-    background: rgba(34, 211, 238, 0.06);
-    color: #bfeff7;
+    background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+    color: var(--color-info-ink);
     font-size: 12.5px;
   }
   .note svg {

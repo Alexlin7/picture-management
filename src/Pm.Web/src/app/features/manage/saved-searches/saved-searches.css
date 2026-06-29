@@ -34,7 +34,7 @@
   font-family: inherit;
 }
 .saved:hover {
-  border-color: #3b4150;
+  border-color: var(--color-hair-strong);
   background: var(--color-raised);
 }
 

@@ -14,7 +14,7 @@
 .hd h1 {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 22px;
+  font-size: var(--text-h1);
 }
 .hd .sub {
   color: var(--color-muted);
