@@ -18,20 +18,29 @@
   gap: var(--space-12);
 }
 
-/* ---- 卡片(mockup .saved,big 版 margin:0)---- */
+/* ---- 卡片(容器;主動作 .saved-main 與刪除 .del 為內部兩個並排 button)---- */
 .saved {
-  display: block;
-  width: 100%;
-  text-align: left;
+  position: relative; /* .del 絕對定位錨點 */
   margin: 0;
   border: 1px solid var(--color-hair);
   border-radius: var(--radius-soft);
-  padding: 9px var(--space-10);
-  cursor: pointer;
   transition: 0.15s;
   background: var(--color-panel);
+}
+
+/* 主動作 button:填滿卡片(右側留位給刪除鈕),承載點選導頁 */
+.saved-main {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px var(--space-10);
+  padding-right: 30px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
   color: inherit;
   font-family: inherit;
+  cursor: pointer;
 }
 .saved:hover {
   border-color: var(--color-hair-strong);
@@ -53,31 +62,37 @@
   box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.22);
 }
 
-/* 標題(mockup .saved .st) */
-.st {
+/* 標題 */
+.st-title {
+  display: block;
   font-weight: 600;
   font-size: var(--text-body);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.st-title {
-  flex: 1;
-  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* hover 時出現的刪除小鈕 */
+/* 刪除鈕:常駐 DOM、絕對定位右上角;預設隱形,滑鼠 hover 卡片 或 鍵盤焦點落在卡內
+   (:focus-within)才顯示 → 鍵盤可達(取代舊 @if(hovered()) 的 hover-only)。 */
 .del {
-  flex: none;
+  position: absolute;
+  top: 6px;
+  right: 6px;
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
+  border: 0;
   border-radius: 5px;
+  background: transparent;
   color: var(--color-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+.saved:hover .del,
+.saved:focus-within .del {
+  opacity: 1;
 }
 .del:hover {
   color: var(--color-danger);
@@ -90,6 +105,7 @@
 
 /* 查詢字串(mockup .saved .sq) */
 .sq {
+  display: block;
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   color: var(--color-faint);

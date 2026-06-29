@@ -17,26 +17,24 @@
 
   <div class="saved-grid">
     @for (s of saved(); track s.id) {
-      <button
-        type="button"
-        class="saved"
-        [class.on]="active() === s.id"
-        (mouseenter)="onEnter(s.id)"
-        (mouseleave)="onLeave()"
-        (click)="onPick(s.id)"
-      >
-        <div class="st">
+      <!-- 卡片是容器(非 button):主動作與刪除鈕為兩個並排的真 button,不再巢狀;
+           刪除鈕常駐 DOM,滑鼠 hover / 鍵盤 focus-within 時由 CSS 顯示(鍵盤可達)。 -->
+      <div class="saved" [class.on]="active() === s.id">
+        <button type="button" class="saved-main" (click)="onPick(s.id)">
           <span class="st-title">{{ s.title }}</span>
-          @if (hovered() === s.id) {
-            <span class="del" role="button" aria-label="刪除" (click)="onDelete(s.id, $event)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M6 6 18 18M18 6 6 18" />
-              </svg>
-            </span>
-          }
-        </div>
-        <div class="sq">{{ s.query }}</div>
-      </button>
+          <span class="sq">{{ s.query }}</span>
+        </button>
+        <button
+          type="button"
+          class="del"
+          [attr.aria-label]="'刪除收藏「' + s.title + '」'"
+          (click)="onDelete(s.id, $event)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M6 6 18 18M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
     }
   </div>
 </div>

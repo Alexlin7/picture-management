@@ -21,20 +21,11 @@ export class SavedSearches implements OnInit {
   readonly loading = this.store.savedLoading;
   readonly error = this.store.savedError;
 
-  // 目前 hover 的卡片 id(純視覺,signal 管狀態)
-  readonly hovered = signal<number | null>(null);
-  // 目前選到的卡片 id
+  // 目前選到的卡片 id(刪除鈕 hover/focus 顯示改由 CSS 處理,不再需要 hover signal)
   readonly active = signal<number | null>(null);
 
   ngOnInit(): void {
     void this.store.loadSaved();
-  }
-
-  onEnter(id: number): void {
-    this.hovered.set(id);
-  }
-  onLeave(): void {
-    this.hovered.set(null);
   }
 
   // 點卡片:解析 queryJson → 推進 /gallery?q=(由 GalleryStore.setTokens 導頁)。
