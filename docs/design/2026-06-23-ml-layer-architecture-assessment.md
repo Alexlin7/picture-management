@@ -11,6 +11,7 @@ related: [2026-06-23-scanner-tagging-refactor-design, 2026-06-25-second-tagger-c
 - 日期:2026-06-23
 - 狀態:**評估報告(非待辦清單)**。給未來要動 GPU 自動偵測、CLIP 語意搜尋(Phase 2)、或第二個推論模型的人看,決定「哪些現在抽、哪些等真實形狀出來再抽」。
 - **2026-06-27 增補**:§6 GPU 廠牌偵測**決議不做(moot)**;§9 釐清「EP 部署模型 vs runtime `Backend` 選擇」—— 為何有 `Backend` knob、enum 聯集 vs `Available[]`、經典自包含 vs Windows ML。
+- **2026-06-29 增補(決策翻案 / supersede)**:原文多處把 **CUDA 當「專屬 profile、骨架」、Windows ML 當「Phase 2 待啟用」**。此立場本日**翻案**:三個推論 flavor(directml / cuda / windowsml)**升為正式出貨變體**,以單一 MSBuild 屬性 `InferenceFlavor` 在編譯期切套件 + `INFER_*` 常數選 factory,各有 publish profile 與 CI matrix。`CudaSessionFactory` 與真正的 `WindowsMlSessionFactory`(EP 目錄暖機 + `GetEpDevices` 顯式選 EP + policy + fallback)已實作。**§6「不做 GPU 廠牌偵測」仍成立** —— WinML 走的是 ORT 自家 `GetEpDevices`/device policy,不是被否決的「我們自己 WMI 偵測廠牌」。本檔下方「Phase 2 / 骨架」字樣以此增補為準,行內不一一改寫。實作細節見 `Wd14Setup` / `InferenceFactories` / 三 `*SessionFactory` / `Pm.Ml.csproj` / `*.pubxml` / `release.yml`。
 - 關聯:`CLAUDE.md` 鐵則 #6(ONNX/`IInferenceSessionFactory` 抽象、預設 DirectML、不硬綁 CUDA);`2026-06-23-scanner-tagging-refactor-design.md` §C(`Inference:Wd14:*` / `Inference:Clip:*` 能力開關已拆,Slice 4)。
 - **核心結論:Pm.Ml 對 WD14 是乾淨、稱職的,現階段不需要為了「整理」而整理。** 只有一個小抽取對未來有實在價值,其餘多屬 YAGNI —— 等 CUDA/WinML/CLIP 的真實 I/O 形狀出來,正確的抽象自然會浮現。
 
@@ -75,8 +76,8 @@ CLIP 落地 ≈ 一組平行的 `Clip*` 檔 + 復用 session factory + 抽出的
 
 | 未來功能 | 支撐度 | 要做什麼 |
 |---|---|---|
-| 加 backend(CUDA / WinML) | ✅ 好 | factory 進 `Available[]`;WinML 骨架已留介面 |
-| GPU 自動偵測 | ❌ 不做(moot,見 §6) | 廠商 publish 綁定 + Backend 一律明示,auto 分支從未觸發、偵測無消費者;seam 保留不實作 |
+| 加 backend(CUDA / WinML) | ✅ **已做(2026-06-29)** | 三 flavor 經 `InferenceFlavor` 編譯期切套件 + `INFER_*` 選 `InferenceFactories.ForThisBuild()` 的 factory;CUDA / WinML factory 已實作,各有 publish profile + CI matrix |
+| GPU 自動偵測 | ❌ 不做(moot,見 §6) | 廠商 publish 綁定 + Backend 一律明示,auto 分支從未觸發、偵測無消費者;seam 保留不實作。WinML 的 EP 選擇是 ORT 自家 `GetEpDevices`/policy,非此項 |
 | CLIP / 第二種模型類型 | 🟡 可,無阻礙 | 平行 `Clip*` 一組檔 + 復用 session factory + 抽出下載 helper;設定位已備 |
 | 第二個 tagging 模型(同形狀) | ✅ 易 | 多半復用 `Wd14Preprocess/Postprocess`(參數化),新 Options/Provider |
 

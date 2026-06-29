@@ -34,10 +34,19 @@ cd ../.. ; dotnet publish src/Pm.Api -p:PublishProfile=win-x64
 ## 2. 發版步驟
 
 1. **build 前端**:`cd src/Pm.Web && npx ng build` —— Angular 產靜態檔,輸出落點已設定為 `src/Pm.Api/wwwroot`(被 .NET serve)。
-2. **publish 後端**:`dotnet publish src/Pm.Api -p:PublishProfile=win-x64`。
+2. **publish 後端**:`dotnet publish src/Pm.Api -p:PublishProfile=win-x64`(DirectML,預設)。
    - profile 在 `src/Pm.Api/Properties/PublishProfiles/win-x64.pubxml`,固定了:
      `SelfContained` / `PublishSingleFile` / `IncludeNativeLibrariesForSelfExtract` / `EnableCompressionInSingleFile` / `PublishReadyToRun`,**不開 trimming**(EF Core 反射相依,trim 易壞)。
    - RID/單檔設定只在此 profile 套用,**不影響** `dotnet build` / `dotnet test`。
+   - **三個推論 flavor**(切點 = OS 版本涵蓋,程式碼不動、只換 profile;見 §7):
+
+     | profile | flavor | TFM | 對象 |
+     |---|---|---|---|
+     | `win-x64` | DirectML(預設) | net10.0 | 24H2 以下通用,任何 DX12 GPU |
+     | `win-x64-cuda` | CUDA | net10.0 | 24H2 以下的 NVIDIA(installer 較肥) |
+     | `win-x64-windowsml` | Windows ML | net10.0-windows10.0.26100.0 | Win11 24H2+,EP 由 OS 動態下載 |
+
+     機制:`Pm.Ml.csproj` 的 `InferenceFlavor` 屬性編譯期切 ONNX Runtime 套件(三套 native 互斥)+ `INFER_*` 常數選 factory。windowsml flavor 下 `Pm.Ml`/`Pm.Api` 轉 Windows TFM。
 
 ## 3. 產物內容(交付物)
 
@@ -95,13 +104,20 @@ WD14 ONNX 模型(數百 MB)**不進 exe**,首次啟用時以 HTTPS 下載到 `<B
 - 第一次開「自動標籤」需連網下載一次,之後離線可用。
 - 關掉 `Inference:Wd14:Enabled` 則完全不碰模型。
 
-## 7. 跨環境
+## 7. 跨環境 / 三推論 flavor(切點 = OS 版本涵蓋)
 
-| 場景 | RID / 做法 | 備註 |
-|---|---|---|
-| **你的兩台 Windows** | `win-x64` 一份 | **DirectML 同時吃 NVIDIA / AMD**,一份 build 兩台都能跑(鐵則 #6) |
-| 無 GPU 機器 | 同上 | DirectML 無 GPU 自動退 CPU |
-| 未來 NAS / Linux | `linux-x64` | **DirectML 是 Windows-only → Linux 推論退 CPU**(spec 已註) |
+選哪個 flavor 看**目標 OS 版本**,不是廠商:
+
+| flavor / profile | 對象 OS | 涵蓋硬體 | 備註 |
+|---|---|---|---|
+| **DirectML** `win-x64`(預設) | 24H2 以下(Win10 / 舊 Win11)通用 fallback | 任何 DX12 GPU(NV/AMD/Intel) | 最廣相容、速度最慢;無 GPU 自動退 CPU。**一份兩台都能跑**(鐵則 #6) |
+| **CUDA** `win-x64-cuda` | 24H2 以下的 NVIDIA | 僅 NVIDIA(另需 CUDA/cuDNN) | `OnnxRuntime.Gpu`,{CPU,CUDA,TensorRT};installer 較肥屬正常 |
+| **Windows ML** `win-x64-windowsml` | **Win11 24H2(build 26100)+** | 一包通吃:NV→TensorRT-RTX、AMD→MIGraphX、Intel→OpenVINO、NPU→QNN | EP 由 OS 動態下載,installer 最小;首次取得 EP 需連網 |
+
+- **DirectML 與 CUDA 互斥**,三個 flavor 是**三個分開的 build**,不是同一包切換。
+- 別為「省事」砍掉 CUDA:它存在的理由是「舊 Windows + NVIDIA」若只靠 DirectML 會明顯變慢。
+- **CUDA 推論需 NVIDIA GPU、Windows ML runtime EP 需 Win11 24H2 + 實機** —— 開發/CI 環境若無對應硬體/OS,只能 build + publish 驗證,不驗推論。
+- 未來 NAS / Linux:`linux-x64` 退 CPU(DirectML 為 Windows-only;WinML 亦 Windows-only)。
 
 ## 8. single-file 已驗證 / 注意事項
 
@@ -121,14 +137,16 @@ WD14 ONNX 模型(數百 MB)**不進 exe**,首次啟用時以 HTTPS 下載到 `<B
 git tag v0.1.0
 git push origin v0.1.0
 ```
-之後到 repo 的 **Releases 頁**會出現 `sus-picture-management-v0.1.0-win-x64.zip`,使用者下載、解壓、跑 `Pm.Api.exe` 即可。
+之後到 repo 的 **Releases 頁**會出現**三個** zip(各推論 flavor 一個):
+`picture-management-v0.1.0-win-x64-directml.zip` / `-cuda.zip` / `-windowsml.zip`,使用者依自己的 OS/硬體(見 §7)下載對應一個、解壓、跑 `Pm.Api.exe` 即可。
 
-**workflow 做了什麼**(`windows-latest` runner —— win-x64 自包含 + 原生 DirectML 需 Windows):
+**workflow 做了什麼**(`windows-latest` runner,三 flavor 跑 **matrix**):
 1. **觸發**:push 符合 `v*` 的 tag。
-2. **驗證**:`npm ci` → `npx ng test --watch=false`(前端)+ `dotnet test`(後端)—— 確保 tag 指向的 commit 是綠的才出版。
-3. **build / publish**:`npx ng build`(前端靜態檔 → `src/Pm.Api/wwwroot`)→ `dotnet publish src/Pm.Api -p:PublishProfile=win-x64`(自包含單檔)。
-4. **打包**:`Compress-Archive` 把整個 publish 夾(`Pm.Api.exe` + `wwwroot/` + `appsettings.json`)壓成 `sus-picture-management-<tag>-win-x64.zip`。
-5. **發布**:`softprops/action-gh-release@v2` 建立該 tag 的 Release、附上 zip,Release notes 由 commit 自動生成(`generate_release_notes`)。
+2. **驗證**(僅 directml job,測試與 EP flavor 無關):`npm ci` → `npx ng test --watch=false`(前端)+ `dotnet test`(後端)—— 確保 tag 指向的 commit 是綠的才出版。
+3. **build / publish**(每個 flavor):`npx ng build`(前端靜態檔 → `src/Pm.Api/wwwroot`)→ `dotnet publish src/Pm.Api -p:PublishProfile=<該 flavor profile>`。
+4. **打包**:`Compress-Archive` 把該 flavor 的 publish 夾壓成 `picture-management-<tag>-win-x64-<flavor>.zip`(windowsml 的 publish 夾在 `net10.0-windows10.0.26100.0` 下)。
+5. **發布**:`softprops/action-gh-release@v2`(`fail-fast:false`,各 flavor 互不連坐)把三個 zip 上傳到同一個 Release;notes 由 commit 自動生成。
+   - ⚠️ **CUDA / Windows ML 在 runner 上僅 build + publish,不驗推論**(runner 無 NVIDIA GPU、非 Win11 24H2)。要驗 runtime 推論需對應硬體 / OS。
 
 **注意 / 待決:**
 - **版本號走 SemVer**,以 git tag 為單一真相(`package.json` 的 `version` 目前 `0.0.0`,artifact 命名不依賴它)。

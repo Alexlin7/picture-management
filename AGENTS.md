@@ -31,7 +31,7 @@ Angular SPA(ng build 靜態檔)──REST(localhost)──> 單一 .NET 程序
 3. **SQLite 檔是 tag 的唯一真相(無 XMP)。** 備份 = 複製 `.sqlite`(`VACUUM INTO` 熱備)+ tag manifest 匯出(`hash,tag` 獨立檔),別弱化 —— 避免策展綁死單一 app。
 4. **刪除是軟刪**(位置標 `archived`,保留 photo+tags;同 hash 回來自動復原)。只有使用者明示才硬刪 purge。
 5. **tag 來源要分**:`photo_tag.source` ∈ path/manual/wd14,WD14 帶 `confidence`。不要把自動標籤跟手動策展混為一談。
-6. **ML 推論在 .NET 程序內走 ONNX Runtime**,EP 經 `IInferenceSessionFactory` 抽象,**預設 DirectML**(跨 NVIDIA/AMD),**不要硬綁 CUDA**;無 GPU 退 CPU。要 NV 全速才另加 CUDA publish profile(程式碼不動)。
+6. **ML 推論在 .NET 程序內走 ONNX Runtime**,EP 經 `IInferenceSessionFactory` 抽象,**預設 DirectML**(跨 NVIDIA/AMD),**不要硬綁 CUDA**;無 GPU 退 CPU。三個推論 flavor(directml / cuda / windowsml)由**編譯期** `InferenceFlavor` 屬性切套件 + `INFER_*` 常數選 factory(見 `InferenceFactories` / `Pm.Ml.csproj`),各有 publish profile + CI matrix —— 切點是 **OS 版本涵蓋**(windowsml=Win11 24H2+、directml/cuda 補舊系統),**換 flavor 只換 publish profile、呼叫端程式碼不動**。三套 native ORT 互斥,絕不塞同一包。
 7. **ML 不另開程序、不引 broker**:`tagging_job` 表當**程序內** DB-backed 佇列。若日後真要 Python,以**無狀態 sidecar**(POST 回 API、不直連 SQLite)接回,別讓兩程序搶寫 SQLite。
 8. **單機單人:API 只 bind `localhost`,不做帳號/認證系統。** 一旦改 bind 離 localhost(NAS/多人),認證即從可選變必須。
 9. **路徑→tag 是「匯入後確認」**,確認結果存 `path_tag_rule`(每段只確認一次)。不要改成全自動硬塞。

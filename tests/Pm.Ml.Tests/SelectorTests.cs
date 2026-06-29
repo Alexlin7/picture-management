@@ -10,7 +10,7 @@ public class SelectorTests
     [InlineData("dml", InferenceBackend.DirectMl)]
     [InlineData("directml", InferenceBackend.DirectMl)]
     [InlineData("cuda", InferenceBackend.Cuda)]
-    [InlineData("winml", InferenceBackend.WindowsML)]      // Phase 2:僅明示可選
+    [InlineData("winml", InferenceBackend.WindowsML)]      // 僅 windowsml flavor build 真的帶
     [InlineData("windowsml", InferenceBackend.WindowsML)]
     public void Configured_param_wins(string configured, InferenceBackend expected)
     {
@@ -20,7 +20,7 @@ public class SelectorTests
     [Fact]
     public void Auto_detect_never_picks_windowsml()
     {
-        // Phase 2 待啟用:auto-detect 一律不選 WindowsML(維持 DirectML/CPU 行為)。
+        // auto-detect 一律不選 WindowsML(WinML 由 configured 明示 + 走 ORT device policy);維持 DirectML/CPU 行為。
         Assert.Equal(InferenceBackend.DirectMl,
             InferenceBackendSelector.Select(configured: null, gpuVendor: "NVIDIA RTX 4090"));
     }

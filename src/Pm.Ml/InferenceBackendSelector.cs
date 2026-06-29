@@ -1,8 +1,8 @@
 namespace Pm.Ml;
 
-// 純函式:啟動參數優先,否則依偵測到的顯卡。
-// 本 build 只帶 DirectML(+CPU);CUDA 僅於專屬 publish profile 才可用,
-// 故偵測到 GPU 一律回 DirectMl,Cuda 只能由 configured 明示。
+// 純函式:啟動參數優先,否則依偵測到的顯卡。enum 是所有 flavor 的聯集(語彙);某 build「真的帶」
+// 哪些 backend 由 InferenceFlavor 編譯期決定(見 InferenceFactories)。選到本 build 沒帶的 backend,
+// 由 Wd14Setup.FactoryFor 明確報錯。auto 分支(gpuVendor)為保留 seam,實際不觸發(見設計文件 §6)。
 public static class InferenceBackendSelector
 {
     public static InferenceBackend Select(string? configured, string? gpuVendor)
@@ -14,15 +14,14 @@ public static class InferenceBackendSelector
                 "cpu"  => InferenceBackend.Cpu,
                 "dml" or "directml" => InferenceBackend.DirectMl,
                 "cuda" => InferenceBackend.Cuda,
-                "winml" or "windowsml" => InferenceBackend.WindowsML,  // Phase 2:僅明示可選
+                "winml" or "windowsml" => InferenceBackend.WindowsML,  // 僅 windowsml flavor build 真的帶
                 _ => throw new ArgumentException($"未知的推論 backend:'{configured}'")
             };
         }
 
         // 沒指定 → 有顯卡走 DirectML(跨 NV/AMD),沒有就 CPU。
-        // Phase 2 待啟用:此處未來會加 Windows ML 偵測 —— 若 OS build ≥ 26100(Win11 24H2)
-        // 且 App SDK / EP 目錄可用,且為合適硬體(如 NVIDIA RTX 30xx+ 走 TensorRT-RTX),
-        // 才回 WindowsML;偵測失敗一律 fall back 到 DirectML/CPU。目前 auto 不選 WindowsML。
+        // auto 不選 WindowsML:WinML 的 EP 由 ORT device policy 在 windowsml flavor 內挑,
+        // 不靠這裡的廠牌偵測(見設計文件 §6);此 auto 分支為保留 seam,正常路徑由 configured 短路。
         return string.IsNullOrWhiteSpace(gpuVendor)
             ? InferenceBackend.Cpu
             : InferenceBackend.DirectMl;

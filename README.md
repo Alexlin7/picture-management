@@ -87,7 +87,10 @@ cd src/Pm.Web ; npm run e2e       # 瀏覽器 e2e(@playwright/test;webServer 自
 ### 發版(自包含單檔 exe)
 ```powershell
 cd src/Pm.Web ; npx ng build                              # 前端 → wwwroot
-dotnet publish src/Pm.Api -p:PublishProfile=win-x64       # → publish/(exe ~75MB + wwwroot)
+dotnet publish src/Pm.Api -p:PublishProfile=win-x64       # DirectML(預設)→ publish/(exe ~75MB + wwwroot)
+# 另兩個推論 flavor(各為獨立 build,程式碼不動,僅換 profile):
+dotnet publish src/Pm.Api -p:PublishProfile=win-x64-cuda       # CUDA(NVIDIA,24H2 以下)
+dotnet publish src/Pm.Api -p:PublishProfile=win-x64-windowsml  # Windows ML(Win11 24H2+)
 ```
 免裝 runtime、雙擊即跑。完整部署/設定/散布見 [`docs/deployment.md`](docs/deployment.md)。
 
@@ -118,8 +121,8 @@ dotnet publish src/Pm.Api -p:PublishProfile=win-x64       # → publish/(exe ~75
 - ✅ async scan + SQLite 硬化、孤兒清理、單張重新處理 + 掃描自動痊癒
 - ✅ AVIF / HEIC / HEIF 解碼支援
 - ✅ 前端 RWD:桌面縮放韌性 + 側欄/inspector 可收合 + 完整手機版抽屜式側板
-- ✅ 交付:win-x64 自包含單檔 exe 已實測就緒
-- 🚧 推論後端:CPU / DirectML 可用;CUDA、Windows ML 僅骨架
+- ✅ 交付:win-x64 自包含單檔 exe 已實測就緒(DirectML flavor)
+- ✅ 推論後端三 flavor:**DirectML**(預設,任何 DX12 GPU)/ **CUDA**(NVIDIA,24H2 以下)/ **Windows ML**(Win11 24H2+,EP 由 OS 動態下載)—— 編譯期經 `InferenceFlavor` 切套件,各有 publish profile + CI matrix。CPU / DirectML 已實機驗證;CUDA / Windows ML 已編譯與 publish 驗證,runtime 推論需對應硬體/OS(無 GPU 或非 24H2 環境無法在此驗)
 - 🔲 Phase 2(規劃):CLIP image embedding 語意搜尋(sqlite-vec 或 Postgres+pgvector)
 
 各子系統的設計與決策見 [`docs/design/`](docs/design/)。
