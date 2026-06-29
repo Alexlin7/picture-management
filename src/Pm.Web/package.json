@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "e2e:pw": "playwright test",
     "e2e": "node e2e/browse-smoke.mjs",
     "e2e:rwd": "node e2e/rwd-resize-smoke.mjs",
     "e2e:a11y": "node e2e/a11y-keyboard-smoke.mjs",
