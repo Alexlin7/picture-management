@@ -59,6 +59,7 @@ related: [2026-06-24-ui-style-system-design]
 - **使用 `@angular/cdk`** 作為 overlay / a11y / 鍵盤導航等行為基礎,不自造同類輪子。
 - **元件 CSS 不得用 `@apply`。** Angular 元件樣式隔離下 `@apply` 取不到全域 Tailwind layer。元件內要用 token,直接寫 `var(--…)`(CSS 變數能穿透樣式隔離);要共用 primitive,走全域 `@layer components` 類別。
 - **跨元件共用 primitive 放全域 `@layer components`,元件引用,不得逐檔複製貼上。** 若樣式隔離擋到,用受控的全域類別或既定例外機制,不是各檔重抄一份。
+- **不用 `::ng-deep`(已 deprecated)。** 要從 parent 控制「投影進來的子元件」樣式時,**parent 加 host class、子元件用 `:host(.class)` 自管變體**(如抽屜投影子元件用 `class="fill"` → 子元件 `:host(.fill)` 自己填滿+自捲),封裝不破。非不得已不用 `:host ::ng-deep`(若真要,須 scoped 於 `:host` 限縮洩漏)。2026-06-29 已將原 6 處 ng-deep 全數收斂為此模式。
 - **`localhost`-only、單人、無認證** 的前提不變(來自 CLAUDE.md 鐵則 8);UI 不需要、也不要加帳號 / 權限相關介面。
 
 **既存正面項(勿回退)**

@@ -47,10 +47,10 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE, MOBILE } from '
 
       @if (mobile()) {
         <app-drawer-panel side="left" [open]="facetDrawerOpen()" title="資料夾" (close)="facetDrawerOpen.set(false)">
-          <app-folder-tree-sidebar />
+          <app-folder-tree-sidebar class="fill" />
         </app-drawer-panel>
         <app-drawer-panel side="right" [open]="inspectorDrawerOpen()" title="圖片詳情" (close)="inspectorDrawerOpen.set(false)">
-          <app-inspector [photoId]="store.selectedId()" (expand)="openLightbox()" />
+          <app-inspector class="fill" [photoId]="store.selectedId()" (expand)="openLightbox()" />
         </app-drawer-panel>
       }
     </div>
@@ -117,17 +117,8 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE, MOBILE } from '
         border-radius: var(--radius-soft) 0 0 var(--radius-soft);
       }
 
-      /* ③g:投影進抽屜的子元件改填滿並自捲(理由同 gallery-view)。 */
-      :host ::ng-deep app-drawer-panel app-folder-tree-sidebar .sidebar {
-        width: 100%;
-        height: 100%;
-        border-right: none; /* 抽屜 panel 自帶 border-right,去掉側欄重複的 hairline */
-      }
-      :host ::ng-deep app-drawer-panel app-inspector {
-        width: 100%;
-        height: 100%;
-        border-left: none;
-      }
+      /* ③g:投影進抽屜的子元件以 parent 加 class="fill" 觸發其自身 :host(.fill)(填滿 + 自捲),
+         改各子元件自管 fill 變體,不再穿透封裝(已移除舊的 deep 選擇器)。 */
     `,
   ],
 })

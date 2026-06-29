@@ -47,10 +47,10 @@ import { shouldAutoCollapse, INSPECTOR_COLLAPSE, FACET_COLLAPSE, MOBILE } from '
 
       @if (mobile()) {
         <app-drawer-panel side="left" [open]="facetDrawerOpen()" title="篩選" (close)="facetDrawerOpen.set(false)">
-          <app-facet-sidebar />
+          <app-facet-sidebar class="fill" />
         </app-drawer-panel>
         <app-drawer-panel side="right" [open]="inspectorDrawerOpen()" title="圖片詳情" (close)="inspectorDrawerOpen.set(false)">
-          <app-inspector [photoId]="store.selectedId()" (expand)="openLightbox()" />
+          <app-inspector class="fill" [photoId]="store.selectedId()" (expand)="openLightbox()" />
         </app-drawer-panel>
       }
     </div>
@@ -118,25 +118,8 @@ import { shouldAutoCollapse, INSPECTOR_COLLAPSE, FACET_COLLAPSE, MOBILE } from '
         border-radius: var(--radius-soft) 0 0 var(--radius-soft);
       }
 
-      /* ③g:把原側板元件投影進抽屜時,收束其內建固定尺寸,改填滿抽屜 body 並讓其自身 overflow 捲動。
-         ::ng-deep 必要 —— 隔離編譯下父層選不到子元件內部 .sidebar/:host;限定在本 view scope 下。 */
-      /* host 須有定值高度,內層 .sidebar 的 height:100% + overflow-y:auto 才能解析成捲動視窗
-         (對齊下方 inspector;舊版漏設此行 → 手機 facet 抽屜無法捲動)。 */
-      :host ::ng-deep app-drawer-panel app-facet-sidebar {
-        display: block;
-        height: 100%;
-        min-height: 0;
-      }
-      :host ::ng-deep app-drawer-panel app-facet-sidebar .sidebar {
-        width: 100%;
-        height: 100%;
-        border-right: none; /* 抽屜 panel 自帶 border-right,去掉側欄重複的 hairline */
-      }
-      :host ::ng-deep app-drawer-panel app-inspector {
-        width: 100%;
-        height: 100%;
-        border-left: none;
-      }
+      /* ③g:投影進抽屜的子元件以 parent 加 class="fill" 觸發其自身 :host(.fill)(填滿 + 自捲),
+         改各子元件自管 fill 變體,不再穿透封裝(已移除舊的 deep 選擇器)。 */
     `,
   ],
 })
