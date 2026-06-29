@@ -315,16 +315,16 @@ related: [2026-06-24-ui-style-system-design]
 |---|---|---|---|
 | ✅(2026-06-29)抽 `.vhead` / `.note` / `.dot` / `.facet-t` 為全域 primitive,刪 4–5 份複製 | primitive 散播;頁首節奏;eyebrow | M | 新發現(Spec 1 地基已備 primitive 機制) |
 | ✅(2026-06-29)四 manage 頁 `.panel-pad` 補 `max-width + margin:auto`(roots 擠左+右空根因);tag-manager 880 對齊 | 容器寬度置中 | S | 新發現 |
-| 頁面水平內距統一單值(gallery 18 vs manage 24),消除切頁左緣跳動 | 間距 scale | S | 新發現 |
-| tag-manager `.b*` 按鈕收斂到全域 `.btn*`;順手修 danger 用錯 token(`--color-t-character`→`--color-danger`) | 按鈕;danger 色軸;退場 token | S | 新發現 |
-| `.btn.primary`→`.btn-primary`,刪 photo-grid 手抄的 `.btn.primary` | 按鈕命名 | S | 新發現 |
-| `accent-ink` 兩值(`#06323b` / `#04222a`)收斂為一 | 語意分軸 / token 唯一真相 | S | 新發現 |
-| toast token 名漂移(`--color-ink`→`--color-text`、`--color-panel` fallback 對不上)修正 | 退場 token | S | 新發現 |
-| danger 裸值(confirm / toast)token 化;`var(--color-t-character,#f0616d)` 筆誤修正 | danger 色軸;退場 token | S | 新發現 |
+| ✅(2026-06-29)頁面水平內距統一單值(gallery 18→24),消除切頁左緣跳動 | 間距 scale | S | 新發現 |
+| ✅(2026-06-29)tag-manager `.b*` 按鈕收斂到全域 `.btn*`(補 `.btn-sm`);修 danger 誤用 `--color-t-character`(綠)的筆誤 | 按鈕;danger 色軸;退場 token | S | 新發現 |
+| ✅(2026-06-29)`.btn.primary`→`.btn-primary`,刪 photo-grid 未用的 `.btn.primary` 死碼 | 按鈕命名 | S | 新發現 |
+| ✅(2026-06-29)`accent-ink` 兩值(`#06323b` / `#04222a`)收斂為單一 token(刪兩處 `#04222a`,留 `--color-accent-ink`) | 語意分軸 / token 唯一真相 | S | 新發現 |
+| ✅(2026-06-29)toast token 名漂移(`--color-ink`→`--color-text`、`--color-panel`/`--color-hair`/`--color-muted` fallback 對不上)修正;成功色 → `--color-success` | 退場 token | S | 新發現 |
+| ✅(2026-06-29)danger 裸值(confirm / toast / reconcile / saved)token 化(rgba→`color-mix(--color-danger)`、裸 hex→token、去冗餘 fallback) | danger 色軸;退場 token | S | 新發現 |
 | ✅(2026-06-29)`#3b4150` 抽既有 token `--color-hair-strong`(.btn/.input/.sel-mini/.root-tab/.saved hover);`.note` 藍 rgba 改 `color-mix(accent)` + 文字 `--color-info-ink` | 取色 token 化 | S | 新發現 |
 | ✅(2026-06-29)新增 `--text-h1`/`--text-h2` token;頁標題 vhead + tag-manager 統一 `var(--text-h1)`(21)。inspector(h2/16)仍用裸值,待 P1 type-scale 收斂 | 頁標題 | S | 新發現 |
 | `.skeleton` 死碼:接上首屏 loading 或刪除(二選一) | loading / skeleton | M | 部分屬 `gallery-improvements` |
-| `app.html` Angular 英文 + emoji 殘留清除 | 文案;勿留樣板 | S | 新發現 |
+| ✅(2026-06-29)`app.html` Angular 樣板殘留清除(實為孤兒死檔,App 用 inline template,直接刪) | 文案;勿留樣板 | S | 新發現 |
 
 ### P1 — 系統 token 化 / 機械替換(M,需逐處驗證視覺不變)
 
@@ -360,3 +360,4 @@ related: [2026-06-24-ui-style-system-design]
 - **RWD 已知缺口:** manage 頁全無斷點(僅 gallery 有兩條 inline 規則)。本機桌面窄視窗風險低,**列為已知 gap、低優先**,但準則要求新頁面至少在 `<1180` 有可預期行為。
 - **對比待核:** `faint` 用於正文小字對 raised-2 逼近 AA 下限,屬 **L**(需逐處核對用途),不是單點修。
 - 收斂順序建議:**P0 先清(立刻消最多「primitive 已存在卻被複製」的系統債,風險近零)→ P1 token 化(地基穩固後機械替換)→ P2 a11y(獨立 spec,改 DOM 結構需測鍵盤流程)**。每個切片 build + `ng build` 綠燈、手測視覺不變再 commit(對齊 CLAUDE.md 驗證約定)。
+- **P0 進度(2026-06-29):** 全部 S 級項目已收斂完成(vhead/note/dot primitive、manage 容器寬度、`#3b4150`/`--text-h1` token、頁面水平內距、`.b*`→`.btn*`、`.btn-primary`、accent-ink、toast/danger token 化、app.html 刪除)。**P0 僅剩 `.skeleton` 死碼(M)** 待決:接上首屏 loading(屬 `gallery-improvements` 行為層,非純去重)或刪除,二選一需另開決策,故未隨本批處理。
