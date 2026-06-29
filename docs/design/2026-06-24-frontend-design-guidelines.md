@@ -344,21 +344,24 @@ related: [2026-06-24-ui-style-system-design]
 | 文案正名:「標」縮寫全面改「標籤」;「收藏 vs 儲存」對齊;empty CTA;error 前綴;`taken_at` 改人話;placeholder 精簡 | 文案多條 | M | 新發現 |
 | 首屏清單骨架:gallery 網格 / manage 清單 / saved 卡片 `loading() && length===0` 時鋪 `.skeleton` 佔位塊維持版面骨架(`.skeleton` primitive 已存在、thumb 縮圖在用) | loading / skeleton | M | gallery-improvements(原誤列 P0「死碼」,2026-06-29 修正下放) |
 
-### P2 — a11y 結構性改造(M/L,需專門 spec)
+### P2 — a11y 結構性改造(M/L)
 
-| 項目 | 違反準則 | 成本 | 來源 |
+> **2026-06-29 校正:** 原表多項標註已與程式碼脫節(規劃當時的靜態盤點,未反映後續以 `pmActivate` directive + masonry roving 補上的鍵盤可達)。下表已據實重核,✅ 為已達標。**鍵盤可達基本已就位**,僅剩 saved 刪除鈕(hover-only)一處真缺口 + 全站 svg `aria-hidden` 部分未掃 + 「`role=button`→原生 `<button>`」最佳實踐升級(低價值,降優先)。
+
+| 項目 | 違反準則 | 成本 | 狀態 |
 |---|---|---|---|
-| facet 樹整列 / 展開鈕 `<div>/<span>(click)` 改 `<button>`(鍵盤完全不可達) | 鍵盤可達 | M | 待寫 a11y spec |
-| photo tile 選圖、search token 改 `<button>`(顧 masonry 樣式) | 鍵盤可達 | M | 待寫 a11y spec |
-| saved 刪除鈕重構:解巢狀雙 button + 常駐(非 hover-only) | 鍵盤可達 / 巢狀 / hover-only | M | 待寫 a11y spec |
-| 搜尋 / 加標籤 combobox 補 `role=combobox/listbox/option` + `aria-*`(兩處同型) | combobox | M | 待寫 a11y spec |
-| shell nav 六項加 `aria-label`;全站 `<svg>` 加 `aria-hidden`;skip-link;`<nav> aria-label` | 圖示名稱 / 結構 | S | 待寫 a11y spec |
-| `:focus`+`outline:none` 四處改 `:focus-visible` / 補統一 ring(`.rename` 無焦點指示尤急) | 焦點可見 | S | 待寫 a11y spec |
-| 檢視切換 `.seg` / 排序表頭加 `aria-pressed` / 改 button;import `.cat-item` 補 `aria-selected` | 狀態語意 / 鍵盤 | S–M | 待寫 a11y spec |
+| facet 樹列 / 區段標題鍵盤可達 | 鍵盤可達 | M | ✅ 已可達:葉節點列掛 `pmActivate`(role=button+tabindex=0+Enter/Space),區段標題 role=button+tabindex=0+keydown,展開/收合走列上 ←/→。剩「role=button→原生 button」升級降為低優先;`.ttoggle` span 箭頭是滑鼠多餘 affordance(功能已被 ←/→ 覆蓋) |
+| photo tile 選圖、search token 鍵盤可達 + 選取語意 | 鍵盤可達 / 狀態語意 | M | ✅(2026-06-29)search token 早已是原生 `<button>`;photo tile masonry roving = role=button + 方向鍵/Enter/Space,**本次補 `aria-pressed` 選取語意**(取代僅 `.tile.sel` CSS)。native-button 升級低價值 |
+| saved 刪除鈕重構:解巢狀雙 button + 常駐(非 hover-only) | 鍵盤可達 / 巢狀 / hover-only | M | 🔲 **仍未做** —— `saved-searches.html` 刪除鈕 `@if(hovered())` hover-only + `<span role=button>` 巢在 `(click)` 卡片內,純鍵盤不可達。**唯一真實鍵盤缺口** |
+| 搜尋 / 加標籤 combobox 補 `role=combobox/listbox/option` + `aria-*` | combobox | M | ✅ 兩處(photo-grid 搜尋、inner-tag-filter 夾內再篩)role/aria/activedescendant 齊全,e2e 有測 |
+| shell nav 可及名稱;`<svg>` 加 `aria-hidden`;skip-link;`<nav> aria-label` | 圖示名稱 / 結構 | S | ✅ 大部:skip-link、`<nav aria-label>`、`<main id>` 就位;nav 項目用 opacity-toggle 文字(留在 a11y tree)+ `:focus-visible` 顯示,有可及名稱;shell/photo-grid/lightbox svg 已 `aria-hidden`。🔲 **其餘頁面 svg aria-hidden 尚未全面掃** |
+| `:focus`+`outline:none` 改 `:focus-visible` / 補統一 ring | 焦點可見 | S | ✅(2026-06-29)四處核畢:`.search`(容器 `:focus-within` ring)、`.af-in` / `.addinput`(本次移除 outline 壓制,還原全域環)、inspector(保留全域環);`.rename` 有常駐 accent border + 未壓環,亦 OK |
+| 檢視切換 `.seg` / 排序表頭 `aria-pressed`;import 分類選 `aria-selected` | 狀態語意 / 鍵盤 | S–M | ✅ 大部:`.seg` 檢視鈕已 `aria-pressed`;import 分類選 role=listbox/option + `aria-selected`。🔲 tags 排序表頭狀態語意待查 |
 
 ### gap 維護備註
 
 - **RWD 已知缺口:** manage 頁全無斷點(僅 gallery 有兩條 inline 規則)。本機桌面窄視窗風險低,**列為已知 gap、低優先**,但準則要求新頁面至少在 `<1180` 有可預期行為。
 - **對比待核:** `faint` 用於正文小字對 raised-2 逼近 AA 下限,屬 **L**(需逐處核對用途),不是單點修。
 - 收斂順序建議:**P0 先清(立刻消最多「primitive 已存在卻被複製」的系統債,風險近零)→ P1 token 化(地基穩固後機械替換)→ P2 a11y(獨立 spec,改 DOM 結構需測鍵盤流程)**。每個切片 build + `ng build` 綠燈、手測視覺不變再 commit(對齊 CLAUDE.md 驗證約定)。
+- **P2 進度(2026-06-29):鍵盤可達基本收斂完成。** 本次處理:① masonry 選取格補 `aria-pressed`(+ e2e 改語意 locator);② lightbox 計數 `data-testid` + 裝飾 svg `aria-hidden`(+ e2e 還原 `getByRole('img')`);③ `.af-in` / `.addinput` 還原全域 `:focus-visible` 環。重核後確認 facet/tile/token 鍵盤可達、combobox/`.seg`/import `aria-*` 早已就位。**剩餘真缺口**:saved 刪除鈕 hover-only 巢狀(鍵盤不可達)+ 其餘頁面 svg `aria-hidden` 未全面掃 + `role=button`→原生 `<button>` 升級(低價值)。全程 26 支 e2e + 124 單元測試綠燈。
 - **P0 進度(2026-06-29):P0 已全數收斂完成。** S 級項目(vhead/note/dot primitive、manage 容器寬度、`#3b4150`/`--text-h1` token、頁面水平內距、`.b*`→`.btn*`、`.btn-primary`、accent-ink、toast/danger token 化、app.html 刪除)全清。原列為 P0 的「`.skeleton` 死碼」經查**非死碼**(`thumb.ts` 縮圖載入態在用),判斷修正;真正缺的「首屏清單骨架」屬行為層(gallery-improvements),已下放 P1。
