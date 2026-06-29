@@ -146,6 +146,10 @@ body {
   .btn-ghost {
     @apply bg-transparent;
   }
+  /* 小尺寸修飾子(密集列表的列操作用,如 tag-manager) */
+  .btn-sm {
+    @apply px-[11px] py-1 text-[12px] rounded-[6px];
+  }
   /* 三態補強:active 輕微變暗下沉;disabled 不可點 + 降透明 */
   .btn:active {
     @apply brightness-90;

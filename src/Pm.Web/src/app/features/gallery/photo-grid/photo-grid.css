@@ -164,16 +164,7 @@
   color: var(--color-faint);
 }
 
-/* btn 修飾子(對齊 mockup 的 .btn.primary / .btn.ghost 用法;.btn 來自全域 primitive) */
-.btn.primary {
-  background: var(--color-accent);
-  color: #04222a;
-  border-color: transparent;
-}
-.btn.primary:hover {
-  filter: brightness(1.08);
-  background: var(--color-accent);
-}
+/* btn 修飾子(.btn 來自全域 primitive;primary 已收斂為全域 .btn-primary) */
 .btn.ghost {
   background: transparent;
 }

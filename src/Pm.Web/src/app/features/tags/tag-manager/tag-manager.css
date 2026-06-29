@@ -191,29 +191,5 @@
   padding: 5px 8px;
 }
 
-.b {
-  font-size: 12px;
-  padding: 4px 11px;
-  border-radius: 6px;
-  border: 1px solid var(--color-hair);
-  background: var(--color-raised);
-  color: var(--color-muted);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.b:hover {
-  color: var(--color-text);
-  border-color: var(--color-muted);
-}
-.b.primary {
-  background: var(--color-accent);
-  color: #04222a;
-  border-color: transparent;
-}
-.b.ghost {
-  background: transparent;
-}
-.b.danger:hover {
-  color: var(--color-t-character, #f0616d);
-  border-color: var(--color-t-character, #f0616d);
-}
+/* 按鈕已收斂為全域 .btn 家族(.btn / .btn-sm / .btn-primary / .btn-ghost / .btn-danger);
+   原本地 .b* 連同 danger 誤用 --color-t-character(綠)的筆誤一併移除。 */

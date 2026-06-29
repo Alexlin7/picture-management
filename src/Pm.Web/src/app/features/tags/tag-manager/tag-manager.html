@@ -15,7 +15,7 @@
         <option [value]="k" [selected]="k === 'manual'">{{ kindLabel(k) }}</option>
       }
     </select>
-    <button class="b primary" (click)="add(ni.value, nk.value, ni)">＋ 新增</button>
+    <button class="btn btn-sm btn-primary" (click)="add(ni.value, nk.value, ni)">＋ 新增</button>
   </div>
 
   <!-- 過濾 + 批次操作 -->
@@ -24,10 +24,10 @@
     @if (selCount() > 0) {
       <span class="selinfo">已選 {{ selCount() }}</span>
       @if (selCount() === 2) {
-        <button class="b" (click)="mergeSelected()">合併選取</button>
+        <button class="btn btn-sm" (click)="mergeSelected()">合併選取</button>
       }
-      <button class="b danger" (click)="removeSelected()">刪除選取</button>
-      <button class="b ghost" (click)="clearSel()">清除</button>
+      <button class="btn btn-sm btn-danger" (click)="removeSelected()">刪除選取</button>
+      <button class="btn btn-sm btn-ghost" (click)="clearSel()">清除</button>
     }
   </div>
 
@@ -71,8 +71,8 @@
             <span class="c-count">{{ t.count }} 張</span>
             <span class="c-recent">#{{ t.id }}</span>
             <span class="c-acts">
-              <button class="b primary" (click)="saveEdit(t, re.value, ke.value)">儲存</button>
-              <button class="b ghost" (click)="cancelEdit()">取消</button>
+              <button class="btn btn-sm btn-primary" (click)="saveEdit(t, re.value, ke.value)">儲存</button>
+              <button class="btn btn-sm btn-ghost" (click)="cancelEdit()">取消</button>
             </span>
           } @else {
             <span class="c-name">
@@ -82,8 +82,8 @@
             <span class="c-count">{{ t.count }} 張</span>
             <span class="c-recent">#{{ t.id }}</span>
             <span class="c-acts">
-              <button class="b" (click)="startEdit(t)">編輯</button>
-              <button class="b danger" (click)="remove(t)">刪除</button>
+              <button class="btn btn-sm" (click)="startEdit(t)">編輯</button>
+              <button class="btn btn-sm btn-danger" (click)="remove(t)">刪除</button>
             </span>
           }
         </div>
