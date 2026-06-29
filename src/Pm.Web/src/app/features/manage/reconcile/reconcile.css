@@ -23,8 +23,8 @@
 }
 .pill-danger {
   color: var(--color-danger);
-  border-color: rgba(240, 97, 109, 0.4);
-  background: rgba(240, 97, 109, 0.1);
+  border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
 }
 
 .note-num {
@@ -107,7 +107,7 @@
 /* 「已刪除」danger 色按鈕(.btn 已是全域 primitive,這裡只覆寫顏色)*/
 .btn-del {
   color: var(--color-danger);
-  border-color: rgba(240, 97, 109, 0.4);
+  border-color: color-mix(in srgb, var(--color-danger) 40%, transparent);
 }
 
 /* 已處理後的狀態標示 */

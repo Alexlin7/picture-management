@@ -94,7 +94,7 @@ export class ConfirmService {
     }
     .cf-btn.ghost { background: transparent; color: var(--color-muted, #bbb); }
     .cf-btn.ghost:hover { color: var(--color-text); }
-    .cf-btn.danger { background: #F0616D; border-color: #F0616D; color: #fff; }
+    .cf-btn.danger { background: var(--color-danger); border-color: var(--color-danger); color: #fff; }
     @keyframes cf-fade { from { opacity: 0; } to { opacity: 1; } }
   `],
 })

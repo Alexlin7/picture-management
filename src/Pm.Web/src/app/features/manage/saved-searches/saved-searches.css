@@ -81,7 +81,7 @@
 }
 .del:hover {
   color: var(--color-danger);
-  background: rgba(240, 97, 109, 0.12);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
 }
 .del svg {
   width: 12px;

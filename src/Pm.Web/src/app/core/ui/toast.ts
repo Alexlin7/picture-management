@@ -70,7 +70,7 @@ export class ToastService {
       animation: toast-in 0.15s ease-out;
     }
     .toast.success { border-left-color: var(--color-success); }
-    .toast.error { border-left-color: #F0616D; }
+    .toast.error { border-left-color: var(--color-danger); }
     .toast .msg { flex: 1; min-width: 0; }
     .toast .x {
       flex: none;

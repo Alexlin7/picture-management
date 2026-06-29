@@ -102,7 +102,7 @@ export class LightboxService {
     .iconbtn:hover { background: var(--color-raised-2, #2a2f39); border-color: var(--color-accent, #22d3ee); }
     .iconbtn:active { filter: brightness(0.9); }
     .iconbtn svg { width: 20px; height: 20px; }
-    .iconbtn.close:hover { border-color: var(--color-danger, #f0616d); color: var(--color-danger, #f0616d); }
+    .iconbtn.close:hover { border-color: var(--color-danger); color: var(--color-danger); }
     .navbtn { position: fixed; top: 50%; transform: translateY(-50%); width: 52px; height: 52px;
       display: inline-grid; place-items: center; border-radius: 50%; background: rgba(35, 39, 47, 0.55);
       border: 1px solid var(--color-hair-strong, #3b4150); color: var(--color-text, #e8eaed); cursor: pointer;

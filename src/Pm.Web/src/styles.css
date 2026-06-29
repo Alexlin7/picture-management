@@ -160,10 +160,10 @@ body {
   }
   /* 危險動作(用 --color-danger),與 primary 視覺區隔 */
   .btn-danger {
-    @apply text-danger border-[rgba(240,97,109,0.35)];
+    @apply text-danger border-[color-mix(in_srgb,var(--color-danger)_35%,transparent)];
   }
   .btn-danger:hover {
-    @apply bg-[rgba(240,97,109,0.12)] border-danger;
+    @apply bg-[color-mix(in_srgb,var(--color-danger)_12%,transparent)] border-danger;
   }
 
   /* 文字輸入統一(背景 raised、border hair、focus 走全域 :focus-visible ring) */

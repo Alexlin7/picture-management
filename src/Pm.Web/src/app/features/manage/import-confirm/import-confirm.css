@@ -258,7 +258,7 @@ tbody tr:hover {
   padding: 0 2px;
 }
 .preset-chip .px:hover {
-  color: var(--color-danger, #f0616d);
+  color: var(--color-danger);
 }
 .preset-empty {
   color: var(--color-faint);
