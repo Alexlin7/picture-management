@@ -78,7 +78,7 @@ export class ConfirmService {
       background: var(--color-panel, #1b1b1f);
       border: 1px solid var(--color-hair, #333);
       box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.7);
-      color: var(--color-ink, #e8e8ea);
+      color: var(--color-text);
     }
     .cf-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
     .cf-msg { font-size: 13px; line-height: 1.5; color: var(--color-muted, #bbb); }
@@ -89,11 +89,11 @@ export class ConfirmService {
       border-radius: 7px;
       border: 1px solid var(--color-hair, #333);
       background: var(--color-raised, #2a2a30);
-      color: var(--color-ink, #e8e8ea);
+      color: var(--color-text);
       cursor: pointer;
     }
     .cf-btn.ghost { background: transparent; color: var(--color-muted, #bbb); }
-    .cf-btn.ghost:hover { color: var(--color-ink, #e8e8ea); }
+    .cf-btn.ghost:hover { color: var(--color-text); }
     .cf-btn.danger { background: #F0616D; border-color: #F0616D; color: #fff; }
     @keyframes cf-fade { from { opacity: 0; } to { opacity: 1; } }
   `],

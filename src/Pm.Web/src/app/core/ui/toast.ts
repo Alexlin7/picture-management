@@ -62,14 +62,14 @@ export class ToastService {
       padding: 10px 12px;
       border-radius: 8px;
       font-size: 13px;
-      color: var(--color-ink, #e8e8ea);
-      background: var(--color-panel, #1b1b1f);
-      border: 1px solid var(--color-hair, #333);
-      border-left: 3px solid var(--color-muted, #888);
+      color: var(--color-text);
+      background: var(--color-panel);
+      border: 1px solid var(--color-hair);
+      border-left: 3px solid var(--color-muted);
       box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
       animation: toast-in 0.15s ease-out;
     }
-    .toast.success { border-left-color: #4ADE80; }
+    .toast.success { border-left-color: var(--color-success); }
     .toast.error { border-left-color: #F0616D; }
     .toast .msg { flex: 1; min-width: 0; }
     .toast .x {

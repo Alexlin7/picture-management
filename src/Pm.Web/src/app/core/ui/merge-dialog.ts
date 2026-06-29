@@ -97,7 +97,7 @@ export class MergeDialogService {
       background: var(--color-panel, #1b1b1f);
       border: 1px solid var(--color-hair, #333);
       box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.7);
-      color: var(--color-ink, #e8e8ea);
+      color: var(--color-text);
     }
     .md-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
     .md-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -115,7 +115,7 @@ export class MergeDialogService {
     }
     .md-card.keep {
       border-color: var(--color-accent, #22D3EE);
-      color: var(--color-ink, #e8e8ea);
+      color: var(--color-text);
     }
     .md-name { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; }
     .md-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
@@ -130,11 +130,11 @@ export class MergeDialogService {
       border-radius: 7px;
       border: 1px solid var(--color-hair, #333);
       background: var(--color-raised, #2a2a30);
-      color: var(--color-ink, #e8e8ea);
+      color: var(--color-text);
       cursor: pointer;
     }
     .md-btn.ghost { background: transparent; color: var(--color-muted, #bbb); }
-    .md-btn.ghost:hover { color: var(--color-ink, #e8e8ea); }
+    .md-btn.ghost:hover { color: var(--color-text); }
     @keyframes md-fade { from { opacity: 0; } to { opacity: 1; } }
   `],
 })
