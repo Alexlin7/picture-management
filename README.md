@@ -136,7 +136,7 @@ src/
   Pm.Api/       ASP.NET Core 宿主:DI、migration、API endpoints、serve wwwroot;TaggingWorker(背景服務)
   Pm.Scanner/   掃描 + 縮圖 + EXIF + 查詢 + tag closure/facet + 路徑→tag + TagService(service 層)
   Pm.Data/      EF Core:Entities/(九實體)、PmDbContext、Migrations/
-  Pm.Ml/        推論後端抽象 IInferenceSessionFactory(CPU/DirectML 可用,CUDA/WinML 骨架)+ WD14 pipeline
+  Pm.Ml/        推論後端抽象 IInferenceSessionFactory(三 flavor:DirectML 預設 / CUDA / Windows ML,編譯期切;無 GPU 退 CPU)+ WD14 pipeline
   Pm.Imaging/   AVIF/HEIC/HEIF 解碼橋接
   Pm.Web/       Angular(core / features / shell 分區;ng build 輸出至 ../Pm.Api/wwwroot)
 tests/          與 src 一一對應的測試專案

@@ -7,12 +7,17 @@
 ### 變更
 - **推論後端三 flavor 正式出貨**(原 CUDA / Windows ML「僅骨架」狀態解除):**DirectML**(預設,任何 DX12 GPU,24H2 以下通用)/ **CUDA**(NVIDIA,24H2 以下)/ **Windows ML**(Win11 24H2+,EP 由 OS 動態下載)。切點為 OS 版本涵蓋;編譯期經 `InferenceFlavor` 屬性切 ONNX Runtime 套件 + 選 factory,呼叫端程式碼不動,各有 publish profile + CI release matrix(出三個 zip)。CPU / DirectML 已實機驗證;CUDA / Windows ML 為編譯 + publish 驗證,runtime 推論需對應硬體 / OS。
 
+- **前端設計 token 系統收斂(P1)**:`@theme` 補齊單一真相源並改 `@theme static`(避免 runtime `var()` 引用的 token 被 Tailwind tree-shake)——
+  間距 4px scale(`--space-*`)、7 階封閉 type-scale(`--text-*`,散落字級含 .5px 全歸階)、tag 分色改單向引用 `--color-t-*`(刪手抄 hex 表,`hexToRgba`→`color-mix`)。
+- 抽屜投影子元件改 `:host(.fill)` 自管,移除全部 `::ng-deep`(Angular 已 deprecated)。
+
 ### 新增
 - `IInferenceSessionFactory.InitializeAsync` 暖機接縫(預設 no-op;Windows ML 用於 async 註冊 EP 目錄)。
 - `CudaSessionFactory`、真正的 `WindowsMlSessionFactory`(EP 目錄暖機 + `GetEpDevices` 顯式選 EP + device policy + CPU fallback)。
 
 ### 修正
 - a11y:選取圖格補 `aria-pressed` 選取語意;`.af-in` / `.addinput` 輸入框還原全域 `:focus-visible` 焦點環;lightbox 裝飾 svg 補 `aria-hidden`。
+- 手機 facet 抽屜無法捲動(投影子元件漏設 host 高度)。
 - e2e 測試遷移至 `@playwright/test` runner(webServer 自動起 app + 嚴守 web-first 鐵則),取代手寫煙霧腳本。
 
 ## [0.1.0] - 2026-06-28
