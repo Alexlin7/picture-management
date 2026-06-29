@@ -53,7 +53,7 @@
   gap: 5px;
   padding: 2px 7px 2px var(--space-8);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 500;
   white-space: nowrap;
   border: 1px solid transparent;
@@ -98,7 +98,7 @@
   outline: 0;
   color: var(--color-text);
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: var(--text-sm);
 }
 .search input::placeholder {
   color: var(--color-faint);
@@ -136,7 +136,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--color-text);
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
 }
@@ -160,7 +160,7 @@
 .ac-row .account {
   flex: none;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: var(--color-faint);
 }
 
@@ -183,7 +183,7 @@
   gap: var(--space-14);
   padding: 0 var(--space-24);
   color: var(--color-muted);
-  font-size: 12.5px;
+  font-size: var(--text-sm);
 }
 .toolbar .count b {
   color: var(--color-text);
@@ -194,7 +194,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-6);
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--color-muted);
 }
 .status-dot .num {
@@ -262,7 +262,7 @@
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-8) 9px;
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--color-muted);
   white-space: nowrap;
 }
@@ -293,7 +293,7 @@
   border-radius: 6px;
   background: transparent;
   color: var(--color-text);
-  font-size: 12px;
+  font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
 }
@@ -324,7 +324,7 @@ app-masonry {
 .empty {
   padding: var(--space-28) var(--space-24);
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: var(--text-body);
   text-align: center;
 }
 .loadmore {
@@ -374,12 +374,12 @@ app-masonry {
 }
 .tile .ttl {
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
   line-height: 1.25;
 }
 .tile .ser {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: #cfd3da;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
@@ -410,7 +410,7 @@ app-masonry {
   border: 1px solid rgba(255, 255, 255, 0.07);
   padding: 2px var(--space-6);
   border-radius: 5px;
-  font-size: 10.5px;
+  font-size: var(--text-2xs);
   font-weight: 600;
 }
 .mini .d {
@@ -428,7 +428,7 @@ app-masonry {
   border: 1px solid rgba(251, 191, 36, 0.4);
   border-radius: 5px;
   padding: 2px var(--space-6);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   display: flex;
   gap: var(--space-4);
@@ -444,19 +444,19 @@ app-masonry {
   color: var(--color-muted);
   border-radius: 5px;
   padding: 2px var(--space-6);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-family: var(--font-mono);
 }
 
 .search-hint {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--color-faint);
   white-space: nowrap;
   align-self: center;
 }
 .ac-empty {
   padding: var(--space-8) 11px;
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   color: var(--color-muted);
 }
 
@@ -508,7 +508,7 @@ app-masonry {
   gap: var(--space-6);
   min-height: 44px;
   padding: 0 var(--space-12);
-  font-size: 13px;
+  font-size: var(--text-body);
   border: 1px solid var(--color-hair);
   border-radius: var(--radius-soft);
   background: var(--color-raised);

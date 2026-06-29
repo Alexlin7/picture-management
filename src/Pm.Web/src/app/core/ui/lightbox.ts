@@ -85,14 +85,14 @@ export class LightboxService {
     @keyframes lb-pop { from { transform: scale(0.965); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .lb-img { max-width: 92vw; max-height: 82vh; object-fit: contain; border-radius: var(--radius-soft, 7px);
       box-shadow: 0 24px 70px -20px rgba(0, 0, 0, 0.85); background: var(--color-raised, #23272f); }
-    .lb-caption { margin-top: 12px; display: flex; align-items: center; gap: 14px; font-size: 12.5px;
+    .lb-caption { margin-top: 12px; display: flex; align-items: center; gap: 14px; font-size: var(--text-sm);
       color: var(--color-muted, #959ba7); max-width: 92vw; }
     .lb-caption .name { color: var(--color-text, #e8eaed); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .lb-caption .dim { font-family: var(--font-mono, monospace); font-size: 11.5px; color: var(--color-faint, #6b7280); }
-    .lb-caption .insp { margin-left: auto; color: var(--color-accent, #22d3ee); cursor: pointer; font-size: 12px;
+    .lb-caption .dim { font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--color-faint, #6b7280); }
+    .lb-caption .insp { margin-left: auto; color: var(--color-accent, #22d3ee); cursor: pointer; font-size: var(--text-sm);
       background: none; border: 0; padding: 4px 6px; border-radius: var(--radius-soft, 7px); }
     .lb-caption .insp:hover { background: rgba(34, 211, 238, 0.1); }
-    .lb-meta { position: fixed; top: 22px; left: 20px; color: var(--color-muted, #959ba7); font-size: 13px; }
+    .lb-meta { position: fixed; top: 22px; left: 20px; color: var(--color-muted, #959ba7); font-size: var(--text-body); }
     .lb-meta .count { font-family: var(--font-mono, monospace); color: var(--color-text, #e8eaed); }
     .lb-tools { position: fixed; top: 16px; right: 18px; display: flex; align-items: center; gap: 8px; }
     .iconbtn { width: 44px; height: 44px; display: inline-grid; place-items: center; border-radius: 50%;
@@ -116,8 +116,8 @@ export class LightboxService {
     @media (max-width: 640px) {
       .lb-img { max-width: 92vw; }
       .navbtn { width: 44px; height: 44px; } .navbtn.prev { left: 8px; } .navbtn.next { right: 8px; }
-      .lb-meta { top: 14px; left: 12px; font-size: 12px; } .lb-tools { top: 12px; right: 12px; }
-      .lb-caption { font-size: 12px; gap: 10px; padding: 0 10px; }
+      .lb-meta { top: 14px; left: 12px; font-size: var(--text-sm); } .lb-tools { top: 12px; right: 12px; }
+      .lb-caption { font-size: var(--text-sm); gap: 10px; padding: 0 10px; }
     }
   `],
 })

@@ -94,7 +94,7 @@ import { shouldAutoCollapse, FACET_COLLAPSE, INSPECTOR_COLLAPSE, MOBILE } from '
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 13px;
+        font-size: var(--text-body);
         padding: 0;
         transition: background 0.1s, color 0.1s;
       }

@@ -61,7 +61,7 @@ export class ToastService {
       max-width: 360px;
       padding: 10px 12px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: var(--text-body);
       color: var(--color-text);
       background: var(--color-panel);
       border: 1px solid var(--color-hair);
@@ -79,7 +79,7 @@ export class ToastService {
       color: inherit;
       opacity: 0.55;
       cursor: pointer;
-      font-size: 15px;
+      font-size: var(--text-title);
       line-height: 1;
       padding: 0;
     }

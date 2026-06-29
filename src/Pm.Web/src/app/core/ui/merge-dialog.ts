@@ -99,7 +99,7 @@ export class MergeDialogService {
       box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.7);
       color: var(--color-text);
     }
-    .md-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+    .md-title { font-size: var(--text-title); font-weight: 600; margin-bottom: 14px; }
     .md-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .md-card {
       display: flex;
@@ -117,15 +117,15 @@ export class MergeDialogService {
       border-color: var(--color-accent, #22D3EE);
       color: var(--color-text);
     }
-    .md-name { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; }
+    .md-name { display: flex; align-items: center; gap: 7px; font-size: var(--text-title); font-weight: 600; }
     .md-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
-    .md-meta { font-size: 12px; }
-    .md-state { font-size: 12px; font-weight: 600; }
+    .md-meta { font-size: var(--text-sm); }
+    .md-state { font-size: var(--text-sm); font-weight: 600; }
     .md-card.keep .md-state { color: var(--color-accent, #22D3EE); }
-    .md-summary { font-size: 12.5px; line-height: 1.5; color: var(--color-muted, #bbb); margin-top: 14px; }
+    .md-summary { font-size: var(--text-sm); line-height: 1.5; color: var(--color-muted, #bbb); margin-top: 14px; }
     .md-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
     .md-btn {
-      font-size: 13px;
+      font-size: var(--text-body);
       padding: 7px 16px;
       border-radius: 7px;
       border: 1px solid var(--color-hair, #333);

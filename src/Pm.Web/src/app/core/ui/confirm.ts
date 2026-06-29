@@ -80,11 +80,11 @@ export class ConfirmService {
       box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.7);
       color: var(--color-text);
     }
-    .cf-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
-    .cf-msg { font-size: 13px; line-height: 1.5; color: var(--color-muted, #bbb); }
+    .cf-title { font-size: var(--text-title); font-weight: 600; margin-bottom: 8px; }
+    .cf-msg { font-size: var(--text-body); line-height: 1.5; color: var(--color-muted, #bbb); }
     .cf-acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
     .cf-btn {
-      font-size: 13px;
+      font-size: var(--text-body);
       padding: 7px 16px;
       border-radius: 7px;
       border: 1px solid var(--color-hair, #333);

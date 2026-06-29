@@ -61,9 +61,15 @@
   --font-body: "Inter", "Noto Sans TC", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* 字級階(頁標題 / 面板標題;漸進 token 化,取代逐檔裸 px) */
-  --text-h1: 21px;   /* 頁標題(manage 頁 .vhead h1 / tag-manager 標題) */
-  --text-h2: 16px;   /* 面板 / 區段標題(如 inspector) */
+  /* 字級封閉階(7 階;散落 px 全歸階,半階就近 snap、平手往下。body 全域 13.5 為閱讀基準,
+     不納入階、不變動)。value 順序由小到大;h1/h2 沿用語意名(頁標題 / 面板標題)。 */
+  --text-2xs: 10px;  /* 微標(計數 / 徽章 / 極小註記)← 8/9/9.5/10/10.5 */
+  --text-xs: 11px;   /* 小標 / 次要 ← 11/11.5 */
+  --text-sm: 12px;   /* 密集列表 / 標籤 ← 12/12.5 */
+  --text-body: 13px; /* 元件正文 ← 13/13.5(元件處) */
+  --text-title: 14px;   /* 強調正文 / 小標題 ← 14/15 */
+  --text-h2: 16px;   /* 面板 / 區段標題(如 inspector)← 16 */
+  --text-h1: 21px;   /* 頁標題(manage 頁 .vhead h1 / tag-manager 標題)← 21 */
 
   /* 語意狀態色(原只有 danger;補 success/warning,與 booru 分色語意分離) */
   --color-success: #34d399; /* 成功/完成(emerald,刻意異於 character 綠 #4ade80) */
@@ -152,7 +158,7 @@ body {
   /* 按鈕 */
   .btn {
     @apply inline-flex items-center gap-[7px] whitespace-nowrap rounded-[8px] border
-      border-hair bg-raised px-[13px] py-[7px] text-[12.5px] font-semibold text-text
+      border-hair bg-raised px-[13px] py-[7px] text-[length:var(--text-sm)] font-semibold text-text
       cursor-pointer transition-[background,border-color,filter] duration-150;
   }
   .btn:hover {
@@ -169,7 +175,7 @@ body {
   }
   /* 小尺寸修飾子(密集列表的列操作用,如 tag-manager) */
   .btn-sm {
-    @apply px-[11px] py-1 text-[12px] rounded-[6px];
+    @apply px-[11px] py-1 text-[length:var(--text-sm)] rounded-[6px];
   }
   /* 三態補強:active 輕微變暗下沉;disabled 不可點 + 降透明 */
   .btn:active {
@@ -190,7 +196,7 @@ body {
   /* 文字輸入統一(背景 raised、border hair、focus 走全域 :focus-visible ring) */
   .input {
     @apply w-full rounded-[7px] border border-hair bg-raised px-[11px] py-[7px]
-      text-[13px] text-text placeholder:text-faint
+      text-[length:var(--text-body)] text-text placeholder:text-faint
       transition-[border-color] duration-150;
   }
   .input:hover {
@@ -212,7 +218,7 @@ body {
 
   /* facet / 側欄列 */
   .frow {
-    @apply flex items-center gap-2 rounded-[7px] px-2 py-[5px] text-[13px]
+    @apply flex items-center gap-2 rounded-[7px] px-2 py-[5px] text-[length:var(--text-body)]
       text-text cursor-pointer;
   }
   .frow:hover {
@@ -224,7 +230,7 @@ body {
 
   /* 區段小標題 */
   .facet-t {
-    @apply flex items-center gap-[7px] m-0 mb-2 px-[2px] text-[11px] font-semibold
+    @apply flex items-center gap-[7px] m-0 mb-2 px-[2px] text-[length:var(--text-xs)] font-semibold
       uppercase tracking-[0.08em] text-muted;
   }
 
@@ -253,7 +259,7 @@ body {
     max-width: 680px;
     margin: 0;
     color: var(--color-muted);
-    font-size: 13px;
+    font-size: var(--text-body);
   }
 
   /* 內容區(max-width + auto 置中) */
@@ -274,7 +280,7 @@ body {
     border-radius: var(--radius-soft);
     background: color-mix(in srgb, var(--color-accent) 6%, transparent);
     color: var(--color-info-ink);
-    font-size: 12.5px;
+    font-size: var(--text-sm);
   }
   .note svg {
     width: 16px;

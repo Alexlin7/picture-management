@@ -18,7 +18,7 @@
 }
 .hd .sub {
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: var(--text-body);
   margin-top: var(--space-6);
   line-height: 1.5;
 }
@@ -43,7 +43,7 @@
   flex: 1;
 }
 .selinfo {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--color-muted);
   font-family: var(--font-mono);
   white-space: nowrap;
@@ -51,7 +51,7 @@
 
 .q {
   width: 100%;
-  font-size: 13px;
+  font-size: var(--text-body);
   padding: 9px var(--space-12);
   border-radius: 8px;
   border: 1px solid var(--color-hair);
@@ -65,7 +65,7 @@
 
 .ksel {
   flex: none;
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   padding: var(--space-8) var(--space-10);
   border-radius: 8px;
   border: 1px solid var(--color-hair);
@@ -81,7 +81,7 @@
   padding: var(--space-24);
   text-align: center;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: var(--text-body);
 }
 
 /* 表頭 + 列共用 grid */
@@ -94,7 +94,7 @@
 }
 .thead {
   padding: var(--space-6) var(--space-12);
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--color-faint);
@@ -113,7 +113,7 @@
 }
 .thead i {
   font-style: normal;
-  font-size: 9px;
+  font-size: var(--text-2xs);
   color: var(--color-accent);
 }
 
@@ -146,7 +146,7 @@
   align-items: center;
   gap: var(--space-8);
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: var(--text-body);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -154,19 +154,19 @@
 }
 .c-kind {
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   opacity: 0.9;
 }
 .c-count {
   text-align: right;
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--color-faint);
 }
 .c-recent {
   text-align: right;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--text-2xs);
   color: var(--color-faint);
 }
 .c-acts {
@@ -179,7 +179,7 @@
 .rename {
   width: 100%;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--text-body);
   padding: 5px 9px;
   border-radius: 6px;
   border: 1px solid var(--color-accent);

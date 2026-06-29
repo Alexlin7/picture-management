@@ -61,7 +61,7 @@ import { A11yModule } from '@angular/cdk/a11y';
       min-height: 48px; padding: 8px 10px 8px 14px;
       border-bottom: 1px solid var(--color-hair);
     }
-    .dp-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+    .dp-title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-title); }
     .dp-close {
       margin-left: auto; width: 44px; height: 44px; display: inline-grid; place-items: center;
       border: 1px solid var(--color-hair); border-radius: var(--radius-soft);

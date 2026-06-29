@@ -16,7 +16,7 @@
   border-radius: var(--radius-soft);
   background: var(--color-accent);
   color: var(--color-accent-ink);
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
   text-decoration: none;
   transform: translateY(-150%);
@@ -96,7 +96,7 @@
   color: var(--color-text);
   padding: var(--space-4) 9px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;

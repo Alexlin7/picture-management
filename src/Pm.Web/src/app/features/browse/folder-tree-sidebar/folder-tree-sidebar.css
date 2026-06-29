@@ -10,11 +10,11 @@
 
 @media (prefers-reduced-motion: reduce) { .sidebar { transition: none; } }
 
-.side-h { font-family: var(--font-display); font-weight: 600; font-size: 15px; margin: 2px 2px var(--space-14); display: flex; align-items: center; gap: var(--space-8); }
-.side-h .sub { font-family: var(--font-mono); font-size: 10.5px; color: var(--color-faint); font-weight: 400; margin-left: auto; }
+.side-h { font-family: var(--font-display); font-weight: 600; font-size: var(--text-title); margin: 2px 2px var(--space-14); display: flex; align-items: center; gap: var(--space-8); }
+.side-h .sub { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--color-faint); font-weight: 400; margin-left: auto; }
 /* .frow / .frow:hover / .frow.on 由全域 styles.css @layer components 提供,勿在此重複定義 */
 .frow .ic { width: 15px; height: 15px; flex: none; color: var(--color-t-meta); }
 .frow .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.frow .n { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--color-faint); }
+.frow .n { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-faint); }
 .root-row { font-weight: 600; }
 .indent { margin-left: 18px; }

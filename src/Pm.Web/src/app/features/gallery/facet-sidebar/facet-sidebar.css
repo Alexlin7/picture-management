@@ -44,7 +44,7 @@
 .side-h {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--text-title);
   letter-spacing: 0.2px;
   margin: 2px 2px var(--space-14);
   display: flex;
@@ -53,7 +53,7 @@
 }
 .side-h .sub {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: var(--text-2xs);
   color: var(--color-faint);
   font-weight: 400;
   margin-left: auto;
@@ -68,7 +68,7 @@
 .dag {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: var(--text-2xs);
   color: var(--color-faint);
   border: 1px solid var(--color-hair);
   border-radius: 4px;
@@ -85,7 +85,7 @@
 .frow .n {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--color-faint);
 }
 .frow .dot {
@@ -100,7 +100,7 @@
   place-items: center;
   color: var(--color-faint);
   cursor: pointer;
-  font-size: 8px;
+  font-size: var(--text-2xs);
   transition: transform 0.15s;
   flex: none;
 }
@@ -115,7 +115,7 @@
 /* DAG 多父標記 */
 .multi {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: var(--text-2xs);
   color: var(--color-t-meta);
   border: 1px solid rgba(251, 191, 36, 0.45);
   border-radius: 4px;
@@ -148,7 +148,7 @@
   margin: 0 2px var(--space-14);
 }
 .filter-input {
-  font-size: 12.5px;
+  font-size: var(--text-sm);
 }
 
 /* 「顯示更多」幽靈按鈕 */
@@ -159,7 +159,7 @@
   border: none;
   background: transparent;
   color: var(--color-accent);
-  font-size: 12px;
+  font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
   border-radius: 6px;
@@ -172,7 +172,7 @@
 .empty-hint {
   padding: var(--space-6) var(--space-8);
   color: var(--color-faint);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 /* 平面清單名稱:單行 + 省略號,避免過長 tag 名換行撐高列 */

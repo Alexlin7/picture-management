@@ -130,7 +130,7 @@ related: [2026-06-24-ui-style-system-design]
 
 **type scale(封閉階)**
 
-- DO:在 `@theme` 建封閉 type-scale token,字級只准取這幾階(建議 7 階,每階綁定建議 line-height):`--text-h1: 21px / --text-h2: 16px / --text-title: 14px / --text-body: 13px / --text-sm: 12px / --text-xs: 11px / --text-2xs: 10px`。
+- DO:字級只准取這 7 階 token(**2026-06-29 已實作於 `@theme static`**):`--text-h1: 21px / --text-h2: 16px / --text-title: 14px / --text-body: 13px / --text-sm: 12px / --text-xs: 11px / --text-2xs: 10px`。元件 .css / .ts inline / `@apply`(`text-[length:var(--text-*)]`)一律取 var,不寫裸 px。**例外**:`body` 全域 `13.5px` 為閱讀基準,刻意不納入階、不變動。
 - DONT:不要再出現 .5px 字級或階外字級(`8 / 9 / 9.5 / 15 / 22` 一律收斂進最近的階)。新元素一律從 token 挑,不手填 px。
 - DONT:不要用 0.5px 差製造層級;層級差至少跨一個 token 階,否則改用 weight / color 區分。
 
@@ -323,7 +323,7 @@ related: [2026-06-24-ui-style-system-design]
 | ✅(2026-06-29)toast token 名漂移(`--color-ink`→`--color-text`、`--color-panel`/`--color-hair`/`--color-muted` fallback 對不上)修正;成功色 → `--color-success` | 退場 token | S | 新發現 |
 | ✅(2026-06-29)danger 裸值(confirm / toast / reconcile / saved)token 化(rgba→`color-mix(--color-danger)`、裸 hex→token、去冗餘 fallback) | danger 色軸;退場 token | S | 新發現 |
 | ✅(2026-06-29)`#3b4150` 抽既有 token `--color-hair-strong`(.btn/.input/.sel-mini/.root-tab/.saved hover);`.note` 藍 rgba 改 `color-mix(accent)` + 文字 `--color-info-ink` | 取色 token 化 | S | 新發現 |
-| ✅(2026-06-29)新增 `--text-h1`/`--text-h2` token;頁標題 vhead + tag-manager 統一 `var(--text-h1)`(21)。inspector(h2/16)仍用裸值,待 P1 type-scale 收斂 | 頁標題 | S | 新發現 |
+| ✅(2026-06-29)頁標題 vhead + tag-manager 統一 `var(--text-h1)`;inspector 等所有面板/區段標題已隨 type-scale 收斂走 `var(--text-h2)` 等 token(裸字級全清,見下方 type-scale 列) | 頁標題 | S | 新發現 |
 | ✅(2026-06-29)~~`.skeleton` 死碼~~ 經查**非死碼**:`thumb.ts` 縮圖載入態在用、`thumb.spec` 有測。原「死碼」判斷修正;真正缺的「首屏清單骨架」下放 P1(見下) | loading / skeleton | — | gallery-improvements |
 | ✅(2026-06-29)`app.html` Angular 樣板殘留清除(實為孤兒死檔,App 用 inline template,直接刪) | 文案;勿留樣板 | S | 新發現 |
 
@@ -332,7 +332,7 @@ related: [2026-06-24-ui-style-system-design]
 | 項目 | 違反準則 | 成本 | 來源 |
 |---|---|---|---|
 | ✅(2026-06-29,on-scale 部分)建 `--space-*` value 命名 scale(4 6 8 10 12 14 16 20 24 28 32 40 48);14 個 .css 的 padding/margin/gap **已在階上的值** 178 處 → `var(--space-N)`(值不變、視覺零變動)。🔲 **off-scale ~90 處**(9/5/11/7/3/18/15…光學微調)留裸 px,待獨立正規化切片(視覺決策、需逐處截圖) | 間距 scale | M | 新發現 |
-| 建 type-scale token,16 個散落字級(含 .5px)逐處歸階 | type scale 封閉階 | L | 新發現 |
+| ✅(2026-06-29)建封閉 type-scale 7 階 token(`--text-2xs:10 / -xs:11 / -sm:12 / -body:13 / -title:14 / -h2:16 / -h1:21`,`@theme static`);15 個散落字級(含 .5px)全歸階,半階就近 snap 平手往下(≤0.5px、近乎無感),罕用 8/9/15 ≤1px。元件 .css + .ts inline styles + styles.css `@apply`(`text-[length:var(--text-*)]`)共 ~140 處替換。**body 全域 13.5 為閱讀基準,保留不納入階**。驗證:ng build / 127 單元 / 26 e2e 全綠 | type scale 封閉階 | L | 新發現 |
 | 建三角色 utility(`.u-mono`/`.u-display`),60+ 處逐處替換 `font-family: var(--font-*)` | 三角色固化 | M | 新發現 |
 | transition 時長 / 緩動走 `--dur-*` / `--ease-out`,~10 處魔術數字機械替換 | transition token | M | 新發現 |
 | 半透明 cyan `rgba(34,211,238,…)` ×19 抽 `--color-accent-soft` / `-ring`,各透明階收斂 | 取色 token 化 | M | 新發現 |
