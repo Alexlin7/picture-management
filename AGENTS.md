@@ -99,3 +99,4 @@ dotnet publish src/Pm.Api -r win-x64 --self-contained -p:PublishSingleFile=true
 - `README.md`:現況、啟動方式、功能清單(公開門面)。
 - `AGENTS.md`:大方向、鐵則、開發約定(本檔)。
 - `docs/design/`:需保留的設計決策與脈絡;已完成的瑣碎實作細節不要堆在這裡造成噪音。
+- **文件治理(權威 / 時序 / supersede / frontmatter)**:規則統一在 [`docs/design/README.md`](docs/design/README.md#文件治理權威--時序--metadata)。重點:① 內容衝突時 `AGENTS 鐵則 > 主設計 §7 > 分項設計 > README`;② 改設計決策要回寫 canonical(主設計 §7 或本檔),舊文件加 `superseded-by`、留理由不刪;③ 新設計文件頂端要加 YAML frontmatter(`status`/`last-reviewed`/`supersedes`/`superseded-by`/`related`)。
