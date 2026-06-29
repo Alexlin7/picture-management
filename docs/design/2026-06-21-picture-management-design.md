@@ -80,12 +80,13 @@ related: []
 1. **Angular SPA** — CDK virtual scroll 相簿、布林 tag 搜尋面板、Saved Search、標籤編輯器(WD14 自動標以信心門檻採用;檢視器可清除自動標 / 移除單一標籤)、失蹤檔案待確認匣、library root 管理、匯入路徑→tag 確認步驟。`ng build` 產靜態檔由 .NET 程序 serve。
 2. **單一 .NET 程序(ASP.NET Core)** — 一個行程內同時是:
    - **API** — 布林 tag 查詢(keyset 分頁)、serve 縮圖與原圖、tag/saved-search CRUD、root 管理、觸發掃描、reconcile 佇列、路徑→tag 規則確認。只 bind `localhost`,**不做帳號系統**。
-   - **Scanner / 索引器(背景服務)** — 走訪 root、算 SHA-256、抽 EXIF、路徑→tag(經規則)、upsert `photo`/`photo_location`、用 hash 偵測搬移/失蹤、產縮圖、塞 `tagging_job`。
+   - **Scanner / 索引器(背景服務)** — 走訪 root、算 SHA-256、抽 EXIF、路徑→tag(經規則)、upsert `photo`/`photo_location`、用 hash 偵測搬移/失蹤、產縮圖(非標準格式 AVIF/HEIC/HEIF 經 **`Pm.Imaging`** 解碼橋接,見下)、塞 `tagging_job`。
    - **標籤背景服務** — 抽 `tagging_job`(**程序內 DB-backed 佇列**:`System.Threading.Channels` + `BackgroundService`,並行上限/重試/背壓),跑 WD14 ONNX 推論,寫回 `photo_tag`(source/confidence)。
    - **`IInferenceSessionFactory`** — 抽象 ONNX Execution Provider:開機依偵測顯卡或啟動參數選 DirectML / (日後)CUDA / CPU fallback。把「DirectML 維護模式」風險關進此介面,可隨時抽換。
 3. **SQLite(嵌入式檔案)** — 單一真相(見 §4)。in-process,單程序天然序列化寫入,無 server、無 port、無常駐服務。
 4. **縮圖快取** — app 自有目錄,依 `file_hash` 分桶(如 `thumbs/ab/cd/<hash>.webp`),衍生、可重建、絕不碰原圖。
-5. **(未來/可選)Python compute sidecar** — 僅當遇到難轉 ONNX 的新模型才開回;**無狀態**:只做推論,結果 POST 回 C# API,**不直連 SQLite**(避開雙寫)。`tagging_job` 即這道可重開的 seam。
+5. **`Pm.Imaging`(解碼橋接)** — 影像載入/識別的 facade,對 Scanner/ML 只表達意圖(載圖 / 讀尺寸),內部自選解碼引擎:HEIF 家族(`.avif`/`.heic`/`.heif`)ImageSharp 不解,改走 **Magick.NET(內建 libheif)** 解成像素再包回 ImageSharp;其餘格式直接走 ImageSharp。全 app 影像表示型別維持 ImageSharp,Magick 僅內部策略、絕不外洩。
+6. **(未來/可選)Python compute sidecar** — 僅當遇到難轉 ONNX 的新模型才開回;**無狀態**:只做推論,結果 POST 回 C# API,**不直連 SQLite**(避開雙寫)。`tagging_job` 即這道可重開的 seam。
 
 **單程序的代價與保留:** 收掉第二程序 → 不需跨程序 broker/queue,但 `tagging_job` 表保留作**持久工作清單**(隔夜續跑、重試、可被未來 sidecar 接管)。GPU crash 會影響整個程序 → 推論置於獨立背景執行緒、可選分批,降低衝擊(YAGNI:單人本機,重啟成本低)。
 
