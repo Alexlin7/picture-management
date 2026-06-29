@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-24-async-scan-design]
+---
+
 # 縮圖佔位狀態 + 新增來源自動掃描 設計
 
 **日期**:2026-06-24

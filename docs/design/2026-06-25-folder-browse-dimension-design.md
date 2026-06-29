@@ -1,7 +1,15 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: []
+---
+
 # 資料夾路徑維度檢視(② 瀏覽)— 設計
 
 - 日期:2026-06-25
-- 狀態:**設計定稿待實作**(brainstorming 收斂 + 可點 mockup 已審)。
+- 狀態:**已實作(2026-06-29 複查確認)** —— `/browse`(即時樹 + 麵包屑 + 下鑽 + 遞迴圖牆)已落地;原設計經 brainstorming 收斂 + 可點 mockup 審定。
 - 範圍:新增「照資料夾分類瀏覽」維度,與既有「by tag 搜尋」並列,成為圖庫的第二個檢視入口。
 - 方法:brainstorming(一問一答收斂)+ 資料層實地探索 + ui-ux-pro-max 規則 + frontend-design 視覺判斷 + 可點 mockup 三輪迭代。
 - Mockup:`docs/mockups/folder-dimension-design.html`(瀏覽器開,3 分頁:雙維度總覽 / 資料夾瀏覽完整互動 / path→tag 對照)。

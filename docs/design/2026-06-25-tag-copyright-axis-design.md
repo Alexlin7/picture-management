@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-22-tag-display-layer-design]
+---
+
 # 資料層作品軸:WD14 copyright 拆分 + tag_relation — 設計
 
 - 日期:2026-06-25

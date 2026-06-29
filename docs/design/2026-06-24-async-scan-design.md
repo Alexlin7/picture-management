@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-23-scanner-tagging-refactor-design, 2026-06-25-orphan-photo-cleanup-design, 2026-06-26-photo-reprocess-and-scan-heal-design]
+---
+
 # 掃描非同步化 + 掃描資料完整性修正(背景跑 + 前端輪詢)— 設計文件
 
 - 日期:2026-06-24

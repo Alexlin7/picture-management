@@ -1,6 +1,55 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: []
+---
+
 # 設計文件
 
 本目錄是專案的設計與決策記錄(spec)。每份文件記錄一個子系統或一次重要決策的「為什麼這樣做」;實作細節以程式碼與 git history 為準,本目錄只保留長期有價值的設計脈絡。
+
+## 文件治理(權威 · 時序 · metadata)
+
+文件多了之後,「找得到」(retrieval)與「該信哪份」(authority / currency)是兩件正交的事。本索引解決前者(導航),以下規則解決後者。
+
+**1. 權威順序(內容衝突時誰贏)**
+
+> `AGENTS.md` 鐵則 > 主設計 [`2026-06-21-picture-management-design.md`](2026-06-21-picture-management-design.md) §7 決策日誌 > 分項設計文件 > `README.md`
+
+愈上層愈穩定、愈該信。下層與上層矛盾時,以上層為準,並回頭修正下層。
+
+**2. canonical 歸屬(每個概念只有一個家,其餘連過去)**
+
+| 內容類型 | canonical(唯一真相源) | 其他文件 |
+|---|---|---|
+| 不可違反的鐵則、開發約定 | `AGENTS.md` | 只引用,不重述規範 |
+| 架構 / ER / DDL / 關鍵決策日誌 | 主設計 `2026-06-21-...` | 分項文件連過去 |
+| 各子系統設計脈絡 | 對應分項設計文件 | —— |
+| 功能現況 / 啟動方式(公開門面) | 根目錄 `README.md` | 人話摘要 + 連向上述,**非真相源** |
+
+**3. 文件 ID 與路徑解耦**
+
+文件 ID = 檔名去掉 `.md` 的 slug(例:`2026-06-24-async-scan-design`)。frontmatter 的 `related` / `supersedes` / `superseded-by` 一律寫 **ID**,不寫路徑;ID→路徑對照由本索引負責。搬檔/改名時更新本索引即可,交叉引用不必逐處改。
+
+**4. frontmatter(機器可讀)**
+
+每份設計文件頂端有 YAML frontmatter,只放會拿來判斷的欄位:
+
+```yaml
+status: active        # active / superseded / deprecated
+last-reviewed: YYYY-MM-DD
+supersedes: []        # 被本文取代的舊文件 ID
+superseded-by: []     # 取代本文的新文件 ID
+related: []           # 同子系統 / 有脈絡關聯的文件 ID
+```
+
+YAML = 文件**生命週期與關係**的權威層(機器可讀);頂部 prose(`日期 / 狀態 / 關聯`)= 人類細節與**實作進度**。兩者衝突時,以 YAML `status` 判定文件是否現行有效。
+
+**5. 決策變更:supersede,不要默默覆寫或刪除**
+
+決策改了 → ① 回寫 canonical(主設計 §7 或 `AGENTS.md`);② 舊文件加 `superseded-by`,新文件加 `supersedes`,**保留舊文件與其理由**(舊決策的「為什麼」常是最有價值的);③ 不直接刪除,避免 dangling reference 與重打同一場爭論。整份被取代才設 `status: superseded`;只有局部被改,在 canonical 補一條日誌即可。
 
 ## 從哪讀起
 

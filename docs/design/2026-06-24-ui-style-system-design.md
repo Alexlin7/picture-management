@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-24-frontend-design-guidelines]
+---
+
 # UI 樣式系統地基 + UI/UX 進化 — 設計文件
 
 - 日期:2026-06-24

@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-24-async-scan-design]
+---
+
 # 單張重新處理 + 掃描自動痊癒設計
 
 **日期**:2026-06-26

@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-23-scanner-tagging-refactor-design, 2026-06-25-second-tagger-cl-tagger-evaluation]
+---
+
 # Pm.Ml 推論層架構盤點 — 為 CLIP / GPU 自動偵測鋪路
 
 - 日期:2026-06-23

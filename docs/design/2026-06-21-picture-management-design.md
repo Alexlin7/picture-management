@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: []
+---
+
 # 圖片管理系統 — 設計文件
 
 - 日期:2026-06-21
@@ -69,7 +77,7 @@
    └────────────┘ └──────────┘ └───────────────┘
 ```
 
-1. **Angular SPA** — CDK virtual scroll 相簿、布林 tag 搜尋面板、Saved Search、標籤編輯器(接受/拒絕 WD14 建議)、失蹤檔案待確認匣、library root 管理、匯入路徑→tag 確認步驟。`ng build` 產靜態檔由 .NET 程序 serve。
+1. **Angular SPA** — CDK virtual scroll 相簿、布林 tag 搜尋面板、Saved Search、標籤編輯器(WD14 自動標以信心門檻採用;檢視器可清除自動標 / 移除單一標籤)、失蹤檔案待確認匣、library root 管理、匯入路徑→tag 確認步驟。`ng build` 產靜態檔由 .NET 程序 serve。
 2. **單一 .NET 程序(ASP.NET Core)** — 一個行程內同時是:
    - **API** — 布林 tag 查詢(keyset 分頁)、serve 縮圖與原圖、tag/saved-search CRUD、root 管理、觸發掃描、reconcile 佇列、路徑→tag 規則確認。只 bind `localhost`,**不做帳號系統**。
    - **Scanner / 索引器(背景服務)** — 走訪 root、算 SHA-256、抽 EXIF、路徑→tag(經規則)、upsert `photo`/`photo_location`、用 hash 偵測搬移/失蹤、產縮圖、塞 `tagging_job`。
@@ -352,7 +360,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 ### 6.2 五個畫面
 
 1. **圖庫**:頂部布林 tag 搜尋列(token 化、空格=AND、`-`=排除);左側篩選(階層樹 + 平面 facet);中央 CDK virtual scroll 瀑布流縮圖(hover 浮出分色 mini 標籤、`可能是照片` 徽章、`2 份` 去重標記);右側檢視器。
-2. **檢視器(選圖)**:大預覽 →**「身分 → 位置」卡片(簽名元素)**:一個 `file_hash` 下掛多個位置 pill(本機 / 舊 GDrive…),直接把「身分 vs 位置」畫出來 → 標籤分色 lane(角色/作品/屬性/年份/資料夾)→ **WD14 建議**(虛線框 + 信心 % + 採用✓/拒絕✕)→ EXIF(動漫圖顯示「無相機 EXIF」,個人照片顯示相機/時間/GPS)。
+2. **檢視器(選圖)**:大預覽 →**「身分 → 位置」卡片(簽名元素)**:一個 `file_hash` 下掛多個位置 pill(本機 / 舊 GDrive…),直接把「身分 vs 位置」畫出來 → 標籤分色 lane(角色/作品/屬性/年份/資料夾)→ **WD14 自動標**(分色 chip + `source` 徽章 + 信心 %;逐一接受/拒絕 UI 為另案,見 §7)→ EXIF(動漫圖顯示「無相機 EXIF」,個人照片顯示相機/時間/GPS)。
 3. **匯入確認(路徑→tag)**:表列沒見過的資料夾段 → 出現次數 / 範例路徑 / 建議動作(對應標籤·分色 / 略過不產 tag / 標為年份)。套用一次寫進 `path_tag_rule`,之後只問新段。
 4. **失蹤待辦匣**:真失蹤(所有來源皆無、且無同 hash 副本)才進此;頂部提示「N 張只是換位置已自動續接」;每張可選 繼續等待 / 移到圖庫外 / 已刪除,並說明軟刪、同 hash 回來自動復原。
 5. **圖庫來源**:多 root 清單(狀態 / 檔案數 / 上次掃描 / 重新掃描 / 新增來源)。
@@ -360,7 +368,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 ### 6.3 互動決策
 
 - **階層樹(DAG)**:左側「作品 / 企劃 → 角色」可展開;不知上游的 tag 落在 **「— 無上層分類 —」** 桶,照常可用;多父 tag 標 `↟2` 徽章;搜上層自動涵蓋旗下後代(tag implication)。
-- **標籤來源可辨**:已採用 = 實線分色 chip;WD14 建議 = 虛線 + 信心 %,逐一接受/拒絕。
+- **標籤來源可辨**:標籤依 `tag.kind` 分色 chip + `source` 徽章(path/manual/wd14);WD14 自動標附信心 %。**採用流程:預設信任 + 信心門檻**(見 §7「WD14 採用流程」);逐一接受/拒絕的待審 UI 為另案、未排程(見 `2026-06-22-tag-display-layer-design` §「v1 明確不做」)。
 - **揪混入的個人照片**:置頂特殊 Saved Search「可能是個人照片」(`has:exif OR tag:realistic`)。
 - **跳回真實檔案系統(外部開啟)**:檢視器位置卡上提供三顆按鈕,語意分清。瀏覽器本身開不了檔案總管(沙盒),故一律**由原生跑在本機的 .NET 後端代為執行**;因 API bind `localhost`(鐵則 #8),能連到 API 的就保證是本機,不需另外偵測。
   - **在檔案總管顯示**(主要):後端 `explorer.exe /select,<path>` —— 僅反白不開檔,風險最低。
@@ -393,6 +401,7 @@ GROUP BY p.id HAVING count(DISTINCT pt.tag_id) = :n
 | **tag.kind 跨來源**(2026-06-22) | **語意升級、不降級**(character/copyright/meta > general > manual/path) | upsert 命中既有時較具體的 kind 可升級既有,wd14 `character` 不被既有 `manual` 蓋住而在檢視器畫錯 lane;手動策展的語意 kind 不被自動標降級 |
 | **SQLite 並發**(2026-06-22) | **開 WAL**(背景 worker + API 雙寫入者) | `TaggingWorker` 是常駐第二寫入者,WAL 讓讀寫不互卡;短暫寫鎖靠 Microsoft.Data.Sqlite 預設 command timeout 重試 |
 | **tagging_job 復原**(2026-06-22) | **啟動回收孤兒 `running`→`pending`** | 程序崩潰於推論中(首次標註要 HF 下載 ~300MB,視窗長)會讓 job 卡 `running` 永不再撈;單一 worker 前提下啟動回收,未來多 consumer 改帶租約的 atomic claim |
+| **WD14 採用流程**(2026-06-29) | **預設信任 + 信心門檻**;不做逐一審查待審佇列(取代原 §6「逐一 ✓/✕」敘述) | 十萬量級逐張 ✓/✕ 不可行;改靠信心門檻(~0.35,§5)+ `source` 徽章 + 布林查詢過濾;檢視器留「清除自動標 / 移除單一 tag」即足。逐一接受/拒絕 UI 另案、未排程(見 `2026-06-22-tag-display-layer-design` §「v1 明確不做」)|
 
 ---
 

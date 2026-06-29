@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-24-ui-style-system-design]
+---
+
 # 前端 Design 準則(sus-picture-management)
 
 ## 用途與適用範圍

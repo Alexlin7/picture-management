@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-23-ml-layer-architecture-assessment]
+---
+
 # 第二 tagger(cl_tagger_v2)評估 — ITagger 抽象
 
 - 日期:2026-06-25

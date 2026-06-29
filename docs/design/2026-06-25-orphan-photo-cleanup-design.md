@@ -1,7 +1,15 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-24-async-scan-design]
+---
+
 # 孤兒 photo 清理維護端點 — 設計
 
 - 日期:2026-06-25
-- 狀態:**設計定稿(待 plan)**
+- 狀態:**已實作(2026-06-29 複查確認)** —— `GET` / `DELETE /api/maintenance/orphan-photos` + 啟動孤兒數 log 已落地。
 - 範圍:後端維護端點,清掉「零 location」的孤兒 photo —— async scan 舊 bug 殘留(防新孤兒已修)。純後端,本輪無前端 UI。
 - 來源:孤兒 photo 清理(防新孤兒已做,清舊孤兒走手動維護端點)、`2026-06-24-async-scan-design.md`(事故後殘留如 id 4911)。
 - 鐵則對照:守 #2(`file_hash` 是身分)、#4(刪除是軟刪,**只有使用者明示才硬刪 purge**)。孤兒清理是 purge,以「GET 預覽 → 明示 DELETE」作為明示閘門。

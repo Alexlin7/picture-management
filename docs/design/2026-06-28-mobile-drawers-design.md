@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-26-frontend-rwd-design]
+---
+
 # ③g 完整手機版 — 抽屜式側板設計
 
 **狀態:已實作(2026-06-28)。**

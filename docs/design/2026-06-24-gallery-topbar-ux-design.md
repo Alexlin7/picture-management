@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-24-ui-style-system-design]
+---
+
 # Gallery 頂端操作區 UX 重構(Spec 3)— 設計文件
 
 - 日期:2026-06-24

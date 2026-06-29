@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-23-scanner-tagging-refactor-design, 2026-06-24-async-scan-design]
+---
+
 # 檔案偵測 / 掃描策略
 
 - 日期:2026-06-22

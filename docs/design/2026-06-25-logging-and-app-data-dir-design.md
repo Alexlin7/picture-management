@@ -1,7 +1,15 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: []
+---
+
 # 檔案 Logging + App Data Dir 收斂 — 設計
 
 - 日期:2026-06-25
-- 狀態:**設計定稿(待實作)**
+- 狀態:**已實作(2026-06-29 複查確認)** —— `StoragePaths`(app data dir 收斂)+ Serilog rolling file 已落地。
 - 範圍:① 引入檔案 logging(Serilog,rolling file);② 把執行期落點(SQLite / 縮圖 / WD14 模型 / log)收斂到單一 **app data dir**,讓單檔 self-contained exe 雙擊執行時資料不散落、log 不消失。
 - 來源議題:可觀測性(log 套件 + log 落點)。
 - 鐵則對照:不影響 #1(原圖唯讀,衍生資料另放)、#3(SQLite 為 tag 唯一真相)、#8(localhost 單人)。

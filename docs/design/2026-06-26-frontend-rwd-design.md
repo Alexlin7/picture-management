@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-28-mobile-drawers-design, 2026-06-24-frontend-design-guidelines]
+---
+
 # 前端 RWD 修復設計(桌面縮放韌性)
 
 **日期**:2026-06-26

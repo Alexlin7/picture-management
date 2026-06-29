@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-22-tag-display-layer-design]
+---
+
 # WD14 顯示層 v1 — 資料準備產出 + 實作接手
 
 - 日期:2026-06-23

@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-22-scan-detection-design, 2026-06-24-async-scan-design, 2026-06-23-ml-layer-architecture-assessment]
+---
+
 # LibraryScanner 重構 + Tagging 解耦 — 設計文件
 
 - 日期:2026-06-23

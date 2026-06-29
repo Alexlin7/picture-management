@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: []
+---
+
 # NAS / 對外多人 —— 擴展瓶頸與演進路線圖
 
 **狀態:前瞻性架構文件(forward-looking),非當前 backlog。** 產品當前定位仍是**單人 localhost**(見 `CLAUDE.md` 鐵則 8、主設計 `2026-06-21-picture-management-design.md` §2「單程序收斂」)。本文**不改變現狀、也不是 todo**;它記錄「若哪天走 NAS / 對外多人」時,**高併發瓶頸在哪、按什麼順序處理、每一步的觸發條件**,避免日後重新推導。

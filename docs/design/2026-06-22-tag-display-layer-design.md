@@ -1,3 +1,11 @@
+---
+status: active
+last-reviewed: 2026-06-29
+supersedes: []
+superseded-by: []
+related: [2026-06-23-tag-display-v1-dataprep, 2026-06-25-tag-copyright-axis-design]
+---
+
 # WD14 tag 顯示層清理(v1)— 設計文件
 
 - 日期:2026-06-22
