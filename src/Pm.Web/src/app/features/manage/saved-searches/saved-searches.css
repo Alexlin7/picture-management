@@ -9,8 +9,10 @@
   min-width: 0;
 }
 
-/* ---- vhead 標題區(mockup .vhead) ---- */
+/* ---- vhead 標題區(mockup .vhead;max-width + auto 置中,與 tag-manager 880 對齊) ---- */
 .vhead {
+  max-width: 880px;
+  margin: 0 auto;
   padding: 20px 24px 4px;
 }
 .vhead h1 {
@@ -29,8 +31,10 @@
   max-width: 680px;
 }
 
-/* ---- 內容區(mockup .panel-pad) ---- */
+/* ---- 內容區(mockup .panel-pad;max-width + auto 置中) ---- */
 .panel-pad {
+  max-width: 880px;
+  margin: 0 auto;
   padding: 16px 24px 40px;
 }
 
