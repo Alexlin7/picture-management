@@ -22,7 +22,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 18px;
+  padding: 0 24px;
   background: linear-gradient(180deg, var(--color-bar-1), var(--color-bar-2));
 }
 .search {
@@ -190,7 +190,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 0 18px;
+  padding: 0 24px;
   color: var(--color-muted);
   font-size: 12.5px;
 }
@@ -325,13 +325,13 @@
 /* masonry 容器邊距(ResizeObserver 用 contentRect.width,padding 不干擾欄寬計算) */
 app-masonry {
   display: block;
-  padding: 16px 18px;
+  padding: 16px 24px;
   box-sizing: border-box;
 }
 
 /* 空 / 載入 / 錯誤狀態 */
 .empty {
-  padding: 28px 18px;
+  padding: 28px 24px;
   color: var(--color-muted);
   font-size: 13px;
   text-align: center;
@@ -339,7 +339,7 @@ app-masonry {
 .loadmore {
   display: flex;
   justify-content: center;
-  padding: 8px 18px 24px;
+  padding: 8px 24px 24px;
 }
 
 .tile {
