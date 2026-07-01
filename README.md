@@ -100,7 +100,7 @@ dotnet publish src/Pm.Api -p:PublishProfile=win-x64-windowsml  # Windows ML(Win1
 
 | 東西 | 位置 | 備註 |
 |---|---|---|
-| 資料庫(唯一真相) | `pm.sqlite` | 備份＝複製此檔(`VACUUM INTO` 熱備)+ tag manifest 匯出 |
+| 資料庫(唯一真相) | `pm.sqlite` | 備份＝複製此檔(可用 sqlite3 CLI `VACUUM INTO` 熱備);tag manifest 匯出為規劃中、app 尚未內建 |
 | 縮圖快取 | `thumbs/`(依 hash 分桶) | 衍生資料,可重建;512px webp |
 | WD14 模型 | `models/wd14`(opt-in 時下載) | 衍生資料,可重建 |
 | 原始圖檔 | 你的來源資料夾 | **唯讀,絕不修改/搬移/改名,不寫 XMP** |
@@ -119,9 +119,10 @@ dotnet publish src/Pm.Api -p:PublishProfile=win-x64-windowsml  # Windows ML(Win1
 - ✅ 作品軸(copyright 拆分 + facet「作品→角色」DAG 樹)
 - ✅ 資料夾路徑維度瀏覽 `/browse`(即時樹 + 麵包屑 + 下鑽 + 遞迴圖牆)
 - ✅ async scan + SQLite 硬化、孤兒清理、單張重新處理 + 掃描自動痊癒
-- ✅ AVIF / HEIC / HEIF 解碼支援
+- ✅ AVIF 解碼支援(已測);HEIC / HEIF 解碼路徑就緒,真實樣本測試待補
 - ✅ 前端 RWD:桌面縮放韌性 + 側欄/inspector 可收合 + 完整手機版抽屜式側板
 - ✅ 交付:win-x64 自包含單檔 exe 已實測就緒(DirectML flavor)
+- ✅ 內建 API explorer(開發用):OpenAPI 規格 `/openapi/v1.json` + Scalar 互動式文件 `/scalar/v1`
 - ✅ 推論後端三 flavor:**DirectML**(預設,任何 DX12 GPU)/ **CUDA**(NVIDIA,24H2 以下)/ **Windows ML**(Win11 24H2+,EP 由 OS 動態下載)—— 編譯期經 `InferenceFlavor` 切套件,各有 publish profile + CI matrix。CPU / DirectML 已實機驗證;CUDA / Windows ML 已編譯與 publish 驗證,runtime 推論需對應硬體/OS(無 GPU 或非 24H2 環境無法在此驗)
 - 🔲 Phase 2(規劃):CLIP image embedding 語意搜尋(sqlite-vec 或 Postgres+pgvector)
 

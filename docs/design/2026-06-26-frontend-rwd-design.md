@@ -24,6 +24,7 @@ related: [2026-06-28-mobile-drawers-design, 2026-06-24-frontend-design-guideline
 - **不做整頁手機版重排**(漢堡選單、抽屜式側欄、375px mobile-first 整頁重構)。使用者情境以桌面調整視窗為主。
   - **例外(2026-06-27 延伸,已完成):** gallery 頂部 `topbar` / `toolbar` 已補手機尺寸支援 —— 斷點 640px:topbar 折行 + 隱藏冗餘提示,toolbar 採「⋯ 更多」溢出選單收次要操作(模型佇列狀態 + 重標失敗);`rwd-resize-smoke.mjs` 補 480/375 寬度回歸。此為點狀修復,非整頁 mobile-first;抽屜式側欄、漢堡選單仍維持非目標。
 - **不做 virtual scroll / 窗格化**(獨立 backlog,本次範圍外);本次只保證不破版 + 自適應。無限捲動沿用現有 IntersectionObserver。
+  - **後續已實作(2026-07 解除非目標):** `masonry.ts` 已補 windowing —— 傳入可捲動容器(`scrollEl` input)即啟用,只渲染視窗 ± `overscan` 的 tile(`visibleItems` computed + `isBoxInWindow`);不傳則 fallback 全渲染(向後相容 + 測試/SSR 安全)。與本節 §3「座標已由 JS 算好,日後窗格化只需依捲動位置裁切」的鋪路一致。
 - **不做 overlay peek**(收合側欄後懸浮預覽)。要看側欄就展開或拉寬視窗。
 
 ## 2. 根本改變:排版改由 JS 量測驅動

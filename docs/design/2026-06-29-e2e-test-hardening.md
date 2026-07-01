@@ -9,7 +9,7 @@ related: [2026-06-26-frontend-rwd-design, 2026-06-28-mobile-drawers-design, 2026
 # E2E 測試強化 + 準則 — 設計
 
 - 日期:2026-06-29
-- 狀態:**準則已定案(新寫 e2e 一律遵守)**;既有 5 支煙霧腳本待分階段遷移(見 §四)。
+- 狀態:**準則已定案(新寫 e2e 一律遵守)**;既有 5 支煙霧腳本**已完成遷移並刪除**(5 支 `.mjs` → 7 支 `.spec.ts`,見 §四)。
 - 範圍:① 盤點現有 `src/Pm.Web/e2e/*.mjs` 的壞味道;② 確立「之後寫 e2e 一律遵守」的鐵則;③ 遷移到 `@playwright/test` runner 的分階段計畫。
 - 來源:2026-06-29 對 5 支 e2e 腳本的 code review。
 - 鐵則對照:守主專案鐵則 #1(e2e 全程 `page.route` mock `/api`,**不依賴真實圖庫、不碰原圖**)、#8(localhost 單機,無認證 → 無 `storageState` 登入態問題)。
@@ -124,6 +124,8 @@ export default defineConfig({
 - **Phase 2**:`lightbox` → `browse` → `rwd`,逐支轉 `test()`,套 §二鐵則(web-first expect、getByRole、移除 waitForTimeout)。
 - **Phase 3**:`a11y-keyboard` 最後(最大、最該拆),拆成多個聚焦 `test()`(shell 結構 / roving / 資料夾 / 麵包屑 / combobox / 方向鍵補頁)。
 - **收尾**:刪除舊 `.mjs` 與對應 `package.json` script;README「測試」段更新跑法。
+
+> **遷移結果(2026-07 複查):全數完成。** `e2e/` 下已無 `.mjs`,共 7 支 `.spec.ts`(`a11y-keyboard` / `browse` / `lightbox` / `mobile-drawers` / `rwd-resize` / `saved-a11y` + `fixtures.ts`);`playwright.config.ts`(`baseURL` / `webServer` / `testIdAttribute='data-testid'`)齊備,`package.json` 為 `"e2e": "playwright test"`;上列鐵則零違反(`page.$` / `force:true` / `expect(await` / 硬編 localhost 全零命中)。
 
 **最該優先修的前 3 項**(若先做最小修補、暫不整套遷移):
 1. `browse-smoke.mjs:107` 無限捲硬等 → `waitForFunction` 等 tile 數增加。

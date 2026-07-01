@@ -21,7 +21,7 @@ Angular SPA(ng build 靜態檔)──REST(localhost)──> 單一 .NET 程序
 
 - **單一 .NET 程序**:Angular 前端(由 .NET serve 靜態檔)、C#/.NET 後端(API + 內建掃描器 + ONNX 推論)。無第二程序、無 broker、無 server DB。
 - **嵌入式 SQLite** 扛布林多軸查詢 + JSON(EXIF)+ FTS5 + recursive CTE;單程序天然序列化寫入。Phase 2 語意搜尋走 sqlite-vec 或遷 Postgres+pgvector。
-- **`tagging_job` 表** 作程序內持久佇列(`Channels`+`BackgroundService`),亦是未來 Python compute sidecar 的可重開 seam(無狀態、POST 回 API、不直連 DB)。
+- **`tagging_job` 表** 作程序內持久佇列(`BackgroundService` 輪詢 + DB 佇列),亦是未來 Python compute sidecar 的可重開 seam(無狀態、POST 回 API、不直連 DB)。
 - 資料模型九表,身分/位置兩層拆開(`photo` ↔ `photo_location`)。ER 與 DDL 見主設計 §4。
 
 ## 不可違反的鐵則(改動前必讀)
@@ -35,7 +35,7 @@ Angular SPA(ng build 靜態檔)──REST(localhost)──> 單一 .NET 程序
 7. **ML 不另開程序、不引 broker**:`tagging_job` 表當**程序內** DB-backed 佇列。若日後真要 Python,以**無狀態 sidecar**(POST 回 API、不直連 SQLite)接回,別讓兩程序搶寫 SQLite。
 8. **單機單人:API 只 bind `localhost`,不做帳號/認證系統。** 一旦改 bind 離 localhost(NAS/多人),認證即從可選變必須。
 9. **路徑→tag 是「匯入後確認」**,確認結果存 `path_tag_rule`(每段只確認一次)。不要改成全自動硬塞。
-10. **此專案一定要開 SQLite FK cascade。** 全 app 的硬刪都倚賴 DB 層 `ON DELETE CASCADE`,程式碼**不逐表手動刪**。SQLite 預設 `foreign_keys=OFF` 且為連線層 runtime 設定,故必須在每條連線強制開 —— 唯一真相源是 `Configuration/SqliteSetup.cs` 的 `SqliteSetup.BuildConnectionString`(`ForeignKeys = true`),測試連線字串亦流經此函式。**絕不關閉**。
+10. **此專案一定要開 SQLite FK cascade。** 全 app 的硬刪都倚賴 DB 層 `ON DELETE CASCADE`,程式碼**不逐表手動刪**。SQLite 預設 `foreign_keys=OFF` 且為連線層 runtime 設定,故必須在每條連線強制開 —— 唯一真相源是 `Configuration/SqliteSetup.cs` 的 `SqliteSetup.BuildConnectionString`(`ForeignKeys = true`);`Pm.Api.Tests` 流經此函式,`Pm.Data.Tests` / `Pm.Scanner.Tests` 因不參照 `Pm.Api`(避免循環相依)另行手動設 `Foreign Keys=True`(效果等價)。**絕不關閉**。
 
 ## 工具鏈(已確認可用)
 
@@ -82,7 +82,7 @@ dotnet publish src/Pm.Api -r win-x64 --self-contained -p:PublishSingleFile=true
 **慣例:**
 - 全程以**繁體中文(台灣用語)** 溝通;程式碼識別子與技術名詞保留原文。
 - **後端測試 DB 隔離**:每測試用獨立 SQLite 檔(`Data Source={tmp}`)或 `:memory:`,避免互相污染 —— 本專案是 EF Core + SQLite,**無** Java `@Transactional` 那套。
-- **設定分層**:能力層開關(載不載模型等)走 `appsettings` / launchSettings 啟動參數(改了要重啟);行為層執行期開關走 `app_setting`(見 [`docs/design/2026-06-23-scanner-tagging-refactor-design.md`](docs/design/2026-06-23-scanner-tagging-refactor-design.md))。
+- **設定分層**:能力層開關(載不載模型等)走 `appsettings` / launchSettings 啟動參數(改了要重啟);行為層執行期開關規劃走 `app_setting`(**尚未實作**,待前端設定頁需求出現;見 [`docs/design/2026-06-23-scanner-tagging-refactor-design.md`](docs/design/2026-06-23-scanner-tagging-refactor-design.md) §D)。
 - schema/設計可演進;改動牽涉設計決策時,同步更新 `docs/design/` 設計文件與必要的 `README.md` / `AGENTS.md`。
 
 **前端樣式慣例(Tailwind v4 + Angular 隔離編譯;完整理由見 [`docs/design/2026-06-24-ui-style-system-design.md`](docs/design/2026-06-24-ui-style-system-design.md) 與 [`docs/design/2026-06-24-frontend-design-guidelines.md`](docs/design/2026-06-24-frontend-design-guidelines.md)):**
