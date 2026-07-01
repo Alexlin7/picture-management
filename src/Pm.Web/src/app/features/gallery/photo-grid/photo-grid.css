@@ -383,7 +383,7 @@ app-masonry {
 }
 .tile .ser {
   font-size: var(--text-xs);
-  color: #cfd3da;
+  color: var(--color-text-2);
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 .tile .chips {

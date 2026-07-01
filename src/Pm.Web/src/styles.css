@@ -11,6 +11,7 @@
 @theme static {
   /* chrome */
   --color-canvas: #14161b;
+  --color-canvas-deep: #101216;   /* 比 canvas 更深:activity bar 底 */
   --color-panel: #1b1e25;
   --color-raised: #23272f;
   --color-raised-2: #2a2f39;
@@ -20,6 +21,7 @@
   --color-bar-1: #181b21;         /* 頂欄漸層上緣 */
   --color-bar-2: #15171c;         /* 頂欄漸層下緣 */
   --color-text: #e8eaed;
+  --color-text-2: #cfd3da;        /* 次要文字:圖卡系列副標等,較 text 稍暗 */
   --color-muted: #959ba7;
   --color-faint: #6b7280;
   --color-accent: #22d3ee;
