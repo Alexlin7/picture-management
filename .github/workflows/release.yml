@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # SDK 版本依 repo 根的 global.json(10.0.301,rollForward latestPatch)。
       - name: Setup .NET
@@ -52,7 +52,7 @@ jobs:
           global-json-file: global.json
 
       - name: Setup Node 24
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
