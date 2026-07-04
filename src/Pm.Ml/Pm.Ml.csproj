@@ -33,21 +33,21 @@
   <!-- flavor → ONNX Runtime EP 套件(互斥,三選一)。windowsml 套件於 Slice 3 補上。 -->
   <ItemGroup Condition="'$(InferenceFlavor)' == 'directml'">
     <!-- 帶 {CPU, DirectML} 兩個 EP;任何 DX12 GPU(NV/AMD/Intel)。最廣相容。 -->
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" />
   </ItemGroup>
   <ItemGroup Condition="'$(InferenceFlavor)' == 'cuda'">
     <!-- 帶 {CPU, CUDA, TensorRT} EP;僅 NVIDIA,機器另需 CUDA/cuDNN。installer 較肥屬正常。 -->
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.24.4" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" />
   </ItemGroup>
   <ItemGroup Condition="'$(InferenceFlavor)' == 'windowsml'">
     <!-- ORT 由 OS / App SDK 共享,EP 經 ExecutionProviderCatalog runtime 下載/註冊(不烤進包)。
          self-contained 用 Microsoft.Windows.AI.MachineLearning(勿同時引 Microsoft.WindowsAppSDK
          主套件或 Runtime,否則會切成 framework-dependent)。 -->
-    <PackageReference Include="Microsoft.Windows.AI.MachineLearning" Version="2.0.300" />
+    <PackageReference Include="Microsoft.Windows.AI.MachineLearning" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="SixLabors.ImageSharp" />
   </ItemGroup>
 
   <ItemGroup>

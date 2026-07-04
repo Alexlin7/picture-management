@@ -177,7 +177,7 @@ git push origin v0.1.0
 |---|---|---|
 | `github-actions` | `/` | 兩個 workflow 的 `uses:` 版本(含 SHA pin) |
 | `npm` | `/src/Pm.Web` | Angular 前端 |
-| `nuget` | glob `/src/**` + `/tests/**` | 無 `.sln`、無集中版本管理 → 逐 csproj 掃 |
+| `nuget` | `/` | Central Package Management:版本集中在 root `Directory.Packages.props`,Dependabot 只更新該檔 |
 
 流程:Dependabot 開 PR → 觸發 `ci.yml` → patch/minor 測綠自動合、major 停著等人看。
 

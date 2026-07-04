@@ -27,11 +27,10 @@ updates:
       npm:
         patterns: ["*"]
 
-  # ---- 後端 NuGet（無 .sln、無集中版本管理 → glob 掃 src/ 與 tests/ 下每個 csproj）----
+  # ---- 後端 NuGet（Central Package Management：版本集中在 root Directory.Packages.props，
+  #      Dependabot 只更新該檔，免逐 csproj 掃、免跨專案誤試）----
   - package-ecosystem: "nuget"
-    directories:
-      - "/src/**"
-      - "/tests/**"
+    directory: "/"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
