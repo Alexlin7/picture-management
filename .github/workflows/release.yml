@@ -43,16 +43,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # SDK 版本依 repo 根的 global.json(10.0.301,rollForward latestPatch)。
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
       - name: Setup Node 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '24'
           cache: npm
@@ -115,7 +115,7 @@ jobs:
           }
 
       - name: 建立 GitHub Release + 上傳 asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ${{ env.ASSET }}
           # body_path = CHANGELOG 對應段落;generate_release_notes 仍保留 → auto notes 接在 body 之後。
