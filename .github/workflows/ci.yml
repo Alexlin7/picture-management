@@ -1,0 +1,75 @@
+name: CI
+
+# PR 與 push main 的驗證關卡:前端測試 + build、後端測試(走預設 flavor,與 EP 無關)。
+# 這道關卡是 Dependabot auto-merge 的閘門 —— test 綠,dependabot-automerge job 才會合。
+# action 一律 SHA pin(不可變 commit)+ 註解版本;Dependabot 會連 SHA 帶註解一起 bump。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# 同 ref 的新 push 取消進行中的舊 run,省 runner。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # 與 release 一致在 Windows 上跑:預設 flavor(directml)帶 Windows-only 原生 ORT。
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node 24
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: src/Pm.Web/package-lock.json
+
+      - name: 前端依賴(npm ci)
+        working-directory: src/Pm.Web
+        run: npm ci
+
+      - name: 前端測試(vitest + jsdom,免瀏覽器)
+        working-directory: src/Pm.Web
+        run: npx ng test --watch=false
+
+      - name: 前端 build
+        working-directory: src/Pm.Web
+        run: npx ng build
+
+      - name: 後端測試
+        run: dotnet test --configuration Release
+
+  # Dependabot 的 patch / minor 更新,test 綠即自動 squash-merge;major 保留手動 review。
+  dependabot-automerge:
+    needs: test
+    if: github.event_name == 'pull_request' && github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # test job 已綠(needs)→ 直接 squash-merge,免 branch protection / 免開 repo auto-merge 設定。
+      - name: 自動合併(patch / minor)
+        if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
