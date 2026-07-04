@@ -171,7 +171,7 @@ git push origin v0.1.0
 
 ### 10.2 Dependabot(`dependabot.yml`)
 
-每月、每 ecosystem 用 `groups: patterns:["*"]` **併成單一 PR**(壓低單人專案 PR 噪音):
+每月、每 ecosystem 的 group **只併 minor + patch**(`update-types:[minor,patch]`,對齊「major 手動」策略、壓低 PR 噪音);**major 各自拆獨立 PR**(壞也只壞它自己,不連累同批安全 patch):
 
 | ecosystem | 掃描路徑 | 說明 |
 |---|---|---|
@@ -179,7 +179,9 @@ git push origin v0.1.0
 | `npm` | `/src/Pm.Web` | Angular 前端 |
 | `nuget` | `/` | Central Package Management:版本集中在 root `Directory.Packages.props`,Dependabot 只更新該檔 |
 
-流程:Dependabot 開 PR → 觸發 `ci.yml` → patch/minor 測綠自動合、major 停著等人看。
+流程:Dependabot 開 PR → 觸發 `ci.yml` → patch/minor 測綠自動合、major 各自獨立 PR 停著等人看。
+
+- **`ignore` 規則**:`SixLabors.ImageSharp` 的 semver-major 被 ignore —— v4+ 於 build 期強制授權金鑰(沒 key 直接 build 失敗),單人本機工具留 3.1.x。日後要升 v4 需先取得 Six Labors 授權並設 key,再移除該 ignore。
 
 ### 10.3 Action SHA pin(供應鏈防護)
 
@@ -187,10 +189,28 @@ git push origin v0.1.0
   `uses: actions/checkout@9c091bb…3e0 # v7.0.0`。
 - **為什麼**:`@v7` 這種 major tag 會移動,作者帳號被攻破可把 tag 指到惡意碼、竊 `GITHUB_TOKEN`(release job 帶 `contents:write`)。SHA pin 凍結程式碼,tag 被移也動不了。
 - **維護**:Dependabot 看得懂 SHA-pinned action,會**連 SHA 帶註解一起 bump** —— 凍結 + 自動維護兼得。加/改 action 時**務必 pin SHA**,別退回浮動 tag。
-- 目前版本:checkout `v7.0.0` / setup-dotnet `v5.4.0` / setup-node `v6.4.0` / action-gh-release `v3.0.1` / fetch-metadata `v2.5.0`。
+- 目前版本:checkout `v7.0.0` / setup-dotnet `v5.4.0` / setup-node `v6.4.0` / action-gh-release `v3.0.1` / fetch-metadata `v3.1.0`。
 
 ### 10.4 待決 / 可調
 
 - **squash 合併需開啟**(repo 預設開):auto-merge 用 `gh pr merge --squash`;若關過 squash 要改 `--merge`。
 - **每次 push `main` 都會跑一次 Windows CI**(main 也有覆蓋的代價);嫌吵可拿掉 `push: branches:[main]` 只留 `pull_request`。
 - **auto-merge 範圍** 目前 patch + minor;要更保守改只 patch,要更省事納入 major(可能自動吞 breaking)。
+
+### 10.5 分支保護(`main`)
+
+**現況:未設**(個人 public repo:陌生人只能讀;能推的只有 owner 與 workflow 內建 `GITHUB_TOKEN`)。GitHub 會提示「main 未受保護」。
+
+**建議設定(零副作用):只擋 force-push + 刪除,不要求 PR / status check。**
+理由:① 本專案工作流是**直接 push `main`**,開「require PR」會擋住自己;② Dependabot 的測試閘門**已在 `ci.yml` 的 `needs: test`** 內,開「require status checks」反而會讓自己的直推也被卡等 CI。
+
+設定步驟(新版 Rulesets):
+1. **Settings → Rules → Rulesets → New branch ruleset**;Enforcement:**Active**。
+2. **Target branches → Include default branch**(`main`)。
+3. **Rules 只勾**:✅ **Restrict deletions**、✅ **Block force pushes**(**不要**勾 Require pull request / Require status checks)。
+4. **Bypass list → 加 Repository admin**(自己),避免鎖死。
+> 舊版 Branches 保護規則亦可:pattern `main`、建立規則即擋 force-push/刪除,別勾 require PR/checks。
+
+**若日後要更嚴(一切走 PR + 必過 CI,可選、目前不需要):**
+- ruleset 改勾 **Require a pull request** + **Require status checks**(選 `test` job)+ bypass 設自己;
+- 並把 `ci.yml` 的 auto-merge 從立即 `gh pr merge --squash` 改為 `gh pr merge --auto`(排隊等 required check 綠再合)—— 因為有了 required check,立即合會被擋、需改用 queued auto-merge。
