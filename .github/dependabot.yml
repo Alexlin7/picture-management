@@ -1,6 +1,6 @@
 # Dependabot:每月檢查依賴、有新版自動開 PR(附 changelog)。
-# 每個 ecosystem 都用 groups 把更新併成單一 PR，壓低單人專案的 PR 噪音 ——
-# 一個月大約各一顆 PR，review + CI 綠即 merge，即完成 pipeline / 前後端依賴維護。
+# group 只併 minor + patch(對齊「patch/minor 自動合、major 手動 review」策略)——
+# major 各自拆獨立 PR,壞也只壞它自己,不連累同批的安全 patch。
 version: 2
 updates:
   # ---- GitHub Actions（workflow 裡的 uses: 版本，如 checkout / setup-node / gh-release）----
@@ -14,6 +14,7 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   # ---- 前端 npm（Angular；package.json / package-lock.json 在 src/Pm.Web）----
   - package-ecosystem: "npm"
@@ -26,6 +27,7 @@ updates:
     groups:
       npm:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   # ---- 後端 NuGet（Central Package Management：版本集中在 root Directory.Packages.props，
   #      Dependabot 只更新該檔，免逐 csproj 掃、免跨專案誤試）----
@@ -39,3 +41,9 @@ updates:
     groups:
       nuget:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # ImageSharp v4+ 於 build 時強制授權金鑰(沒 key 直接 build 失敗);
+      # 單人本機工具留在 3.1.x。要升 v4 需先取得 Six Labors 授權並設 key,屆時移除本行。
+      - dependency-name: "SixLabors.ImageSharp"
+        update-types: ["version-update:semver-major"]
