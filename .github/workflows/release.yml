@@ -90,9 +90,35 @@ jobs:
           Compress-Archive -Path "src/Pm.Api/bin/Release/${{ matrix.tfm }}/publish/*" -DestinationPath $zip
           "ASSET=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      # 從 CHANGELOG.md 抽出本 tag 對應版本段落(## [X.Y.Z] … 到下一個 ## [ 之前)當 release body。
+      # 找不到對應段落 → 留空(下一步的 generate_release_notes 仍會自動補 commit/PR 清單)。
+      - name: 抽 CHANGELOG 對應版本段落
+        shell: pwsh
+        run: |
+          $ver = '${{ github.ref_name }}' -replace '^v', ''
+          $lines = Get-Content CHANGELOG.md
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^##\s*\[$([regex]::Escape($ver))\]") { $start = $i; break }
+          }
+          if ($start -lt 0) {
+            Write-Host "::warning::CHANGELOG.md 無 $ver 對應段落,release body 留空(改用 auto notes)"
+            '' | Out-File RELEASE_NOTES.md -Encoding utf8
+          } else {
+            $body = New-Object System.Collections.Generic.List[string]
+            for ($j = $start + 1; $j -lt $lines.Count; $j++) {
+              if ($lines[$j] -match '^##\s*\[') { break }
+              $body.Add($lines[$j])
+            }
+            (($body -join "`n").Trim() + "`n") | Out-File RELEASE_NOTES.md -Encoding utf8
+            Write-Host "已抽取 $ver 段落($($body.Count) 行)"
+          }
+
       - name: 建立 GitHub Release + 上傳 asset
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.ASSET }}
+          # body_path = CHANGELOG 對應段落;generate_release_notes 仍保留 → auto notes 接在 body 之後。
+          body_path: RELEASE_NOTES.md
           generate_release_notes: true
           fail_on_unmatched_files: true
