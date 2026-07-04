@@ -14,6 +14,10 @@ public static class RootEndpoints
 
         app.MapPost("/api/roots", async (CreateRootDto dto, PmDbContext db) =>
         {
+            // abs_path 有 UNIQUE index;重複註冊回 409(而非讓 constraint 冒成未處理 500)。
+            if (await db.LibraryRoots.AnyAsync(r => r.AbsPath == dto.AbsPath))
+                return Results.Conflict(new { message = $"來源路徑已存在:{dto.AbsPath}" });
+
             var root = new LibraryRoot { Name = dto.Name, AbsPath = dto.AbsPath };
             db.LibraryRoots.Add(root);
             await db.SaveChangesAsync();

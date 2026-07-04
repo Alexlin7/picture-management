@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ManageStore } from '../manage.store';
 import { ToastService } from '@core/ui/toast';
 
@@ -55,12 +56,34 @@ export class Roots implements OnInit {
       pathInput.focus();
       return;
     }
+    // 前端擋重複:同路徑已註冊 → 先提示、不打 API(對齊後端 abs_path UNIQUE;比對用完整字串)。
+    if (this.roots().some((r) => r.absPath === p)) {
+      this.toast.error(`來源路徑已存在:${p}`);
+      pathInput.focus();
+      return;
+    }
     const n = name.trim() || p;
-    const root = await this.store.createRoot(n, p);
-    this.toast.success(`已新增來源「${n}」,開始掃描…`);
-    this.adding.set(false);
-    // 新增即自動掃描:非破壞性、且是新增來源天經地義的下一步(不跳 confirm)。
-    // onRescan 已處理 scanning 狀態 + 輪詢 + 完成/失敗 toast。
-    await this.onRescan(root.id);
+    try {
+      const root = await this.store.createRoot(n, p);
+      this.toast.success(`已新增來源「${n}」,開始掃描…`);
+      this.adding.set(false);
+      // 新增即自動掃描:非破壞性、且是新增來源天經地義的下一步(不跳 confirm)。
+      // onRescan 已處理 scanning 狀態 + 輪詢 + 完成/失敗 toast。
+      await this.onRescan(root.id);
+    } catch (e) {
+      // 後端 409(競態下重複)或其他錯誤:帶出伺服器訊息,表單不關、路徑保留可改。
+      this.toast.error(this.addErrorMessage(e));
+      pathInput.focus();
+    }
+  }
+
+  // 從新增來源的失敗抽友善訊息:優先用後端 JSON body 的 message(如 409 的路徑已存在)。
+  private addErrorMessage(e: unknown): string {
+    if (e instanceof HttpErrorResponse) {
+      const body = e.error as { message?: string } | string | null;
+      if (typeof body === 'object' && body?.message) return body.message;
+      return e.message;
+    }
+    return e instanceof Error ? e.message : '新增來源失敗';
   }
 }
