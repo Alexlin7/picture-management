@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-05
+
+### 修正
+- 新增圖庫來源時,若路徑與既有來源重複(撞 `library_root.abs_path` UNIQUE),後端原本冒成未處理的 500;改為先檢查、重複回 **409 Conflict** + 訊息。前端新增來源送出前先比對現有來源擋重複(先提示、不打 API),並包錯誤處理:失敗跳 toast(帶出後端訊息)、表單不關、路徑保留可改。
+
 ## [0.2.0] - 2026-06-29
 
 ### 變更
@@ -42,6 +47,7 @@
 - 大圖檢視 lightbox。
 - GitHub Release 自動散布 workflow(打 `v*` tag → 測試 → build → win-x64 單檔 zip)。
 
-[Unreleased]: https://github.com/Alexlin7/picture-management/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Alexlin7/picture-management/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Alexlin7/picture-management/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Alexlin7/picture-management/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Alexlin7/picture-management/releases/tag/v0.1.0
