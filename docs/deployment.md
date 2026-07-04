@@ -145,7 +145,8 @@ git push origin v0.1.0
 2. **驗證**(僅 directml job,測試與 EP flavor 無關):`npm ci` → `npx ng test --watch=false`(前端)+ `dotnet test`(後端)—— 確保 tag 指向的 commit 是綠的才出版。
 3. **build / publish**(每個 flavor):`npx ng build`(前端靜態檔 → `src/Pm.Api/wwwroot`)→ `dotnet publish src/Pm.Api -p:PublishProfile=<該 flavor profile>`。
 4. **打包**:`Compress-Archive` 把該 flavor 的 publish 夾壓成 `picture-management-<tag>-win-x64-<flavor>.zip`(windowsml 的 publish 夾在 `net10.0-windows10.0.26100.0` 下)。
-5. **發布**:`softprops/action-gh-release@v2`(`fail-fast:false`,各 flavor 互不連坐)把三個 zip 上傳到同一個 Release;notes 由 commit 自動生成。
+5. **release notes**:一步 PowerShell 從 `CHANGELOG.md` 抽出本 tag 對應版本段落(`## [X.Y.Z]` 到下一個 `## [` 之前)寫 `RELEASE_NOTES.md`;找不到則留空、印 `::warning::`,不阻斷發版。
+6. **發布**:`softprops/action-gh-release`(`fail-fast:false`,各 flavor 互不連坐)把三個 zip 上傳到同一個 Release;body 用上一步的 `body_path`,並保留 `generate_release_notes:true` → GitHub auto notes(含 Full Changelog 比對連結)接在 CHANGELOG 段落之後。
    - ⚠️ **CUDA / Windows ML 在 runner 上僅 build + publish,不驗推論**(runner 無 NVIDIA GPU、非 Win11 24H2)。要驗 runtime 推論需對應硬體 / OS。
 
 **注意 / 待決:**
@@ -153,3 +154,43 @@ git push origin v0.1.0
 - **未做 code signing** —— 使用者首次執行會跳 Windows SmartScreen 警告(點「仍要執行」)。要消除需簽章憑證(自簽不夠,需 OV/EV CA),屬日後。
 - **未接自動更新**(Velopack)—— 目前是手動下載新版 zip。
 - workflow 預設**含測試 gate**;若想加速、只出 build 不跑測試,刪掉「前端測試 / 後端測試」兩步即可(不建議)。
+
+---
+
+## 10. CI 關卡 + 依賴自動維護
+
+> ✅ **已設定**(2026-07-05)。三塊:**PR CI 關卡**(`.github/workflows/ci.yml`)+ **Dependabot**(`.github/dependabot.yml`)+ **action SHA pin**(兩個 workflow)。
+
+### 10.1 PR CI 關卡(`ci.yml`)
+
+- **觸發**:`pull_request` 與 `push` 到 `main`。
+- **`test` job**(`windows-latest`,與 release 一致的 OS,預設 flavor 帶 Windows-only 原生 ORT):`npm ci` → `npx ng test --watch=false` → `npx ng build` → `dotnet test --configuration Release`。
+- **`dependabot-automerge` job**:`needs: test`(**測試綠才跑**),`if` 限 `pull_request` 且 actor 為 `dependabot[bot]`;對 **patch / minor** 更新 `gh pr merge --squash`(**major 不合、保留手動 review**)。
+- **非阻塞**:目前**無 branch protection**,CI 純資訊性 —— 綠給 main 掛 ✓、紅可見但不擋直接 push。auto-merge 靠 `needs: test` 當閘門,**不依賴 repo 設定**。
+- `concurrency` 設 `cancel-in-progress`:同 ref 新 push 取消進行中的舊 run。
+
+### 10.2 Dependabot(`dependabot.yml`)
+
+每月、每 ecosystem 用 `groups: patterns:["*"]` **併成單一 PR**(壓低單人專案 PR 噪音):
+
+| ecosystem | 掃描路徑 | 說明 |
+|---|---|---|
+| `github-actions` | `/` | 兩個 workflow 的 `uses:` 版本(含 SHA pin) |
+| `npm` | `/src/Pm.Web` | Angular 前端 |
+| `nuget` | glob `/src/**` + `/tests/**` | 無 `.sln`、無集中版本管理 → 逐 csproj 掃 |
+
+流程:Dependabot 開 PR → 觸發 `ci.yml` → patch/minor 測綠自動合、major 停著等人看。
+
+### 10.3 Action SHA pin(供應鏈防護)
+
+- 兩個 workflow 的 `uses:` **一律 pin 到不可變 commit SHA** + `# vX.Y.Z` 註解,例:
+  `uses: actions/checkout@9c091bb…3e0 # v7.0.0`。
+- **為什麼**:`@v7` 這種 major tag 會移動,作者帳號被攻破可把 tag 指到惡意碼、竊 `GITHUB_TOKEN`(release job 帶 `contents:write`)。SHA pin 凍結程式碼,tag 被移也動不了。
+- **維護**:Dependabot 看得懂 SHA-pinned action,會**連 SHA 帶註解一起 bump** —— 凍結 + 自動維護兼得。加/改 action 時**務必 pin SHA**,別退回浮動 tag。
+- 目前版本:checkout `v7.0.0` / setup-dotnet `v5.4.0` / setup-node `v6.4.0` / action-gh-release `v3.0.1` / fetch-metadata `v2.5.0`。
+
+### 10.4 待決 / 可調
+
+- **squash 合併需開啟**(repo 預設開):auto-merge 用 `gh pr merge --squash`;若關過 squash 要改 `--merge`。
+- **每次 push `main` 都會跑一次 Windows CI**(main 也有覆蓋的代價);嫌吵可拿掉 `push: branches:[main]` 只留 `pull_request`。
+- **auto-merge 範圍** 目前 patch + minor;要更保守改只 patch,要更省事納入 major(可能自動吞 breaking)。
